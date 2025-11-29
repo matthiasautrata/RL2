@@ -30,6 +30,27 @@ This document gives a full formal semantics for RL2.
 
 ---
 
+# **Relationship to Prior ODRL Formalization Work**
+
+RL2's semantics build on and extend prior work in ODRL formalization:
+
+| Work | Contribution | RL2 Extension |
+|------|--------------|---------------|
+| **[Pucella-Weissman 2006]** | First formal semantics; proved permission implication is NP-hard | RL2 adds operational semantics absent in their static model |
+| **[Steyskal-Polleres 2015]** | Action dependencies, rule-based reasoning | RL2 integrates this into condition evaluation |
+| **[Fornara-Colombetti 2017]** | Operational semantics for obligations via state machines | RL2 generalizes their approach to a full small-step calculus |
+| **[W3C ODRL Formal Semantics]** | Evaluator specification, state of the world | RL2 provides more precise denotational definitions |
+
+Key gaps in prior work that RL2 addresses:
+- **No unified semantics**: Prior work treated permissions, prohibitions, and duties separately
+- **Implementation-specific**: Fornara-Colombetti's work used Apache Jena specifically
+- **Missing Hohfeldian relations**: No prior work covers Claims, Powers, Liabilities, Immunities
+- **No mechanization path**: None provided a specification ready for Why3/Lean/Coq
+
+See **RL2_References.md** for complete citations.
+
+---
+
 # **Design Goals and Guiding Principles**
 
 RL2 semantics are designed to be:
@@ -965,20 +986,19 @@ Role resolution rules ensure that every role reference is type-correct and seman
 
 ---
 
-# **Policy Composition and Inheritance Semantics**
+# **Policy Composition Semantics**
 
-Policies can be composed:
+Policies can be composed via clause union:
 
 ```
-P1 ⊔ P2 = union of clauses
+P1 ⊔ P2 = Policy { clauses: P1.clauses ∪ P2.clauses }
 ```
-
-Inheritance is resolved via SHACL rules and override semantics.
 
 Conflict resolution reduces to condition calculus:
+- If two norms conflict, policy-level or clause-level precedence applies
+- RL2 supports ODRL conflict semantics via the `resolveDecision` function
 
-* if two norms conflict, policy-level or clause-level precedence applies
-* RL2 supports ODRL conflict semantics via condition ordering
+**Note on Inheritance**: ODRL's `inheritFrom` mechanism is intentionally not supported in RL2. Policy inheritance introduces complexity (flattening, override semantics, auditability issues) without clear benefit over explicit composition. See **RL2_DiscussionTopics.md** for discussion.
 
 ---
 
@@ -1038,11 +1058,20 @@ RL2 provides, for the first time, a rigorous semantic foundation capable of supp
 
 ---
 
-# **Future Mechanization in Why3**
+# **Mechanization**
 
-The abstract syntax maps cleanly to Why3 datatypes.
+RL2's semantics are explicitly designed for mechanization in proof assistants. The abstract syntax maps cleanly to inductive datatypes, and the operational rules are syntax-directed.
 
-Example:
+## Target Platforms
+
+| Platform | Strengths | Status |
+|----------|-----------|--------|
+| **Why3** | Algebraic types, multiple backend provers (Alt-Ergo, Z3), Coq integration | Primary target |
+| **K Framework** | Executable semantics, automatic interpreter generation | Validation target |
+| **Lean 4** | Dependent types, code extraction, AI-assisted proofs | Alternative |
+| **Coq** | Mature ecosystem, CompCert precedent | Alternative |
+
+## Why3 Example
 
 ```why3
 type agent
@@ -1057,22 +1086,24 @@ type condition =
   | Temporal time time
   | Context path operator value
   | Dynamic path
-```
 
-Evaluation becomes:
-
-```why3
 function eval_condition (c: condition) (env: env) : bool = ...
 ```
 
-Transition rules expressed as inductive predicates.
+Transition rules are expressed as inductive predicates.
 
-This allows proofs of:
+## Proof Obligations
 
-* determinism
-* termination (modulo time progression)
-* preservation
-* monotonicity of constraints
+The following properties should be proved for a verified implementation:
+
+1. **(S1) Determinism**: Given Σ, R, Ctx, evaluation produces a unique result
+2. **(S2) Progress**: Every well-typed expression either is a value or can step
+3. **(S3) Preservation**: Types are preserved under transitions
+4. **(S4) Duty-state consistency**: No duty can be both Fulfilled and Violated
+5. **(S5) Timeout correctness**: Deadlines are eventually enforced
+6. **(S6) Totality**: `Eval` terminates for all well-formed inputs
+
+See **RL2_ResearchPlan.md** for the complete mechanization roadmap, phased implementation plan, and deliverable specifications.
 
 ---
 

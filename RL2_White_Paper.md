@@ -209,7 +209,8 @@ RL2 provides the missing link between high-level legal intent and low-level mach
 See **RL2_References.md** for complete citations and glossary.
 
 RL2 Specifications:
-* RL2_Core.md — Core ontology
-* RL2_Semantics.md — Formal semantics
-* RL2_Protocol.md — Evaluation protocol
-* RL2_ODRL_Coverage.md — ODRL compatibility
+- RL2_Core.md — Core ontology
+- RL2_Semantics.md — Formal semantics
+- RL2_Protocol.md — Evaluation protocol
+- RL2_ODRL_Coverage.md — ODRL compatibility
+- RL2_ResearchPlan.md — Mechanization roadmap (Why3, K, Lean 4)

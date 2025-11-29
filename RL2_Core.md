@@ -98,10 +98,14 @@ The RL2 ontology is fully RDF/OWL, with a SHACL grammar defining:
 * typing rules
 * role consistency rules
 
-### **Compatible with IR and verified kernels**
+### **Mechanization-Ready**
 
-RL2 is designed to be translatable into an internal IR (stack-based or term-based)
-for deterministic evaluation.
+RL2 is designed for formal verification. The semantics map directly to:
+- **Why3**: Algebraic datatypes, pure functions, inductive predicates
+- **K Framework**: Rewrite-based executable semantics
+- **Lean 4 / Coq**: Dependent types, tactic proofs, code extraction
+
+See **RL2_ResearchPlan.md** for the mechanization roadmap.
 
 ---
 
@@ -936,10 +940,21 @@ RL2 is defined by a rigorous formal semantics that unifies normative logic, prom
 The complete formal semantics—including denotational definitions, small-step operational rules, and the policy evaluation function—are specified in **RL2_Semantics.md**.
 
 Key semantic components include:
-*   **Semantic Universe**: Agents, Actions, Assets, States, Events.
-*   **Denotational Semantics**: Truth conditions for Norms and Conditions.
-*   **Operational Semantics**: State transitions for Duty lifecycle (Pending -> Active -> Fulfilled/Violated).
-*   **Event Semantics**: How events trigger transitions.
+- **Semantic Universe**: Agents, Actions, Assets, States, Events
+- **Denotational Semantics**: Truth conditions for Norms and Conditions
+- **Operational Semantics**: State transitions for Duty lifecycle (Pending → Active → Fulfilled/Violated)
+- **Event Semantics**: How events trigger transitions
+
+### Relationship to Prior Work
+
+RL2's operational semantics address gaps identified in ODRL formalization research:
+- [Pucella-Weissman 2006] established decidability but lacked operational rules
+- [Fornara-Colombetti 2017] added obligation lifecycle but was implementation-specific
+- RL2 provides a complete, implementation-agnostic operational semantics
+
+### Mechanization Status
+
+The semantics are written in a style suitable for mechanization in Why3, K, or Lean 4. Proof obligations (determinism, progress, preservation, duty-state consistency) are enumerated in **RL2_ResearchPlan.md**.
 
 
 ---
