@@ -208,9 +208,41 @@ This means:
 2. Update Protocol: "Any event modifying Σ triggers re-evaluation of applicable policy set"
 3. Document that "branching workflows" are modeled as multiple policies with different activation conditions
 
+**Conceptual Model: Policy Generations**
+
+A useful way to think about this:
+
+```
+Level 0: State (Σ)              - current facts, events, duty states
+Level 1: Active policies        - which policies apply to this case NOW
+Level 2: Policy generation      - all policies that COULD apply (fixed at a point in time)
+```
+
+**Generation**: At any point in time, a specific *generation* of policies exists. This generation is the complete set of written policies — the "law of the land."
+
+**Key distinction**:
+- **State transitions** operate *within* a generation — events activate/deactivate policies, fulfill/violate duties
+- **Generation changes** happen *outside* normal state transitions — new policy is written, existing policy is amended or repealed
+
+Events at Level 0 can change Level 1 (which policies are active), but they cannot change Level 2 (the generation). The state machine doesn't modify itself; that would require a new generation.
+
+**Analogy**:
+- A court case proceeds under the laws in effect when filed (one generation)
+- Legislature passes new law → new generation
+- The case may continue under old generation (grandfather clause) or transition to new generation (depending on rules)
+
+**Why this matters**:
+- Clear separation between "operating under policy" and "changing policy"
+- Auditability: you can always identify which generation was in effect
+- Tractability: state transitions are well-defined within a generation
+- Supports versioning and policy lifecycle management
+
+This model avoids the complexity of self-modifying state machines while still allowing dynamic policy applicability within a fixed policy universe.
+
 **Recommendation**: This is likely less work than initially feared. The compositional approach (event → policy activation) fits RL2's architecture. Needs:
 - Minor ontology clarification (Policy can have condition)
 - Protocol update (generalize re-evaluation trigger)
+- Consider explicit "generation" or "policy version" concept for auditability
 - Documentation/examples showing the pattern
 
 ---
