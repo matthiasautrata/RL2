@@ -95,23 +95,22 @@ ex:deleteDuty a rl2:Duty ;
     rl2:object ex:Dataset ;
     rl2:obligationState rl2:Pending ;
     # Explicit Operational Semantics
+    # Deadline: must be fulfilled within 30 days of access
     rl2:condition [
         a rl2:TemporalConstraint ;
         rl2:interval [
             a rl2:EffectiveInterval ;
-            # The clock starts exactly at the "AccessEvent"
-            rl2:start [ a rl2:DynamicOperandReference ;
-                        rl2:dynamicOperand "event.AccessEvent.timestamp" ] ;
-            rl2:end   [ a rl2:DynamicOperandReference ;
-                        rl2:dynamicOperand "event.AccessEvent.timestamp + P30D" ]
+            # Deadline is 30 days after the access event
+            rl2:end [ a rl2:DynamicOperandReference ;
+                      rl2:dynamicOperand "event.AccessEvent.timestamp + P30D" ]
         ]
     ] .
 ```
 
 **The Result:**
-*   **Unambiguous Timing:** The start time is explicitly bound to the `AccessEvent` timestamp.
+*   **Unambiguous Deadline:** The deletion deadline is explicitly bound to 30 days after the `AccessEvent`.
 *   **State Machine:** The RL2 runtime knows exactly when this duty transitions from `Pending` to `Active` to `Violated`.
-*   **Enforcement:** If `current_time > end_time` and `delete` has not occurred, the system automatically transitions to `State: Violated`.
+*   **Enforcement:** If `current_time > deadline` and `delete` has not occurred, the system automatically transitions to `State: Violated`.
 
 ---
 
