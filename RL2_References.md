@@ -48,6 +48,7 @@
 **[ODRL Formal Semantics]** W3C. "Formal Semantics for the ODRL Policy Language." Draft Community Group Report.
 - https://w3c.github.io/odrl/formal-semantics/
 - Formal model that RL2 Semantics extends with operational rules
+- Defines ODRL Evaluator behavior, state of the world, and compliance checking
 
 **[ODRL 3.0]** W3C ODRL Community Group. "ODRL 3.0 Use Cases and Requirements." Work in progress.
 - https://www.w3.org/community/odrl/
@@ -56,6 +57,29 @@
 **[ODRE]** Poltronieri, Andrea, and Cesare Stefanelli. "ODRE: An Operational Framework for Digital Rights Enforcement."
 - Operational semantics for duty lifecycle (Pending → Active → Fulfilled/Violated)
 - RL2 incorporates ODRE state machine concepts
+
+**[Pucella-Weissman 2006]** Pucella, Riccardo, and Vicky Weissman. "A Formal Foundation for ODRL." 2006.
+- https://arxiv.org/abs/cs/0601085
+- First formal semantics for ODRL; proves permission implication is decidable NP-hard
+- Defines tractable fragment of ODRL
+
+**[Steyskal-Polleres 2015]** Steyskal, Simon, and Axel Polleres. "Towards Formal Semantics for ODRL Policies." *RuleML*, 2015.
+- https://link.springer.com/chapter/10.1007/978-3-319-21542-6_23
+- Explores action dependencies in access control policies
+- Proposes rule-based reasoning over ODRL policy expressions
+
+**[Fornara-Colombetti 2017]** Fornara, Nicoletta, and Marco Colombetti. "Operational Semantics of an Extension of ODRL Able to Express Obligations." *EUMAS/AT*, 2017.
+- https://link.springer.com/chapter/10.1007/978-3-030-01713-2_13
+- Extends ODRL with conditional obligations and operational semantics
+- Uses Apache Jena rule engine for automatic reasoning on obligation states
+
+**[Fornara-Colombetti 2019]** Fornara, Nicoletta, and Marco Colombetti. "Using Semantic Web Technologies and Production Rules for Reasoning on Obligations, Permissions, and Prohibitions." *AI Communications* 32(4), 2019.
+- Extends ODRL with activation events and temporal aspects
+- Operational semantics via Discrete State Machines
+
+**[Cicala-Fornara-Harth 2025]** Cicala, Paolo, Nicoletta Fornara, and Andreas Harth. "Towards a Formal Semantics of the Open Digital Rights Language (ODRL 2.2)." *OPAL*, 2025.
+- https://ceur-ws.org/Vol-3977/OPAL2025-4.pdf
+- Recent formalization effort identifying gaps in ODRL specification
 
 ## Access Control
 
@@ -66,6 +90,39 @@
 **[OB-XACML]** Marra, A.L., et al. "OB-XACML: Towards a Full Support of Obligations in XACML." *Trust, Privacy and Security in Digital Business*, Springer, 2015.
 - https://link.springer.com/chapter/10.1007/978-3-319-17127-2_14
 - Obligation handling patterns that informed RL2 duty tracking
+
+## Formal Verification
+
+**[Why3]** Filliâtre, Jean-Christophe, and Andrei Paskevich. "Why3 — Where Programs Meet Provers." *ESOP*, 2013.
+- https://www.why3.org/
+- Platform for deductive program verification with WhyML specification language
+- Backend for multiple provers (Alt-Ergo, Z3, CVC5) and proof assistants (Coq, Isabelle)
+- Target for RL2 semantics mechanization
+
+**[Why3-Coq 2024]** Cohen, Joshua M., and Philip Johnson-Freyd. "A Formalization of Core Why3 in Coq." 2024.
+- https://www.osti.gov/biblio/2311377
+- Formal semantics for Why3 logic fragment in Coq
+- Correct-by-construction natural deduction proof system
+
+**[K Framework]** Roșu, Grigore. "K: A Semantic Framework for Programming Languages and Formal Analysis Tools." *Marktoberdorf Summer School*, 2017.
+- https://kframework.org/
+- Rewrite-based executable semantic framework
+- 20-year effort toward ideal language framework vision
+- Used for formal semantics of JavaScript, PHP, C, Java
+- Alternative target for RL2 executable semantics
+
+**[Lean 4]** de Moura, Leonardo, et al. "The Lean 4 Theorem Prover and Programming Language." *CADE*, 2021.
+- https://lean-lang.org/
+- Proof assistant and functional programming language
+- Strong type system, tactic framework, code extraction
+- Notable: AlphaProof (2024) achieved IMO silver medal using Lean
+- Potential target for RL2 mechanization with executable extraction
+
+**[Coq]** The Coq Development Team. "The Coq Proof Assistant."
+- https://coq.inria.fr/
+- Interactive theorem prover based on Calculus of Inductive Constructions
+- Used for CompCert verified C compiler
+- Alternative to Why3/Lean for RL2 mechanization
 
 ## Semantic Web
 
