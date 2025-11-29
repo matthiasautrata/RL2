@@ -94,7 +94,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 | odrl:duty        | rl2:Duty                        | Direct mapping                      |
 | odrl:permission  | rl2:Privilege                   | Direct mapping                      |
 | odrl:prohibition | rl2:Prohibition                 | Direct deontic mapping              |
-| odrl:inheritFrom | rl2:Policy + SHACL inheritance  | RL2 supports inheritance explicitly |
+| odrl:inheritFrom | Under discussion | See RL2_DiscussionTopics.md |
 | odrl:refinement  | rl2:Condition refinement        | RL2 supports nested conditions      |
 
 ### Constraint Operators
@@ -262,7 +262,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | Event-triggered activation | rl2:Event + rl2:triggeredBy                   | Full     | RL2_Semantics §Event Processing |
 | Sanctions/remedies         | rl2:Power, rl2:Liability, rl2:Claim           | Full     | RL2_Semantics §Hohfeldian, §Sanctions |
 | Context-dependent rules    | rl2:ContextualConstraint                      | Full     | RL2_Semantics §Contextual |
-| Policy composition         | rl2:Policy + SHACL inheritance                | Full     | RL2_Semantics §Policy Composition |
+| Policy composition         | Under discussion                              | —        | See RL2_DiscussionTopics.md |
 | Cross-policy influence     | Conditions referencing other policies         | Full     | RL2_Semantics §Composite |
 
 **Coverage Legend:**

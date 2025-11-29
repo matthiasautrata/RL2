@@ -107,6 +107,35 @@ Real workflows need to distinguish these cases. A DataOwner clicking "Reject" sh
 
 ---
 
+## 4. Policy Inheritance (odrl:inheritFrom)
+
+**Status**: Under discussion — skeptical
+
+**Background**: ODRL 2.2 supports `odrl:inheritFrom`, allowing a child policy to inherit rules from a parent policy. RL2 currently has no equivalent construct.
+
+**The Problem with Inheritance**:
+
+Policy inheritance introduces complexity that may not be justified:
+
+1. **Flattening required**: To evaluate an inherited policy, you must first "flatten" it by resolving all inheritance chains into atomic rules. If you have to decompose back to atomic policies for processing, why have inheritance?
+
+2. **Override semantics are ambiguous**: What happens when a child policy has a rule that conflicts with an inherited rule? ODRL doesn't fully specify this.
+
+3. **Complexity vs. value**: If you want multiple policies to apply to the same asset, simply create multiple policies. The evaluation semantics for multiple applicable policies are clearer than inheritance semantics.
+
+4. **Auditability**: Inherited policies are harder to audit — you must trace the inheritance chain to understand what rules actually apply.
+
+**Current Position**: RL2 does not support policy inheritance. If multiple policies should apply to an asset, create them as separate policies and let the evaluator handle policy composition via the existing conflict resolution mechanisms.
+
+**If inheritance is needed**: A future version could add `rl2:refines` with explicit semantics:
+- Child clauses override parent clauses with same subject/action/object
+- Non-conflicting clauses are merged
+- Flattening algorithm specified formally
+
+**Recommendation**: Avoid inheritance. Use explicit policy composition instead.
+
+---
+
 ## Notes
 
 These topics represent potential future enhancements. They do not affect the validity of the current RL2 specification. Feedback and proposals are welcome.
