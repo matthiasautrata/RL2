@@ -136,65 +136,82 @@ Policy inheritance introduces complexity that may not be justified:
 
 ---
 
-## 5. Conditional/Branching Obligations
+## 5. Dynamic Policy Applicability
 
-**Status**: Known limitation
+**Status**: Clarification needed — may already be supported
 
-**Background**: RL2's duty lifecycle is linear: Pending → Active → Fulfilled/Violated. However, real-world workflows often require *branching* based on intermediate outcomes.
+**Background**: Real-world workflows often involve decisions that change which obligations apply. Initial analysis framed this as "branching obligations," but a better framing is **dynamic policy applicability**.
 
 **Motivating Example** (real enterprise use case):
 
 > "The obligation is to ask the review committee if they choose to review. Option (1): they decline and we're done. Option (2): they accept, and then the obligation *grows* to obtain full approval."
 
-This requires:
-1. An initial duty with multiple possible outcomes (not just fulfilled/violated)
-2. Outcome-dependent continuation (duty transforms or spawns new duties)
-3. Conditional obligation graphs
+**Legal Analogy**: This is identical to SCOTUS certiorari:
+- Court grants cert → "Supreme Court Review Policy" becomes applicable
+- Court denies cert → Case closed under existing disposition
+- Court remands → "Remand Policy" with different duties applies
 
-**What RL2 Currently Supports**:
-- Duties with activation conditions ✓
-- Duties with deadlines (timeout → violation) ✓
-- EventConstraints (approval present/absent) ✓
-- Power/Liability for creating new norms ✓
+**Reframing: Policy Activation, Not Duty Branching**
 
-**What RL2 Lacks**:
-- **Event outcomes with branching**: Events are binary (present/absent), not multi-valued
-- **Duty spawning**: One duty completing cannot directly activate a *different* duty
-- **Obligation automata**: No native support for stateful obligation graphs
+The key insight: *Events don't branch duties — they change which policies apply to the case.*
 
-**Possible Approaches**:
+```turtle
+# Policy 1: Initial review request (always applicable)
+ex:reviewRequestPolicy a rl2:Set ;
+    rl2:clause ex:askCommitteeDuty .
 
-1. **Duty with Outcomes**
-   ```turtle
-   ex:askCommitteeDuty a rl2:Duty ;
-       rl2:subject ex:Requester ;
-       rl2:action ex:askForReview ;
-       rl2:possibleOutcome ex:DeclinedOutcome, ex:AcceptedOutcome .
+ex:askCommitteeDuty a rl2:Duty ;
+    rl2:subject ex:Requester ;
+    rl2:action ex:submitForReview ;
+    rl2:object ex:Case .
 
-   ex:DeclinedOutcome a rl2:DutyOutcome ;
-       rl2:condition [ ... committee declines ... ] ;
-       rl2:resultState rl2:Fulfilled .  # Done, no further obligation
+# Policy 2: Full review (applicable only when committee accepts)
+ex:fullReviewPolicy a rl2:Set ;
+    rl2:clause ex:obtainApprovalDuty ;
+    rl2:condition [
+        a rl2:EventConstraint ;
+        rl2:expectsEvent [ a ex:CommitteeAcceptance ]
+    ] .
 
-   ex:AcceptedOutcome a rl2:DutyOutcome ;
-       rl2:condition [ ... committee accepts ... ] ;
-       rl2:activates ex:obtainFullApprovalDuty .  # Spawns new duty
-   ```
+ex:obtainApprovalDuty a rl2:Duty ;
+    rl2:subject ex:Requester ;
+    rl2:action ex:obtainFullApproval ;
+    rl2:object ex:Case .
+```
 
-2. **Obligation Automata** (more general)
-   - Model obligations as finite state machines
-   - States can have multiple outgoing transitions based on events
-   - More expressive but significantly more complex
+When committee accepts:
+1. `ex:CommitteeAcceptance` event enters Σ
+2. `ex:fullReviewPolicy` condition now holds
+3. Policy becomes applicable to the case
+4. New duty activates
 
-3. **Encode in Powers**
-   - Committee acceptance = exercise of Power that creates new Duty
-   - Conceptually clean but verbose for common patterns
+**What This Requires**:
 
-**Considerations**:
-- How complex should the duty lifecycle become?
-- Is this a core feature or a profile extension?
-- Interaction with existing ObligationState semantics
+RL2 Protocol already states that duty events trigger re-evaluation. The generalization:
 
-**Recommendation**: This is a genuine gap. For now, workaround via Power/Liability modeling. Future RL2 versions should consider native support for branching obligations.
+> **Context changed → applicable policy set must be re-determined**
+
+This means:
+1. **Policy-level conditions**: Policies (not just clauses) can have activation conditions
+2. **Re-evaluation on context change**: Any event that modifies Σ triggers re-computation of applicable policies
+3. **Case-policy binding**: The set of policies applicable to a Case is dynamic, not static
+
+**Current RL2 Status**:
+
+- `rl2:condition` exists on Norms ✓
+- `rl2:condition` on Policy — needs explicit support or clarification
+- Protocol mentions re-evaluation on duty events — needs generalization to "any context change"
+
+**Implementation Path**:
+
+1. Clarify that `rl2:Policy` can have `rl2:condition` (policy-level activation)
+2. Update Protocol: "Any event modifying Σ triggers re-evaluation of applicable policy set"
+3. Document that "branching workflows" are modeled as multiple policies with different activation conditions
+
+**Recommendation**: This is likely less work than initially feared. The compositional approach (event → policy activation) fits RL2's architecture. Needs:
+- Minor ontology clarification (Policy can have condition)
+- Protocol update (generalize re-evaluation trigger)
+- Documentation/examples showing the pattern
 
 ---
 
