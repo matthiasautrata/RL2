@@ -63,6 +63,50 @@
 
 ---
 
+## 3. Explicit Rejection/Disapproval Semantics
+
+**Status**: Under discussion
+
+**Background**: RL2 currently models approval as the *presence* of an approval event in `Σ.Events`. An `EventConstraint` evaluates to true when a matching event exists. However, there is no explicit mechanism for modeling *disapproval* or *rejection*.
+
+**The Problem**: Active disapproval is semantically distinct from the absence of approval:
+- Absence: Request pending, awaiting response, may timeout
+- Rejection: Explicit "no", request should be denied, logged for audit
+
+Real workflows need to distinguish these cases. A DataOwner clicking "Reject" should:
+- Immediately terminate the request (Case → Denied)
+- Be recorded for compliance/audit
+- Potentially block re-submission for some period
+- Possibly trigger escalation or appeal workflows
+
+**Possible Approaches**:
+
+1. **Separate Rejection Event Type**
+   ```turtle
+   ex:rejectionEvent a rl2:RejectionEvent ;
+       rl2:rejector ex:DataOwner ;
+       rl2:reason "Data too sensitive for stated purpose" .
+   ```
+
+2. **Event with Outcome Property**
+   ```turtle
+   ex:approvalEvent a rl2:ApprovalEvent ;
+       rl2:approver ex:DataOwner ;
+       rl2:outcome rl2:Rejected .  # or rl2:Approved
+   ```
+
+3. **Rejection as Prohibition Activation**
+   - Disapproval creates/activates a Prohibition that blocks access
+   - More compositional but potentially complex
+
+**Considerations**:
+- Should rejection be a subclass of Event or a distinct concept?
+- How does rejection interact with the Case lifecycle?
+- Should EventConstraint have explicit "approved" vs "not rejected" semantics?
+- Appeal/override workflows after rejection
+
+---
+
 ## Notes
 
 These topics represent potential future enhancements. They do not affect the validity of the current RL2 specification. Feedback and proposals are welcome.
