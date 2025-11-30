@@ -1,0 +1,561 @@
+@base <https://rl2.example/ontology#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+
+<https://rl2.example/ontology>
+  a owl:Ontology ;
+  rdfs:label "RL2 Ontology" ;
+  dc:description "A unified normative, descriptive, and operational rights language." ;
+  owl:versionInfo "0.2" ;
+  owl:versionIRI <https://rl2.example/ontology/0.2> .
+
+############################################################
+# 1. Normative Layer (DPCL)
+############################################################
+
+# Norms represent deontic/legal relations between agents, actions, and assets.
+rl2:Norm a owl:Class ;
+    rdfs:label "Norm" ;
+    rdfs:comment "A normative relation in the DPCL sense." .
+
+rl2:Privilege a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Privilege" ;
+    rdfs:comment "A normative absence of duty not to perform an action." .
+
+rl2:Duty a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Duty" ;
+    rdfs:comment "An obligation imposed on an agent." .
+
+rl2:Prohibition a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Prohibition" ;
+    rdfs:comment "A prohibition on performing an action." .
+
+rl2:Claim a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Claim" ;
+    rdfs:comment "A correlative entitlement held by another agent." .
+
+rl2:Power a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Power" ;
+    rdfs:comment "Ability to alter normative relations." .
+
+rl2:Liability a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Liability" ;
+    rdfs:comment "Exposure to exercise of power by another agent." .
+
+rl2:Immunity a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Immunity" ;
+    rdfs:comment "Protection against the power of another agent." .
+
+# Hohfeldian Correlatives and Additional Norm Properties
+rl2:correlativeTo a owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Norm ;
+    rdfs:comment "Links correlative Hohfeldian positions (Duty-Claim, Power-Liability, Immunity-Power)." .
+
+rl2:claimHolder a owl:ObjectProperty ;
+    rdfs:domain rl2:Claim ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent who holds the claim (the right-holder)." .
+
+rl2:claimAgainst a owl:ObjectProperty ;
+    rdfs:domain rl2:Claim ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent against whom the claim is held (the duty-bearer)." .
+
+rl2:affectsNorm a owl:ObjectProperty ;
+    rdfs:domain rl2:Power ;
+    rdfs:range rl2:Norm ;
+    rdfs:comment "The norm that this power can create, modify, or extinguish." .
+
+rl2:exposedTo a owl:ObjectProperty ;
+    rdfs:domain rl2:Liability ;
+    rdfs:range rl2:Power ;
+    rdfs:comment "The power to which this liability is exposed." .
+
+rl2:immuneFrom a owl:ObjectProperty ;
+    rdfs:domain rl2:Immunity ;
+    rdfs:range rl2:Power ;
+    rdfs:comment "The power from which this immunity protects." .
+
+############################################################
+# 2. Promise Theory Layer
+############################################################
+
+rl2:Promise a owl:Class ;
+    rdfs:label "Promise" ;
+    rdfs:comment "Voluntary cooperative commitment from promiser to promisee." .
+
+rl2:promiser a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent making the promise." .
+
+rl2:promisee a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent receiving the benefit of the promise." .
+
+rl2:PromiseContent a owl:Class ;
+    owl:unionOf (rl2:Action rl2:Duty rl2:Condition) ;
+    rdfs:label "Promise Content" ;
+    rdfs:comment """Union of types that may constitute the content of a promise.
+    Note: A promise references one of these types to describe what is promised.
+    The promiser commits to performing an Action, fulfilling a Duty, or ensuring
+    a Condition holds. This is a pragmatic modeling choice; the promise is
+    'about' the content, not identical to it.""" .
+
+rl2:promiseContent a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:PromiseContent ;
+    rdfs:comment "Content of the promise: action, duty, or condition." .
+
+############################################################
+# 3. Agents and Roles
+############################################################
+
+rl2:Agent a owl:Class ;
+    rdfs:label "Agent" ;
+    rdfs:comment "Any party participating in a normative or functional role." .
+
+# Normative roles (core semantic roles)
+rl2:subject a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "The agent bearing the normative status." .
+
+rl2:counterparty a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "The agent standing in normative relation to the subject." .
+
+# Functional (syntactic) roles
+rl2:grantor a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent granting a privilege or policy." .
+
+rl2:grantee a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent receiving a privilege or policy." .
+
+rl2:NormOrEvent a owl:Class ;
+    owl:unionOf (rl2:Norm rl2:Event) ;
+    rdfs:comment "Union class for properties applicable to both Norms and Events." .
+
+rl2:approver a owl:ObjectProperty ;
+    rdfs:domain rl2:NormOrEvent ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent whose approval is required for activation." .
+
+rl2:operationalAgent a owl:ObjectProperty ;
+    rdfs:domain rl2:NormOrEvent ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent performing an operational action." .
+
+rl2:participant a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "General syntactic participant in a workflow or event." .
+
+############################################################
+# 4. Actions, Assets, Conditions
+############################################################
+
+rl2:Action a owl:Class ;
+    rdfs:label "Action" ;
+    rdfs:comment """An action that may be performed on an asset.
+    RL2 Core does not define specific action instances; these are provided
+    by profiles tailored to specific domains. For example:
+    - A media licensing profile might define: play, stream, display, reproduce
+    - A software license profile might define: execute, install, modify
+    - A data governance profile might define: process, transfer, anonymize
+    Profiles define actions as individuals of this class.""" .
+
+rl2:Asset a owl:Class ;
+    rdfs:label "Asset" ;
+    rdfs:comment "A resource or object subject to normative control." .
+
+rl2:AssetCollection a owl:Class ;
+    rdfs:label "Asset Collection" ;
+    rdfs:comment "A (possibly dynamic) collection of assets." .
+
+rl2:Condition a owl:Class ;
+    rdfs:label "Condition" ;
+    rdfs:comment "A constraint or requirement that must hold for a norm to be active." .
+
+rl2:LogicalConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Logical Constraint" ;
+    rdfs:comment "A condition combining other conditions via logical operators." .
+
+rl2:TemporalConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Temporal Constraint" ;
+    rdfs:comment "A condition based on time intervals or temporal relations." .
+
+rl2:ContextualConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Contextual Constraint" ;
+    rdfs:comment "Constraint depending on contextual state or environment." .
+
+rl2:DynamicOperandReference a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Dynamic Operand Reference" ;
+    rdfs:comment "Reference resolved at evaluation time." .
+
+rl2:EventConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Event Constraint" ;
+    rdfs:comment "A condition requiring a specific event to occur, optionally with an approver." .
+
+rl2:expectsEvent a owl:ObjectProperty ;
+    rdfs:domain rl2:EventConstraint ;
+    rdfs:range rl2:Event ;
+    rdfs:comment "The event that must occur for this constraint to be satisfied." .
+
+rl2:action a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Action ;
+    rdfs:comment "Action specified in a norm." .
+
+rl2:prohibitedAction a owl:ObjectProperty ;
+    rdfs:domain rl2:Prohibition ;
+    rdfs:range rl2:Action ;
+    rdfs:comment "Action prohibited by the norm." .
+
+rl2:object a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Asset ;
+    rdfs:comment "Asset specified in a norm." .
+
+rl2:member a owl:ObjectProperty ;
+    rdfs:domain rl2:AssetCollection ;
+    rdfs:range rl2:Asset ;
+    rdfs:comment "Membership relation for asset collections." .
+
+rl2:condition a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Policy) ] ;
+    rdfs:range rl2:Condition ;
+    rdfs:comment "Condition that activates or constrains a norm or policy." .
+
+rl2:LeftOperand a owl:Class ;
+    rdfs:label "Left Operand" ;
+    rdfs:comment """A property or attribute to be evaluated in a condition.
+    RL2 Core does not define specific left operand instances; these are
+    provided by profiles (e.g., privacy, media licensing, financial).
+    Profiles define left operands as individuals of this class, such as
+    purpose, dateTime, spatial, recipient, payAmount, fileFormat, etc.""" .
+
+rl2:leftOperand a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:range rl2:LeftOperand ;
+    rdfs:comment "Left operand of a condition (the property being evaluated)." .
+
+rl2:constraintOperator a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:range rl2:Operator ;
+    rdfs:comment "Operator of a condition; may be a ComparisonOperator or LogicalOperator." .
+
+rl2:rightOperand a owl:DatatypeProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:comment "Right operand of a condition (literal value)." .
+
+rl2:rightOperandRef a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:comment "Right operand of a condition (resource reference)." .
+
+rl2:ConditionOrEvent a owl:Class ;
+    owl:unionOf (rl2:Condition rl2:Event) ;
+    rdfs:label "Condition Or Event" ;
+    rdfs:comment "Union class for properties that may reference either a Condition or an Event." .
+
+rl2:requires a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:range rl2:ConditionOrEvent ;
+    rdfs:comment "Composite condition requirement; may require another condition or a specific event." .
+
+rl2:dynamicOperand a owl:DatatypeProperty ;
+    rdfs:domain rl2:DynamicOperandReference ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Path expression resolved at evaluation time." .
+
+rl2:contextPath a owl:DatatypeProperty ;
+    rdfs:domain rl2:ContextualConstraint ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Context path used in contextual constraints." .
+
+rl2:dynamicQuery a owl:DatatypeProperty ;
+    rdfs:domain rl2:AssetCollection ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Query expression used to materialize dynamic collections." .
+
+rl2:interval a owl:ObjectProperty ;
+    rdfs:domain rl2:TemporalConstraint ;
+    rdfs:range rl2:EffectiveInterval ;
+    rdfs:comment "Interval used by a temporal constraint." .
+
+rl2:operand a owl:ObjectProperty ;
+    rdfs:domain rl2:LogicalConstraint ;
+    rdfs:range rl2:Condition ;
+    rdfs:comment "A sub-condition operand of a logical constraint." .
+
+# Operator Type Hierarchy
+rl2:Operator a owl:Class ;
+    rdfs:label "Operator" ;
+    rdfs:comment "Abstract class for constraint operators." .
+
+rl2:LogicalOperator a owl:Class ;
+    rdfs:subClassOf rl2:Operator ;
+    rdfs:label "Logical Operator" ;
+    rdfs:comment "Operators for combining conditions (and, or, xone, not)." ;
+    owl:oneOf (rl2:and rl2:or rl2:xone rl2:not) .
+
+rl2:ComparisonOperator a owl:Class ;
+    rdfs:subClassOf rl2:Operator ;
+    rdfs:label "Comparison Operator" ;
+    rdfs:comment "Operators for comparing values (eq, neq, lt, lte, gt, gte, isA, isAnyOf, isAllOf, isNoneOf)." ;
+    owl:oneOf (rl2:eq rl2:neq rl2:lt rl2:lte rl2:gt rl2:gte rl2:isA rl2:isAnyOf rl2:isAllOf rl2:isNoneOf) .
+
+# Logical Operators
+rl2:and a rl2:LogicalOperator ;
+    rdfs:label "and" ;
+    rdfs:comment "Logical conjunction: all sub-conditions must hold." .
+
+rl2:or a rl2:LogicalOperator ;
+    rdfs:label "or" ;
+    rdfs:comment "Logical disjunction: at least one sub-condition must hold." .
+
+rl2:xone a rl2:LogicalOperator ;
+    rdfs:label "xone" ;
+    rdfs:comment "Exclusive or: exactly one sub-condition must hold." .
+
+rl2:not a rl2:LogicalOperator ;
+    rdfs:label "not" ;
+    rdfs:comment "Logical negation: the sub-condition must not hold." .
+
+# Comparison Operators
+rl2:eq a rl2:ComparisonOperator ;
+    rdfs:label "eq" ;
+    rdfs:comment "Equality comparison." .
+
+rl2:neq a rl2:ComparisonOperator ;
+    rdfs:label "neq" ;
+    rdfs:comment "Inequality comparison." .
+
+rl2:lt a rl2:ComparisonOperator ;
+    rdfs:label "lt" ;
+    rdfs:comment "Less-than comparison." .
+
+rl2:lte a rl2:ComparisonOperator ;
+    rdfs:label "lte" ;
+    rdfs:comment "Less-than-or-equal comparison." .
+
+rl2:gt a rl2:ComparisonOperator ;
+    rdfs:label "gt" ;
+    rdfs:comment "Greater-than comparison." .
+
+rl2:gte a rl2:ComparisonOperator ;
+    rdfs:label "gte" ;
+    rdfs:comment "Greater-than-or-equal comparison." .
+
+rl2:isA a rl2:ComparisonOperator ;
+    rdfs:label "isA" ;
+    rdfs:comment "Type/class membership check." .
+
+rl2:isAnyOf a rl2:ComparisonOperator ;
+    rdfs:label "isAnyOf" ;
+    rdfs:comment "Value is any of a specified set." .
+
+rl2:isAllOf a rl2:ComparisonOperator ;
+    rdfs:label "isAllOf" ;
+    rdfs:comment "Value satisfies all of a specified set." .
+
+rl2:isNoneOf a rl2:ComparisonOperator ;
+    rdfs:label "isNoneOf" ;
+    rdfs:comment "Value is none of a specified set." .
+
+############################################################
+# 5. Operational Layer (ODRE)
+############################################################
+
+rl2:Event a owl:Class ;
+    rdfs:label "Event" ;
+    rdfs:comment "Observable event that may trigger obligations or transitions." .
+
+# Obligation States (enumeration pattern)
+rl2:ObligationState a owl:Class ;
+    rdfs:label "Obligation State" ;
+    rdfs:comment "State of a duty: pending, active, fulfilled, violated." ;
+    owl:oneOf (rl2:Pending rl2:Active rl2:Fulfilled rl2:Violated) .
+
+rl2:Pending a rl2:ObligationState ;
+    rdfs:label "Pending" ;
+    rdfs:comment "Duty exists but activation condition not yet met." .
+
+rl2:Active a rl2:ObligationState ;
+    rdfs:label "Active" ;
+    rdfs:comment "Duty is active and must be fulfilled." .
+
+rl2:Fulfilled a rl2:ObligationState ;
+    rdfs:label "Fulfilled" ;
+    rdfs:comment "Duty has been satisfied." .
+
+rl2:Violated a rl2:ObligationState ;
+    rdfs:label "Violated" ;
+    rdfs:comment "Duty was not fulfilled within required constraints." .
+
+# Promise States (enumeration pattern)
+rl2:PromiseState a owl:Class ;
+    rdfs:label "Promise State" ;
+    rdfs:comment "State of a promise: pending, fulfilled, violated." ;
+    owl:oneOf (rl2:PromisePending rl2:PromiseFulfilled rl2:PromiseViolated) .
+
+rl2:PromisePending a rl2:PromiseState ;
+    rdfs:label "Promise Pending" ;
+    rdfs:comment "Promise has been made but not yet fulfilled." .
+
+rl2:PromiseFulfilled a rl2:PromiseState ;
+    rdfs:label "Promise Fulfilled" ;
+    rdfs:comment "Promise content has been satisfied." .
+
+rl2:PromiseViolated a rl2:PromiseState ;
+    rdfs:label "Promise Violated" ;
+    rdfs:comment "Promise was broken or deadline expired without fulfillment." .
+
+rl2:promiseState a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:PromiseState ;
+    rdfs:comment "Current state of the promise." .
+
+rl2:obligationState a owl:ObjectProperty ;
+    rdfs:domain rl2:Duty ;
+    rdfs:range rl2:ObligationState ;
+    rdfs:comment "Current state of the duty." .
+
+rl2:StateTransition a owl:Class ;
+    rdfs:label "State Transition" ;
+    rdfs:comment "Transition in system state resulting from events or actions." .
+
+rl2:triggeredBy a owl:ObjectProperty ;
+    rdfs:domain rl2:StateTransition ;
+    rdfs:range rl2:Event ;
+    rdfs:comment "Event triggering a transition." .
+
+rl2:fromState a owl:ObjectProperty ;
+    rdfs:domain rl2:StateTransition ;
+    rdfs:comment "State before the transition." .
+
+rl2:toState a owl:ObjectProperty ;
+    rdfs:domain rl2:StateTransition ;
+    rdfs:comment "State after the transition." .
+
+rl2:after a owl:ObjectProperty ;
+    rdfs:comment "Temporal sequence relation between events or transitions." .
+
+############################################################
+# 6. Temporal and Contextual Constructs
+############################################################
+
+rl2:EffectiveInterval a owl:Class ;
+    rdfs:label "Effective Interval" ;
+    rdfs:comment "A time interval with explicit start and end." .
+
+rl2:start a owl:DatatypeProperty ;
+    rdfs:domain rl2:EffectiveInterval ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "Start of an interval." .
+
+rl2:end a owl:DatatypeProperty ;
+    rdfs:domain rl2:EffectiveInterval ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "End of an interval." .
+
+############################################################
+# 7. Policy Containers
+############################################################
+
+rl2:Policy a owl:Class ;
+    rdfs:label "Policy" ;
+    rdfs:comment """A container of one or more RL2 normative clauses.
+    A policy may optionally have an activation condition (rl2:condition).
+    When present, the policy is only applicable when its condition holds.
+    This enables dynamic policy applicability based on events and state.""" .
+
+# Policy Types as Subclasses
+rl2:Set a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Set" ;
+    rdfs:comment """A unilateral policy declaration without identified counterparties.
+    Sets express normative positions but do not create binding obligations between
+    specific parties. They may be used for public licenses, general terms, or
+    policy templates. No acceptance or agreement is required for a Set to be valid.""" .
+
+rl2:Offer a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Offer" ;
+    rdfs:comment """A policy proposed by an assigner to potential assignees.
+    An Offer expresses willingness to grant privileges or accept duties, contingent
+    on acceptance. It creates no obligations until accepted, at which point it
+    becomes an Agreement.""" .
+
+rl2:Agreement a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Agreement" ;
+    rdfs:comment """A bilateral or multilateral policy with identified, consenting parties.
+    Unlike a Set, an Agreement binds specific agents who have accepted its terms.
+    All parties are identified via grantor/grantee or subject/counterparty roles.
+    Duties in an Agreement create enforceable obligations; violations have
+    normative consequences for the violating party.""" .
+
+rl2:Privacy a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Privacy" ;
+    rdfs:comment """A policy governing personal data processing and data subject rights.
+    Privacy policies typically include duties on data controllers, privileges
+    for data subjects, and conditions related to consent, purpose limitation,
+    and data retention.""" .
+
+rl2:Assertion a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Assertion" ;
+    rdfs:comment """A policy stating claims or facts about normative status.
+    Assertions declare that certain privileges, duties, or conditions hold,
+    without necessarily creating them. Used for compliance statements,
+    certification claims, or status declarations.""" .
+
+rl2:clause a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Norm ;
+    rdfs:comment "Associates norms with a policy container." .
+
+rl2:clauseOf a owl:ObjectProperty ;
+    owl:inverseOf rl2:clause ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Policy ;
+    rdfs:comment "The policy containing this norm." .
+
+############################################################
+# 8. Policy Generations
+############################################################
+
+rl2:policyGeneration a owl:DatatypeProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range xsd:anyURI ;
+    rdfs:label "Policy Generation" ;
+    rdfs:comment """Identifies the policy generation (version universe) this policy belongs to.
+    A generation is an immutable set of policies in force at a point in time.
+    Cases are evaluated under the generation in effect when they were created.
+    Events may activate/deactivate policies within a generation, but cannot
+    modify the generation itself — that requires a new generation.""" .

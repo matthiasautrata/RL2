@@ -16,7 +16,7 @@ The goal: Transform RL2 from *well-specified* to *formally verified*, making it 
 
 ---
 
-## Part I: Current State
+## Current State
 
 ### What RL2 Already Provides
 
@@ -36,7 +36,7 @@ The semantics are written in a style that anticipates mechanization:
 
 ---
 
-## Part II: Prior Art in ODRL Formalization
+## Prior Art in ODRL Formalization
 
 RL2 builds on significant prior work formalizing ODRL:
 
@@ -52,7 +52,7 @@ RL2 builds on significant prior work formalizing ODRL:
 
 ---
 
-## Part III: Tool Selection
+## Tool Selection
 
 ### Primary: Why3
 
@@ -98,7 +98,7 @@ RL2 builds on significant prior work formalizing ODRL:
 
 ---
 
-## Part IV: Proof Obligations
+## Proof Obligations
 
 The following properties must be proved to establish RL2 as fully verified:
 
@@ -159,7 +159,7 @@ Every ODRL construct has an RL2 equivalent; RL2 is a strict superset.
 
 ---
 
-## Part V: Phased Implementation Plan
+## Phased Implementation Plan
 
 ### Phase 1: Mechanization Setup (Weeks 1-2)
 
@@ -209,7 +209,7 @@ Every ODRL construct has an RL2 equivalent; RL2 is a strict superset.
 
 ---
 
-## Part VI: Deliverables
+## Deliverables
 
 ### Deliverable A: Why3 Semantics Companion
 
@@ -255,7 +255,7 @@ Extracted/implemented evaluator kernel:
 
 ---
 
-## Part VII: Open Questions
+## Open Questions
 
 ### Not Yet Addressed
 
@@ -275,7 +275,7 @@ Extracted/implemented evaluator kernel:
 
 ---
 
-## Part VIII: Success Criteria
+## Success Criteria
 
 RL2 mechanization is complete when:
 

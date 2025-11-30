@@ -1,10 +1,10 @@
-# **RL2 Coverage of ODRL (Draft v0.2)**
+# RL2 Coverage of ODRL (Draft v0.2)
 
 *A unified mapping of ODRL 2.2 and ODRL 3.0 use cases to RL2*
 
 ---
 
-# **Table of Contents**
+## Table of Contents
 
 - Introduction
 - Part I: ODRL 2.2 Core Mapping
@@ -22,7 +22,7 @@
 
 ---
 
-# **Introduction**
+## Introduction
 
 This document provides a comprehensive mapping showing that:
 
@@ -38,11 +38,9 @@ RL2 is a strict superset of ODRL:
 
 ---
 
-# **Part I: ODRL 2.2 Core Mapping**
+## ODRL 2.2 Core Mapping
 
----
-
-## **Overview of ODRL 2.2**
+### Overview of ODRL 2.2
 
 ODRL 2.2 consists of:
 
@@ -65,7 +63,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 
 ---
 
-## **Full Mapping Table (ODRL → RL2)**
+### Full Mapping Table (ODRL → RL2)
 
 ### Classes
 
@@ -124,7 +122,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 
 ---
 
-## **Transformation Rules**
+### Transformation Rules
 
 ### Permissions
 
@@ -208,7 +206,7 @@ _:c a rl2:Condition ;
 
 ---
 
-## **Semantic Preservation**
+### Semantic Preservation
 
 For every ODRL rule R:
 
@@ -230,11 +228,9 @@ Thus RL2 provides a **conservative semantic extension** of ODRL 2.2.
 
 ---
 
-# **Part II: ODRL 3.0 Use-Case Deltas**
+## ODRL 3.0 Use-Case Deltas
 
----
-
-## **Summary of ODRL 3.0 Extensions**
+### Summary of ODRL 3.0 Extensions
 
 Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 
@@ -249,7 +245,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 
 ---
 
-## **Use Case Coverage Matrix**
+### Use Case Coverage Matrix
 
 | ODRL 3.0 Requirement       | RL2 Construct(s)                              | Coverage | Semantics Reference |
 | -------------------------- | --------------------------------------------- | -------- | ------------------- |
@@ -274,7 +270,7 @@ All ODRL 3.0 use cases listed above are covered with both ontology constructs an
 
 ---
 
-## **Detailed Coverage**
+### Detailed Coverage
 
 ### Dynamic Asset Collections
 
@@ -312,9 +308,7 @@ ex:transition a rl2:StateTransition ;
 
 ---
 
-# **Part III: Canonical Worked Example**
-
----
+## Canonical Worked Example
 
 This example demonstrates a comprehensive RL2 policy incorporating:
 
@@ -454,7 +448,7 @@ This policy:
 
 ---
 
-# **Completeness and Soundness**
+## Completeness and Soundness
 
 ## Completeness Theorem
 
@@ -474,7 +468,7 @@ For every ODRL interpretation function `⟦.⟧_ODRL`, RL2 interpretation respec
 
 ---
 
-# **References**
+## References
 
 See **RL2_References.md** for complete citations and glossary.
 

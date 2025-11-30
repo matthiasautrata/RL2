@@ -1,4 +1,12 @@
-# RL2 Evaluation Protocol (Draft v0.1)
+---
+title: "RL2 Evaluation Protocol"
+subtitle: "A Companion Specification for Interoperable Policy Evaluation"
+version: "0.2"
+status: "Draft"
+date: 2025-01-01
+---
+
+# RL2 Evaluation Protocol (Draft v0.2)
 
 *A companion specification for interoperable policy evaluation*
 
@@ -377,6 +385,13 @@ rl2p:caseNote a owl:DatatypeProperty ;
     rdfs:domain rl2p:Case ;
     rdfs:range xsd:string ;
     rdfs:comment "Administrative notes on the case." .
+
+rl2p:policyGeneration a owl:ObjectProperty ;
+    rdfs:domain rl2p:Case ;
+    rdfs:range xsd:anyURI ;
+    rdfs:comment """The policy generation under which this case is evaluated.
+    Once set at case creation, the generation is immutable for that case.
+    This ensures reproducible evaluation and clear auditability.""" .
 ```
 
 ## Case State Transitions
@@ -403,6 +418,34 @@ Transitions:
 * **Approved → Expired**: Expiration time reached
 * **Approved → Revoked**: Explicit revocation
 * **Expired → Pending**: Re-certification initiated (new evaluation cycle)
+
+---
+
+# Re-evaluation Triggers
+
+Policy evaluation is triggered when the evaluation context changes. This ensures dynamic policy applicability: as events occur, different policies may become applicable to the case.
+
+## Trigger Events
+
+1. **Initial request** → first evaluation
+2. **Context assertion arrival** → facts about agents/assets change
+3. **Duty fulfillment claim** → duty states update
+4. **Time advancement** → temporal conditions may change
+5. **Any event modifying Σ** → may activate/deactivate policies
+
+> **Key principle**: Any event that modifies Σ triggers re-evaluation of the applicable policy set, not just duty-related events.
+
+## Policy Activation via Events
+
+When an event enters Σ, policies with EventConstraint conditions may become applicable:
+
+```
+Event arrives → Σ.Events updated →
+  ApplicablePolicies(U, Env) recomputed →
+    New duties may activate
+```
+
+This models workflows where external events (e.g., committee approval) trigger additional policy requirements without branching the duty lifecycle.
 
 ---
 

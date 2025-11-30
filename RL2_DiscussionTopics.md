@@ -138,186 +138,29 @@ Policy inheritance introduces complexity that may not be justified:
 
 ## 5. Dynamic Policy Applicability
 
-**Status**: Clarification needed — may already be supported
+**Status**: ✅ **Integrated**
 
-**Background**: Real-world workflows often involve decisions that change which obligations apply. Initial analysis framed this as "branching obligations," but a better framing is **dynamic policy applicability**.
+This topic has been fully integrated into the RL2 specification:
 
-**Motivating Example** (real enterprise use case):
+- **RL2_Core.md**: `rl2:condition` domain extended to include Policy; `rl2:policyGeneration` property added
+- **RL2_Semantics.md**: §Policy-Level Activation, §Policy Generations, §Expressive Characterization
+- **RL2_Protocol.md**: §Re-evaluation Triggers
+- **RL2_White_Paper.md**: "Show Me: Dynamic Workflows" example
 
-> "The obligation is to ask the review committee if they choose to review. Option (1): they decline and we're done. Option (2): they accept, and then the obligation *grows* to obtain full approval."
-
-**Legal Analogy**: This is identical to SCOTUS certiorari:
-- Court grants cert → "Supreme Court Review Policy" becomes applicable
-- Court denies cert → Case closed under existing disposition
-- Court remands → "Remand Policy" with different duties applies
-
-**Reframing: Policy Activation, Not Duty Branching**
-
-The key insight: *Events don't branch duties — they change which policies apply to the case.*
-
-```turtle
-# Policy 1: Initial review request (always applicable)
-ex:reviewRequestPolicy a rl2:Set ;
-    rl2:clause ex:askCommitteeDuty .
-
-ex:askCommitteeDuty a rl2:Duty ;
-    rl2:subject ex:Requester ;
-    rl2:action ex:submitForReview ;
-    rl2:object ex:Case .
-
-# Policy 2: Full review (applicable only when committee accepts)
-ex:fullReviewPolicy a rl2:Set ;
-    rl2:clause ex:obtainApprovalDuty ;
-    rl2:condition [
-        a rl2:EventConstraint ;
-        rl2:expectsEvent [ a ex:CommitteeAcceptance ]
-    ] .
-
-ex:obtainApprovalDuty a rl2:Duty ;
-    rl2:subject ex:Requester ;
-    rl2:action ex:obtainFullApproval ;
-    rl2:object ex:Case .
-```
-
-When committee accepts:
-1. `ex:CommitteeAcceptance` event enters Σ
-2. `ex:fullReviewPolicy` condition now holds
-3. Policy becomes applicable to the case
-4. New duty activates
-
-**What This Requires**:
-
-RL2 Protocol already states that duty events trigger re-evaluation. The generalization:
-
-> **Context changed → applicable policy set must be re-determined**
-
-This means:
-1. **Policy-level conditions**: Policies (not just clauses) can have activation conditions
-2. **Re-evaluation on context change**: Any event that modifies Σ triggers re-computation of applicable policies
-3. **Case-policy binding**: The set of policies applicable to a Case is dynamic, not static
-
-**Current RL2 Status**:
-
-- `rl2:condition` exists on Norms ✓
-- `rl2:condition` on Policy — needs explicit support or clarification
-- Protocol mentions re-evaluation on duty events — needs generalization to "any context change"
-
-**Implementation Path**:
-
-1. Clarify that `rl2:Policy` can have `rl2:condition` (policy-level activation)
-2. Update Protocol: "Any event modifying Σ triggers re-evaluation of applicable policy set"
-3. Document that "branching workflows" are modeled as multiple policies with different activation conditions
-
-**Conceptual Model: Policy Generations**
-
-A useful way to think about this:
-
-```
-Level 0: State (Σ)              - current facts, events, duty states
-Level 1: Active policies        - which policies apply to this case NOW
-Level 2: Policy generation      - all policies that COULD apply (fixed at a point in time)
-```
-
-**Generation**: At any point in time, a specific *generation* of policies exists. This generation is the complete set of written policies — the "law of the land."
-
-**Key distinction**:
-- **State transitions** operate *within* a generation — events activate/deactivate policies, fulfill/violate duties
-- **Generation changes** happen *outside* normal state transitions — new policy is written, existing policy is amended or repealed
-
-Events at Level 0 can change Level 1 (which policies are active), but they cannot change Level 2 (the generation). The state machine doesn't modify itself; that would require a new generation.
-
-**Analogy**:
-- A court case proceeds under the laws in effect when filed (one generation)
-- Legislature passes new law → new generation
-- The case may continue under old generation (grandfather clause) or transition to new generation (depending on rules)
-
-**Why this matters**:
-- Clear separation between "operating under policy" and "changing policy"
-- Auditability: you can always identify which generation was in effect
-- Tractability: state transitions are well-defined within a generation
-- Supports versioning and policy lifecycle management
-
-This model avoids the complexity of self-modifying state machines while still allowing dynamic policy applicability within a fixed policy universe.
-
-**Recommendation**: This is likely less work than initially feared. The compositional approach (event → policy activation) fits RL2's architecture. Needs:
-- Minor ontology clarification (Policy can have condition)
-- Protocol update (generalize re-evaluation trigger)
-- Consider explicit "generation" or "policy version" concept for auditability
-- Documentation/examples showing the pattern
+**Key insight**: Events don't branch duties — they change which policies apply. This compositional approach fits RL2's architecture naturally without introducing CTL-style branching.
 
 ---
 
-## 6. Expressive Completeness: Characterizing RL2's Policy Space
+## 6. Expressive Completeness
 
-**Status**: Foundational question
+**Status**: ✅ **Integrated** — See RL2_Semantics.md §Expressive Characterization
 
-**Background**: Given the universe of all possible policies, RL2 expresses a certain subset. How do we characterize that subset precisely? This is analogous to asking: "Does your number system cover rationals, reals, or complex numbers?"
+The formal characterization of RL2's expressive power is now documented in the Semantics specification.
 
-**Why This Matters**:
-- Avoid "oops, can't handle that" surprises in production
-- Enable principled comparison with other policy languages
-- Guide future extensions
-
-**Formal Characterization via Logic Correspondence**:
-
-| Policy Language | Approximate Logic | Temporal Model |
-|-----------------|-------------------|----------------|
-| Simple ACLs | Propositional logic | None |
-| XACML | First-order logic over attributes | Point-in-time |
-| ODRL 2.2 | Deontic logic (O, P, F) | Implicit |
-| **RL2 (current)** | **LTL + Deontic + Finite State** | **Linear time** |
-| Full temporal deontic | CTL* + Deontic | Branching time |
-
-**Key Distinctions**:
-
-1. **Linear vs Branching Time**
-   - **LTL** (Linear Temporal Logic): One future path; "eventually X", "always Y"
-   - **CTL** (Computation Tree Logic): Branching futures; "there exists a path where X", "on all paths Y"
-   - RL2 is currently LTL-like: duties have one timeline (activate → fulfill/violate)
-   - Branching obligations (Topic #5) would require CTL-like semantics
-
-2. **What RL2 Can Express**:
-   - Single-deadline obligations ✓
-   - Conditional activation ("duty activates when X") ✓
-   - Sequential dependencies ("A before B") ✓
-   - Compensatory obligations via Power/Liability ✓
-   - Contrary-to-duty ("if violated, then Y") — partial
-
-3. **What RL2 Cannot Express** (currently):
-   - Repeating/periodic obligations ("every month")
-   - Branching obligations based on intermediate outcomes
-   - Quorum approvals ("any 2 of 5 committee members")
-   - Nested temporal modalities ("eventually always X")
-
-**Proposed Characterization**:
-
-```
-RL2 ≈ LTL_F + Deontic(P, O, F) + Finite Obligation Automata
-```
-
-Where:
-- `LTL_F` = Linear Temporal Logic with finite traces
-- `Deontic(P, O, F)` = Permission, Obligation, Prohibition modalities
-- `Finite Obligation Automata` = Duty lifecycle state machine (Pending → Active → Fulfilled/Violated)
-
-**To extend RL2** for branching obligations, we would need:
-
-```
-RL2* ≈ CTL + Deontic(P, O, F) + Obligation Automata with Branching
-```
-
-**Practical Approach**:
-
-Rather than proving RL2 covers "all policies" (impossible), we should:
-1. Collect real use cases from enterprise deployments
-2. Attempt to model each in RL2
-3. Document gaps as they emerge (like Topic #5)
-4. Either extend RL2 or explicitly document exclusions
-
-**Open Questions**:
-- Should RL2 aim for CTL-level expressiveness, or is LTL sufficient for 90% of use cases?
-- What is the complexity cost of branching? (CTL model checking is PSPACE vs LTL's PSPACE-complete, but CTL* is 2EXPTIME)
-- Can we define a "RL2 Lite" (strictly LTL) and "RL2 Full" (CTL) distinction?
+**Open questions for future work**:
+- Should RL2 extend to CTL-level expressiveness, or is LTL sufficient?
+- Repeating/periodic obligations ("every month")
+- Quorum approvals ("any 2 of 5 committee members")
 
 ---
 

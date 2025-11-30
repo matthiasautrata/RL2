@@ -1,0 +1,164 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+############################################################
+# RL2 SHACL Shapes
+# Syntax validation for RL2 policies
+############################################################
+
+# Policy shape - validates policy structure
+rl2:PolicyShape a sh:NodeShape ;
+    sh:targetClass rl2:Policy ;
+    sh:property [
+        sh:path rl2:clause ;
+        sh:minCount 1 ;
+        sh:class rl2:Norm ;
+        sh:message "A policy must have at least one clause (norm)."
+    ] ;
+    sh:property [
+        sh:path rl2:grantor ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent
+    ] ;
+    sh:property [
+        sh:path rl2:grantee ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent
+    ] ;
+    sh:property [
+        sh:path rl2:condition ;
+        sh:maxCount 1 ;
+        sh:class rl2:Condition ;
+        sh:message "A policy may have at most one activation condition."
+    ] ;
+    sh:property [
+        sh:path rl2:policyGeneration ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:anyURI
+    ] .
+
+# Agreement requires both grantor and grantee
+rl2:AgreementShape a sh:NodeShape ;
+    sh:targetClass rl2:Agreement ;
+    sh:property [
+        sh:path rl2:grantor ;
+        sh:minCount 1 ;
+        sh:message "An Agreement must identify a grantor."
+    ] ;
+    sh:property [
+        sh:path rl2:grantee ;
+        sh:minCount 1 ;
+        sh:message "An Agreement must identify a grantee."
+    ] .
+
+# Privilege shape
+rl2:PrivilegeShape a sh:NodeShape ;
+    sh:targetClass rl2:Privilege ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:class rl2:Action ] ;
+    sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+
+# Duty shape
+rl2:DutyShape a sh:NodeShape ;
+    sh:targetClass rl2:Duty ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:class rl2:Action ] ;
+    sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+
+# Prohibition shape
+rl2:ProhibitionShape a sh:NodeShape ;
+    sh:targetClass rl2:Prohibition ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:prohibitedAction ; sh:minCount 1 ; sh:class rl2:Action ] ;
+    sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+
+# Promise shape
+rl2:PromiseShape a sh:NodeShape ;
+    sh:targetClass rl2:Promise ;
+    sh:property [ sh:path rl2:promiser ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:promiseContent ; sh:minCount 1 ] .
+
+############################################################
+# Condition Shapes
+############################################################
+
+# Atomic conditions (base Condition class used for simple comparisons)
+rl2:AtomicConditionShape a sh:NodeShape ;
+    sh:targetClass rl2:Condition ;
+    sh:property [ sh:path rl2:leftOperand ; sh:minCount 1 ] ;
+    sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:ComparisonOperator ] ;
+    sh:or (
+        [ sh:property [ sh:path rl2:rightOperand ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path rl2:rightOperandRef ; sh:minCount 1 ] ]
+    ) .
+
+# Logical constraints combine sub-conditions via logical operators
+rl2:LogicalConstraintShape a sh:NodeShape ;
+    sh:targetClass rl2:LogicalConstraint ;
+    sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:LogicalOperator ] ;
+    sh:property [ sh:path rl2:operand ; sh:minCount 1 ; sh:class rl2:Condition ] .
+
+# Contextual constraints require a context path
+rl2:ContextualConstraintShape a sh:NodeShape ;
+    sh:targetClass rl2:ContextualConstraint ;
+    sh:property [ sh:path rl2:contextPath ; sh:minCount 1 ; sh:datatype xsd:string ] .
+
+# Dynamic operand references require a dynamic operand path
+rl2:DynamicOperandReferenceShape a sh:NodeShape ;
+    sh:targetClass rl2:DynamicOperandReference ;
+    sh:property [ sh:path rl2:dynamicOperand ; sh:minCount 1 ; sh:datatype xsd:string ] .
+
+# Event constraints require an expected event
+rl2:EventConstraintShape a sh:NodeShape ;
+    sh:targetClass rl2:EventConstraint ;
+    sh:property [ sh:path rl2:expectsEvent ; sh:minCount 1 ; sh:class rl2:Event ] .
+
+# Temporal constraint shape
+rl2:TemporalConstraintShape a sh:NodeShape ;
+    sh:targetClass rl2:TemporalConstraint ;
+    sh:property [
+        sh:path rl2:interval ;
+        sh:minCount 1 ;
+        sh:class rl2:EffectiveInterval
+    ] .
+
+# Effective interval shape with start <= end validation
+rl2:EffectiveIntervalShape a sh:NodeShape ;
+    sh:targetClass rl2:EffectiveInterval ;
+    sh:property [
+        sh:path rl2:start ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:property [
+        sh:path rl2:end ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:sparql [
+        sh:message "rl2:start must be less than or equal to rl2:end" ;
+        sh:prefixes rl2: ;
+        sh:select """
+            SELECT $this
+            WHERE {
+                $this rl2:start ?start .
+                $this rl2:end ?end .
+                FILTER (?start > ?end)
+            }
+        """
+    ] .
+
+# Asset collection shape
+rl2:AssetCollectionShape a sh:NodeShape ;
+    sh:targetClass rl2:AssetCollection ;
+    sh:property [
+        sh:path rl2:member ;
+        sh:class rl2:Asset
+    ] ;
+    sh:property [
+        sh:path rl2:dynamicQuery ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string
+    ] .
