@@ -6,6 +6,36 @@
 # RL2 SHACL Shapes
 # Syntax validation for RL2 policies
 ############################################################
+#
+# Design Principles:
+#
+# 1. NOT CLOSED SHAPES
+#    These shapes are intentionally non-closed (no sh:closed true).
+#    This allows profiles and implementations to extend RL2 classes
+#    with additional properties without breaking validation.
+#
+# 2. PROFILE FLEXIBILITY
+#    Certain classes are intentionally left without shapes or with
+#    minimal constraints:
+#    - Agent: Open-ended; may be users, organizations, services, etc.
+#    - Action: Profile-defined (e.g., media: play, stream; software:
+#      execute, install; data governance: process, transfer)
+#    - Asset: Open-ended; any resource subject to normative control
+#    - LeftOperand: Profile-defined (e.g., purpose, dateTime, spatial)
+#
+#    This design enables domain-specific profiles to define their own
+#    actions, assets, and operands without modifying core shapes.
+#
+# 3. POLICY SUBCLASS INHERITANCE
+#    Policy subtypes (Set, Offer, Privacy, Assertion) inherit from
+#    PolicyShape via SHACL's standard inheritance behavior. Only
+#    Agreement has an additional shape requiring grantor/grantee.
+#
+# 4. STATE ENUMERATION VALIDATION
+#    ObligationState and PromiseState are constrained to their
+#    respective valid values defined in the ontology.
+#
+############################################################
 
 # Policy shape - validates policy structure
 rl2:PolicyShape a sh:NodeShape ;
@@ -72,6 +102,38 @@ rl2:ProhibitionShape a sh:NodeShape ;
     sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
     sh:property [ sh:path rl2:prohibitedAction ; sh:minCount 1 ; sh:class rl2:Action ] ;
     sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+
+# Claim shape (Hohfeldian correlative to Duty)
+rl2:ClaimShape a sh:NodeShape ;
+    sh:targetClass rl2:Claim ;
+    sh:property [ sh:path rl2:claimHolder ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "A Claim must identify a claimHolder (the right-holder)." ] ;
+    sh:property [ sh:path rl2:claimAgainst ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "A Claim must identify a claimAgainst (the duty-bearer)." ] .
+
+# Power shape (ability to alter normative relations)
+rl2:PowerShape a sh:NodeShape ;
+    sh:targetClass rl2:Power ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "A Power must identify a subject (the power-holder)." ] ;
+    sh:property [ sh:path rl2:affectsNorm ; sh:minCount 1 ; sh:class rl2:Norm ;
+        sh:message "A Power must identify the norm it can affect." ] .
+
+# Liability shape (exposure to exercise of power)
+rl2:LiabilityShape a sh:NodeShape ;
+    sh:targetClass rl2:Liability ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "A Liability must identify a subject (the exposed party)." ] ;
+    sh:property [ sh:path rl2:exposedTo ; sh:minCount 1 ; sh:class rl2:Power ;
+        sh:message "A Liability must identify the power it is exposed to." ] .
+
+# Immunity shape (protection against power)
+rl2:ImmunityShape a sh:NodeShape ;
+    sh:targetClass rl2:Immunity ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "An Immunity must identify a subject (the protected party)." ] ;
+    sh:property [ sh:path rl2:immuneFrom ; sh:minCount 1 ; sh:class rl2:Power ;
+        sh:message "An Immunity must identify the power it protects against." ] .
 
 # Promise shape
 rl2:PromiseShape a sh:NodeShape ;
@@ -161,4 +223,58 @@ rl2:AssetCollectionShape a sh:NodeShape ;
         sh:path rl2:dynamicQuery ;
         sh:maxCount 1 ;
         sh:datatype xsd:string
+    ] .
+
+############################################################
+# Operational Layer Shapes
+############################################################
+
+# Event shape - basic validation for events
+rl2:EventShape a sh:NodeShape ;
+    sh:targetClass rl2:Event ;
+    sh:property [
+        sh:path rl2:operationalAgent ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "An Event may have at most one operational agent."
+    ] .
+
+# State transition shape
+rl2:StateTransitionShape a sh:NodeShape ;
+    sh:targetClass rl2:StateTransition ;
+    sh:property [
+        sh:path rl2:triggeredBy ;
+        sh:minCount 1 ;
+        sh:class rl2:Event ;
+        sh:message "A StateTransition must be triggered by an Event."
+    ] ;
+    sh:property [
+        sh:path rl2:fromState ;
+        sh:minCount 1 ;
+        sh:message "A StateTransition must specify the originating state."
+    ] ;
+    sh:property [
+        sh:path rl2:toState ;
+        sh:minCount 1 ;
+        sh:message "A StateTransition must specify the resulting state."
+    ] .
+
+# Duty state validation - ensure valid obligation state
+rl2:DutyStateShape a sh:NodeShape ;
+    sh:targetClass rl2:Duty ;
+    sh:property [
+        sh:path rl2:obligationState ;
+        sh:maxCount 1 ;
+        sh:in (rl2:Pending rl2:Active rl2:Fulfilled rl2:Violated) ;
+        sh:message "Duty obligationState must be one of: Pending, Active, Fulfilled, Violated."
+    ] .
+
+# Promise state validation - ensure valid promise state
+rl2:PromiseStateShape a sh:NodeShape ;
+    sh:targetClass rl2:Promise ;
+    sh:property [
+        sh:path rl2:promiseState ;
+        sh:maxCount 1 ;
+        sh:in (rl2:PromisePending rl2:PromiseFulfilled rl2:PromiseViolated) ;
+        sh:message "Promise promiseState must be one of: PromisePending, PromiseFulfilled, PromiseViolated."
     ] .
