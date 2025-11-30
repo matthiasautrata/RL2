@@ -384,7 +384,7 @@ This integration requires no changes to RL2's formal semantics:
 | Power/Duty activation | Remedies triggered by violation events |
 | Temporal intervals | SLO measurement windows |
 
-**Rolling Windows**: For sliding time windows (e.g., "99.9% over rolling 30 days"), the data contracts profile would define a convention for how `rl2dc:measurementWindow` operands are resolved. This is profile-level semantics, not core RL2—the resolver implementation interprets duration values according to profile specifications.
+**Rolling Windows**: For sliding time windows (e.g., "99.9% over rolling 30 days"), the data contracts profile would define a convention for how `rl2dc:measurementWindow` operands are resolved. This is profile-level semantics, not core RL2—the resolver implementation interprets duration values according to profile specifications. E.g., The resolver interprets `rl2:duration "P30D"` as `(current_time - 30d, current_time)`.
 
 ### Proposed Data Contracts Profile
 
