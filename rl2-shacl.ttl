@@ -140,7 +140,16 @@ rl2:PromiseShape a sh:NodeShape ;
     sh:targetClass rl2:Promise ;
     sh:property [ sh:path rl2:promiser ; sh:minCount 1 ; sh:class rl2:Agent ] ;
     sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:class rl2:Agent ] ;
-    sh:property [ sh:path rl2:promiseContent ; sh:minCount 1 ] .
+    sh:property [
+        sh:path rl2:promiseContent ;
+        sh:minCount 1 ;
+        sh:or (
+            [ sh:class rl2:Action ]
+            [ sh:class rl2:Duty ]
+            [ sh:class rl2:Condition ]
+        ) ;
+        sh:message "Promise content must be an Action, Duty, or Condition."
+    ] .
 
 ############################################################
 # Condition Shapes
@@ -192,24 +201,14 @@ rl2:EffectiveIntervalShape a sh:NodeShape ;
     sh:property [
         sh:path rl2:start ;
         sh:maxCount 1 ;
-        sh:datatype xsd:dateTime
+        sh:datatype xsd:dateTime ;
+        sh:lessThanOrEquals rl2:end ;
+        sh:message "rl2:start must be less than or equal to rl2:end"
     ] ;
     sh:property [
         sh:path rl2:end ;
         sh:maxCount 1 ;
         sh:datatype xsd:dateTime
-    ] ;
-    sh:sparql [
-        sh:message "rl2:start must be less than or equal to rl2:end" ;
-        sh:prefixes rl2: ;
-        sh:select """
-            SELECT $this
-            WHERE {
-                $this rl2:start ?start .
-                $this rl2:end ?end .
-                FILTER (?start > ?end)
-            }
-        """
     ] .
 
 # Asset collection shape

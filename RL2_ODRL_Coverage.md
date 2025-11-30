@@ -105,7 +105,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 | odrl:duty        | rl2:Duty                        | Direct mapping                      |
 | odrl:permission  | rl2:Privilege                   | Direct mapping                      |
 | odrl:prohibition | rl2:Prohibition                 | Direct deontic mapping              |
-| odrl:inheritFrom | Under discussion | See RL2_DiscussionTopics.md |
+| odrl:inheritFrom | Flattening Strategy | See below |
 | odrl:refinement  | rl2:Condition refinement        | RL2 supports nested conditions      |
 
 ### Constraint Operators
@@ -216,6 +216,23 @@ _:c a rl2:Condition ;
     rl2:constraintOperator rl2:eq ;
     rl2:rightOperand "research" .
 ```
+
+### Compilation Strategy: Inheritance Flattening
+
+ODRL allows policies to inherit from others via `odrl:inheritFrom`. RL2 supports this through a pre-processing "flattening" step during compilation, rather than as a runtime property.
+
+**Algorithm:**
+Given a policy `P` that inherits from `P_parent`:
+1. **Recursively resolve** `P_parent` until a base policy is found.
+2. **Merge Properties**:
+   - If `P` defines a property (e.g., `rl2:condition`), it overrides `P_parent`.
+   - If `P` does not define it, copy from `P_parent`.
+3. **Merge Clauses**:
+   - Union the set of clauses from `P` and `P_parent`.
+   - Conflict resolution is handled by the evaluator's conflict strategy.
+4. **Result**: A self-contained RL2 policy with no inheritance dependencies.
+
+This strategy ensures that RL2 evaluation remains simple and deterministic (no external fetching during evaluation) while supporting the organizational reuse patterns of `inheritFrom`.
 
 ---
 
