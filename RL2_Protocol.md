@@ -6,12 +6,6 @@ status: "Draft"
 date: 2025-01-01
 ---
 
-# RL2 Evaluation Protocol (Draft v0.2)
-
-*A companion specification for interoperable policy evaluation*
-
----
-
 ## Table of Contents
 
 - Introduction

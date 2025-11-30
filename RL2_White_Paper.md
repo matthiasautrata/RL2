@@ -5,12 +5,6 @@ status: "Draft"
 date: 2025-01-01
 ---
 
-# RL2: A Verified, Operational Rights Language
-
-*White Paper Draft v0.2*
-
----
-
 ## Introduction
 
 Modern data governance faces a fundamental challenge: bridging the gap between policy intent and machine execution.

@@ -8,18 +8,6 @@ abstract: |
   RL2 is a normative and operational policy language designed as a rigorous successor to legacy rights languages, integrating deontic logic, promise theory, constraint algebra, and small-step operational semantics into a single, unified, formally grounded framework.
 ---
 
-# RL2: A Unified Normative, Operational, and Semantic Framework for Rights and Data Policies
-
-*Formal Semantics Specification (Draft v0.2)*
-
----
-
-## Abstract
-
-RL2 is a normative and operational policy language designed as a rigorous successor to legacy rights languages, integrating deontic logic, promise theory, constraint algebra, and small-step operational semantics into a single, unified, formally grounded framework. This paper presents the full formal semantics of RL2, including abstract syntax, typing rules, semantic domains, denotational semantics for normative structures, a complete operational semantics for duties, promises, and state transitions, and a big-step policy interpretation function. The specification is designed for both human comprehension and mechanization (e.g., Why3/Lean), providing the foundation for verifiable policy-evaluation kernels.
-
----
-
 ## Introduction
 
 Digital policy frameworks often lack formal normative foundations and operational rigor. Legacy standards like ODRL 2.2 provide expressive vocabularies but leave semantics to interpretation, leading to inconsistent enforcement.

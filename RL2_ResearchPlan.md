@@ -8,11 +8,93 @@
 
 RL2's semantics are explicitly designed for mechanization. This document consolidates the research plan for:
 
-1. **Mechanizing RL2 semantics** in Why3, K, or Lean 4
-2. **Proving soundness and completeness** of the ontology-semantics correspondence
+1. **Mechanizing RL2 semantics** with proofs of correctness
+2. **Producing an executable reference implementation** that cannot drift from the specification
 3. **Establishing expressive completeness** relative to ODRL
 
-The goal: Transform RL2 from *well-specified* to *formally verified*, making it the first rights/policy language with mechanically checked semantics.
+The goal: Transform RL2 from *well-specified* to *formally verified*, making it the first rights/policy language with mechanically checked semantics — while remaining **practical enough for enterprise adoption**.
+
+---
+
+## Guiding Principles
+
+### The Balance We Must Strike
+
+Any mechanization approach must satisfy multiple stakeholders:
+
+| Stakeholder | Requirement |
+|-------------|-------------|
+| **Regulators** | Credible formal foundation; machine-checked proofs exist |
+| **Academics** | Rigorous semantics; soundness/completeness established |
+| **Engineers** | Readable spec; can implement without learning type theory |
+| **Enterprise leadership** | No "black magic"; no single-point-of-failure expertise |
+| **Auditors** | Implementation provably matches specification |
+
+**The critical constraint**: If the formal artifacts require exotic expertise that only one engineer possesses, the approach fails regardless of mathematical soundness. Leadership will (rightly) reject betting the firm on one person's Coq/Agda/K knowledge.
+
+### What We Can Defensibly Claim
+
+The toolchain must support these statements to regulators and auditors:
+
+> "RL2's semantics are fully specified and machine-checked using formal methods. The production evaluator is tested against a verified reference implementation extracted from the formal specification."
+
+This is comparable to AWS Cedar, Google Zanzibar, and DAML — without requiring exotic expertise.
+
+---
+
+## Toolchain Decision
+
+### Primary Path: Why3 → OCaml
+
+After evaluating alternatives, **Why3 with OCaml extraction** is the recommended approach:
+
+| Criterion | Why3 + OCaml | Coq/Lean/Agda | K Framework |
+|-----------|--------------|---------------|-------------|
+| Readable by engineers | ✓ WhyML ≈ ML | ✗ Dependent types | ~ Rewrite rules |
+| Proof automation | ✓ SMT backends | ~ Manual tactics | ✗ Limited |
+| Executable output | ✓ OCaml extraction | ✓ Extraction | ✓ Interpreter |
+| Enterprise credibility | ✓ Jane Street uses OCaml | ✗ "Academic" | ✗ Obscure |
+| Bus factor | ✓ Multiple engineers can learn | ✗ Specialist required | ✗ Specialist required |
+| Fallback to JVM | ✓ Scala is ML-family | ~ Possible | ✗ Difficult |
+
+**Why Why3?**
+
+1. **RL2's pseudo-code is already 80% WhyML.** The translation is nearly mechanical.
+
+2. **OCaml is a real production language.** Jane Street runs a trading firm on it. That's credibility no dependent-type language has in enterprise finance.
+
+3. **Proofs exist but don't block development.** Engineers work with the OCaml reference; formal proofs are checked but not maintained daily.
+
+4. **Multiple backend provers.** Alt-Ergo, Z3, CVC5 for automation; Coq/Isabelle escalation path for difficult lemmas.
+
+5. **No single wizard required.** Why3/OCaml can be learned by competent engineers. It's not homotopy type theory.
+
+### Alternatives Considered
+
+**Coq / Lean 4 / Agda**
+
+Strong proof assistants with dependent types. Rejected because:
+- Steep learning curve creates single-point-of-failure risk
+- "Academic" perception undermines enterprise buy-in
+- No regulator will read or understand the proofs anyway
+
+**K Framework**
+
+Powerful for executable semantics and symbolic execution. Considered as enhancement but not primary because:
+- Smaller community; harder to hire expertise
+- Why3's OCaml extraction already provides executable reference
+- Can be added later if symbolic execution becomes valuable
+
+**TLA+**
+
+Excellent for distributed systems, but RL2 is a language semantics problem, not a distributed protocol problem.
+
+### Fallback Strategy
+
+If organizational pressure requires JVM deployment:
+- OCaml semantics remain the verified reference
+- Scala implementation tested against OCaml reference (property-based testing)
+- Scala and OCaml are both ML-family; translation is straightforward
 
 ---
 
@@ -50,51 +132,18 @@ RL2 builds on significant prior work formalizing ODRL:
 
 **Key gap RL2 addresses**: None of the above provides a *complete* operational semantics with explicit duty lifecycle state machines suitable for verified implementation.
 
----
+### Industry Precedents
 
-## Tool Selection
+RL2's approach is comparable to other formally-backed policy systems:
 
-### Primary: Why3
+| System | Formal Approach | Production Language |
+|--------|-----------------|---------------------|
+| AWS Cedar | Lean proofs + Dafny | Rust |
+| Google Zanzibar | Internal verification | Go |
+| DAML | Formally specified | Haskell/Scala |
+| Tezos Michelson | Mi-Cho-Coq | OCaml |
 
-**Rationale**: Best match for RL2's design style.
-
-| RL2 Feature | Why3 Capability |
-|-------------|-----------------|
-| Algebraic data types | Native support |
-| Pure evaluation functions | First-class |
-| Small-step operational rules | Inductive predicates |
-| SHACL constraints | Expressible as preconditions |
-| Determinism proofs | Standard technique |
-
-**Ecosystem**: Backend provers (Alt-Ergo, Z3, CVC5) for automation; Coq/Isabelle for complex lemmas.
-
-**Estimated effort**: 2-4 weeks for polished semantics + basic metatheory.
-
-### Alternative: K Framework
-
-**Rationale**: Executable semantics directly from formal definition.
-
-- Rewrite-based: small-step rules map naturally
-- Produces interpreter automatically
-- Used for production languages (JavaScript, C)
-- Better for *testing* semantics against examples
-
-**Trade-off**: Less mature proof infrastructure than Why3/Coq.
-
-### Alternative: Lean 4
-
-**Rationale**: Modern, active community, code extraction.
-
-- Strong type system, dependent types
-- Tactic framework for proof automation
-- Extract executable code
-- AI integration (AlphaProof)
-
-**Trade-off**: Steeper learning curve; younger ecosystem.
-
-### Recommendation
-
-**Start with Why3** for the formal companion. Use **K Framework** in parallel to create an executable reference implementation for validation. Consider **Lean 4** for future work or if AI-assisted proving becomes valuable.
+RL2 follows the same pattern: formal proofs backing a practical implementation.
 
 ---
 
@@ -161,7 +210,9 @@ Every ODRL construct has an RL2 equivalent; RL2 is a strict superset.
 
 ## Phased Implementation Plan
 
-### Phase 1: Mechanization Setup (Weeks 1-2)
+### Phase 1: Why3 Mechanization (Weeks 1-3)
+
+**Goal**: Translate RL2 semantics to Why3; prove core safety properties.
 
 1. **Translate abstract syntax to Why3 datatypes**
    ```why3
@@ -182,36 +233,53 @@ Every ODRL construct has an RL2 equivalent; RL2 is a strict superset.
 3. **Implement operational predicates**
    - `predicate step (σ: state) (e: expr) (σ': state) (e': expr)`
 
-4. **Import SHACL grammar as preconditions**
+4. **Prove safety properties**
+   - (S1) Determinism
+   - (S4) Duty-state consistency
+   - (S6) Totality
 
-### Phase 2: Core Metatheory Proofs (Weeks 3-4)
+### Phase 2: OCaml Reference Extraction (Weeks 4-5)
 
-1. Prove (S1) Determinism
-2. Prove (S2) Progress
-3. Prove (S3) Preservation
-4. Prove (S4) Duty-state consistency
-5. Prove (B1) Syntax soundness
-6. Prove (B3) Syntax completeness
+**Goal**: Produce executable reference evaluator from Why3.
 
-### Phase 3: ODRL Compilation Correctness (Weeks 5-6)
+1. **Extract OCaml code** from verified Why3 modules
+2. **Build reference evaluator CLI** that takes RL2 policies and requests
+3. **Create test suite** covering all RL2 constructs
+4. **Validate** against hand-worked examples from RL2_White_Paper.md
+
+### Phase 3: Metatheory Completion (Weeks 6-8)
+
+**Goal**: Complete remaining proofs.
+
+1. Prove (S2) Progress
+2. Prove (S3) Preservation
+3. Prove (S5) Timeout correctness
+4. Prove (B1-B3) Syntax soundness/completeness
+5. Document any lemmas requiring Coq/Isabelle escalation
+
+### Phase 4: ODRL Compilation Correctness (Weeks 9-10)
+
+**Goal**: Formal ODRL→RL2 compiler with semantic preservation.
 
 1. Define formal compiler `C : ODRL → RL2`
 2. Prove (C1) semantic preservation
 3. Prove (C2) expressive completeness
 4. Document corner cases (inheritance, conflicts)
 
-### Phase 4: Documentation & Validation (Week 7+)
+### Phase 5: Documentation & Release (Weeks 11-12)
 
-1. Produce "RL2 Mechanized Semantics v1.0" companion document
-2. Create test suite with ODRL examples compiled to RL2
-3. Validate against K Framework executable semantics
-4. Release reference evaluator kernel
+**Goal**: Publishable artifacts.
+
+1. "RL2 Mechanized Semantics v1.0" companion document
+2. Release OCaml reference evaluator
+3. Test suite with ODRL examples compiled to RL2
+4. Integration guidance for production implementations
 
 ---
 
 ## Deliverables
 
-### Deliverable A: Why3 Semantics Companion
+### Deliverable A: Why3 Semantics Module
 
 ```
 RL2_Semantics_Why3/
@@ -230,7 +298,14 @@ RL2_Semantics_Why3/
     └── ConstraintAlgebra.mlw
 ```
 
-### Deliverable B: Semantic IR Specification
+### Deliverable B: OCaml Reference Evaluator
+
+Extracted from Why3:
+- Pure, side-effect-free evaluator kernel
+- CLI for testing: `rl2-eval --policy p.ttl --request r.json`
+- Property-based test suite (QuickCheck/qcheck)
+
+### Deliverable C: Semantic IR Specification
 
 Standalone document defining:
 - Canonical AST for RL2
@@ -238,7 +313,7 @@ Standalone document defining:
 - Canonical form for Policies (flattened, desugared)
 - Translation: RDF/SHACL → AST → IR
 
-### Deliverable C: ODRL→RL2 Compilation Semantics
+### Deliverable D: ODRL→RL2 Compiler Specification
 
 Formal specification of compiler `C`:
 - Mapping table (ODRL construct → RL2 construct)
@@ -246,12 +321,21 @@ Formal specification of compiler `C`:
 - Semantic preservation proof outline
 - Corner cases documentation
 
-### Deliverable D: Reference Evaluator
+---
 
-Extracted/implemented evaluator kernel:
-- Pure, side-effect-free
-- Verified against Why3 proofs (or K semantics)
-- Test suite coverage
+## What We Explicitly Do NOT Do
+
+To maintain focus and avoid over-engineering:
+
+1. **No Coq/Lean/Agda as primary tools.** Why3 with Coq escalation path is sufficient.
+
+2. **No K Framework (initially).** OCaml extraction provides executable semantics. K can be added later if symbolic execution is needed.
+
+3. **No verified C/Rust extraction.** OCaml reference is the verified artifact; production implementations are tested against it.
+
+4. **No concurrent semantics (yet).** Single-threaded semantics first; concurrency is future work.
+
+These decisions can be revisited based on actual needs, but the default is pragmatic minimalism.
 
 ---
 
@@ -267,11 +351,11 @@ Extracted/implemented evaluator kernel:
 
 4. **Cryptographic Evidence**: If events are signed, crypto layer must guarantee integrity (RL2 assumes tamper-evident Σ)
 
-### Design Decisions Needed
+### Future Enhancements (Not in Scope)
 
-1. **Tool choice**: Why3 vs Lean 4 for primary mechanization
-2. **Executable semantics**: K Framework for validation?
-3. **Extraction target**: OCaml, Rust, or verified C?
+1. **K Framework executable semantics** for symbolic execution and model checking
+2. **Verified Rust/C extraction** for performance-critical deployments
+3. **Lean 4 port** if AI-assisted proving becomes valuable
 
 ---
 
@@ -279,17 +363,37 @@ Extracted/implemented evaluator kernel:
 
 RL2 mechanization is complete when:
 
-- [ ] All proof obligations (S1-S6, B1-B3, C1-C2) discharged in proof assistant
-- [ ] Reference evaluator extracted and tested
-- [ ] K Framework executable semantics validates same examples
+- [ ] Safety properties (S1, S4, S6) discharged in Why3
+- [ ] OCaml reference evaluator extracted and tested
+- [ ] Test suite covers all RL2 constructs
 - [ ] Companion document published
-- [ ] Test suite covers all ODRL 2.2 constructs
+- [ ] At least one production implementation tested against OCaml reference
 
 **Outcome**: RL2 becomes the first rights/policy language with:
-- Fully mechanized semantics
-- Deterministic, verifiable duty lifecycle
-- Formally defined strict superset of ODRL
-- Verified evaluator kernel
+- Mechanized semantics (Why3)
+- Verified reference evaluator (OCaml)
+- Formal ODRL superset proof
+- Practical enterprise adoption path
+
+---
+
+## What We Can Tell Stakeholders
+
+### For Regulators
+
+> "RL2's semantics are fully specified and machine-checked using formal methods (SMT solvers, interactive proof). The production evaluator is continuously tested against a verified reference implementation."
+
+### For Academics
+
+> "RL2 is defined by a canonical small-step operational semantics with mechanized proofs of determinism, type preservation, and duty-state consistency."
+
+### For Engineers
+
+> "You only need the pseudo-code specification to implement RL2. The Why3 proofs and OCaml reference ensure we don't accidentally break the semantics."
+
+### For Enterprise Leadership
+
+> "This approach is comparable to AWS Cedar and Google Zanzibar. It provides material risk reduction without requiring exotic expertise. Multiple engineers can maintain the formal artifacts."
 
 ---
 
@@ -303,3 +407,4 @@ Key sources for this plan:
 - [Lean 4] de Moura et al., 2021
 - [Pucella-Weissman 2006] First ODRL formalization
 - [Fornara-Colombetti 2017] ODRL operational semantics
+- [AWS Cedar] Bozic et al., 2023 — Formal verification of authorization policies

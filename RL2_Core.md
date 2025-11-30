@@ -6,10 +6,6 @@ status: "Draft"
 date: 2025-01-01
 ---
 
-# RL2 Core Specification (Draft v0.2)
-
----
-
 ## Table of Contents
 
 - Introduction
@@ -89,7 +85,7 @@ are distinct from syntactic/functional roles (grantor, approver, operator).
 
 ### Operational Semantics
 
-RL2 policies have **state-dependent behavior**.
+RL2 policies have **stateful behavior**.
 This is where ODRE concepts enter:
 
 * Events
