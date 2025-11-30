@@ -212,6 +212,53 @@ Events change which policies apply, rather than branching within a single policy
 
 ---
 
+## Why Promises Are Not Norms
+
+RL2 distinguishes between **Norms** (Hohfeldian deontic positions) and **Promises** (voluntary commitments). This distinction is fundamental to the RL2 architecture and warrants explanation.
+
+### The Conceptual Difference
+
+| Aspect | Norm | Promise |
+|--------|------|---------|
+| **Source** | Imposed by policy, law, or authority | Voluntary commitment by an agent |
+| **Nature** | Deontic position: what one *must*, *may*, or *may not* do | Cooperative undertaking: what one *will* do |
+| **Creation** | Policy author defines; subject may not consent | Promiser actively makes the commitment |
+| **Parties** | Subject bears the burden; counterparty may be abstract | Promiser commits *to* a specific promisee |
+
+### Why This Matters
+
+Consider two statements:
+
+1. **"Alice must delete the data within 30 days"** — This is a **Duty**. It is imposed by policy. Alice may not have agreed to it; it applies because she accessed the data under a policy that includes this requirement.
+
+2. **"Alice commits to Bob that she will handle data responsibly"** — This is a **Promise**. Alice voluntarily made this commitment to Bob. It exists because Alice chose to make it, not because a policy imposed it.
+
+### Promises May Create Norms
+
+The relationship between promises and norms is generative: a promise can *give rise to* normative positions.
+
+When Alice promises Bob she will delete the data, this promise may create:
+- A **Duty** on Alice (to perform the deletion)
+- A **Claim** for Bob (to have the data deleted)
+
+But the promise itself is not the duty—it is the *source* of the duty. This distinction matters for:
+
+- **Provenance**: We can trace *why* a duty exists (imposed by policy vs. arising from voluntary commitment)
+- **Enforcement**: Promises require both parties to be identified; duties may have abstract counterparties
+- **Lifecycle**: Promises have their own states (pending, fulfilled, violated) independent of the duties they create
+
+### In the RL2 Model
+
+RL2 models this as:
+- `rl2:Promise` connects agents via `promiser` and `promisee`
+- `rl2:Duty` (and other norms) are separate classes that may be created as a consequence
+- A condition can check whether a promise exists (`rl2:requires ex:StewardshipPromise`)
+- The promise's state is tracked independently (`rl2:promiseState`)
+
+This separation enables policies that reason about both imposed obligations *and* voluntary commitments within a unified framework.
+
+---
+
 ## Architecture Overview
 
 RL2 integrates into existing systems through three components:

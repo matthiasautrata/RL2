@@ -194,6 +194,26 @@ rl2:promiseContent rdfs:domain rl2:Promise ; rdfs:range rl2:PromiseContent .
 
 Promise content may be an Action, Duty, or Condition. Promises have states: `PromisePending`, `PromiseFulfilled`, `PromiseViolated`.
 
+#### Why Promises Are Distinct from Norms
+
+RL2 deliberately separates `Promise` from `Norm` (and its subclasses like `Duty`). This distinction reflects a fundamental conceptual difference:
+
+| Aspect | Norm | Promise |
+|--------|------|---------|
+| **Source** | Imposed by policy or authority | Voluntary commitment by an agent |
+| **Nature** | Deontic position (*must*, *may*, *may not*) | Cooperative undertaking (*will*) |
+| **Parties** | Subject bears burden; counterparty may be abstract | Promiser commits *to* a specific promisee |
+
+**Example**: "Alice must delete data within 30 days" is a **Duty** imposed by policy. "Alice commits to Bob to handle data responsibly" is a **Promise** Alice voluntarily made.
+
+**Promises may create Norms**: When Alice promises Bob she will delete the data, this promise may give rise to a Duty on Alice and a Claim for Bob. The promise is the *source*; the norm is the *effect*. This enables:
+
+- **Provenance tracking**: Why does this duty exist? (Policy-imposed vs. voluntary commitment)
+- **Independent lifecycle**: Promise states (pending/fulfilled/violated) are tracked separately from obligation states
+- **Bilateral semantics**: Promises require identified parties; duties may have abstract counterparties
+
+See **RL2_White_Paper.md §Why Promises Are Not Norms** for extended discussion.
+
 ### Agents and Roles
 
 ```turtle
