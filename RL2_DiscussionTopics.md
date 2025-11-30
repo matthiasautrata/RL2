@@ -172,6 +172,12 @@ The formal characterization of RL2's expressive power is now documented in the S
 
 **Key Insight**: RL2 already includes Promise Theory as a core layer, making it a natural fit for data contracts without requiring a separate ontology.
 
+**Core Formula**:
+
+> **SLO = Promise + Measurable Condition + Time Window + Remedy**
+
+This maps directly to RL2's existing constructs—no extensions required.
+
 ### DCON → RL2 Mapping
 
 | DCON Concept | RL2 Equivalent |
@@ -206,13 +212,27 @@ ex:AvailabilitySLO a rl2:Promise ;
 
 **DQV Alignment:**
 
-| DQV Concept | RL2 Mapping |
-|-------------|-------------|
-| `dqv:Metric` | `rl2:LeftOperand` |
-| `dqv:QualityMeasurement` | Value resolved from state Σ |
-| `dqv:Dimension` | Category/taxonomy of left operands |
+DQV is **descriptive** (what was measured), RL2 is **normative** (what should be measured and what happens when it isn't). They interlock:
+
+| Concept | DQV | RL2 |
+|---------|-----|-----|
+| What is measured? | `dqv:Metric` | `rl2:LeftOperand` |
+| What dimension? | `dqv:Dimension` | Operand categories (profiles) |
+| What is the observed value? | `dqv:value` | Resolved via `resolve(leftOperand, Env)` |
+| Where are measurements stored? | DQV measurement graph | RL2 Σ.State or external context |
+| What *should* the value be? | ❌ | `rl2:Condition` with threshold |
+| What happens on violation? | ❌ | `rl2:Duty` / `rl2:Claim` / `rl2:Power` |
+
+**Alignment recommendation**: Use `rdfs:subClassOf` rather than `owl:equivalentClass`:
+
+```turtle
+rl2q:QualityLeftOperand rdfs:subClassOf rl2:LeftOperand, dqv:Metric .
+```
+
+This allows RL2 operands that are *not* quality metrics (e.g., access context operands).
 
 **What RL2 adds beyond DQV:**
+
 - Define thresholds/targets (as conditions)
 - Express commitments (as Promises)
 - Define violation consequences (as Duties, Claims)
@@ -352,11 +372,32 @@ ex:APIPlatformTeam a rl2:Agent ;
     rdfs:label "API Platform Team" .
 ```
 
+### Semantics Verification
+
+This integration requires no changes to RL2's formal semantics:
+
+| RL2 Semantic Component | SLO/DQV Application |
+|------------------------|---------------------|
+| `resolve(leftOperand, Env)` | Quality metrics resolved from monitoring/DQV |
+| Promise fulfillment | SLO success when condition holds |
+| Promise violation | SLO breach when condition false + deadline passed |
+| Power/Duty activation | Remedies triggered by violation events |
+| Temporal intervals | SLO measurement windows |
+
+**Rolling Windows**: For sliding time windows (e.g., "99.9% over rolling 30 days"), define:
+
+```
+RollingWindow(d) ::= TemporalInterval(now - d, now)
+```
+
+The resolver interprets `rl2:duration "P30D"` as `(current_time - 30d, current_time)`.
+
 ### Proposed Data Contracts Profile
 
 A minimal `rl2-datacontracts` profile would define:
 
 **Actions:**
+
 - `rl2dc:deliver` - Deliver data according to schedule
 - `rl2dc:conformToSchema` - Conform to specified schema
 - `rl2dc:notifyChanges` - Notify of upcoming changes
@@ -364,6 +405,7 @@ A minimal `rl2-datacontracts` profile would define:
 - `rl2dc:issueServiceCredit` - Issue credit for SLO violation
 
 **Left Operands:**
+
 - `rl2dc:schedule` - Delivery schedule (iCal format)
 - `rl2dc:schemaRef` - Reference to schema specification
 - `rl2dc:noticePeriod` - Advance notice duration
@@ -373,11 +415,23 @@ A minimal `rl2-datacontracts` profile would define:
 - `rl2dc:freshness` - Data freshness/staleness
 
 **Benefits over separate data contract ontologies:**
+
 - Unified language for rights, contracts, and SLOs
 - Built-in Promise Theory with operational semantics
 - Formal verification path via RL2 mechanization
 - No ODRL dependency (standalone)
 - Richer lifecycle tracking (promise states, violation handling)
+
+### Strategic Value
+
+This use-case elevates RL2 from "rights language" to **a general normative policy language for data ecosystems**, covering:
+
+- Rights & access policies (who can do what)
+- Data contracts (what data is provided, when)
+- SLOs/SLAs (what quality levels are promised)
+- Remedies (what happens on violation)
+
+Enterprises need unified modeling for all of the above. RL2 provides it without requiring multiple overlapping ontologies.
 
 ---
 
