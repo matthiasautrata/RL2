@@ -429,6 +429,41 @@ Enterprises need unified modeling for all of the above. RL2 provides it without 
 
 ---
 
+## 8. Graphical Representation of the Information Model
+
+**Status**: Under discussion
+
+**Background**: RL2 includes two diagram files (`rl2-overview.drawio.svg` and `rl2-information-model.drawio.svg`) that visualize the ontology structure. However, creating effective diagrams for a policy language is inherently challenging.
+
+**The Problem**: Any class diagram of RL2 faces a tradeoff:
+
+- **Completeness vs. readability**: Agent connects to Norm (subject, counterparty), Promise (promiser, promisee), Policy (grantor, grantee), Event (approver, operationalAgent), and more. Showing all arrows creates spaghetti; omitting them is incomplete.
+
+- **Single view limitations**: A static document cannot provide drill-down or filtering. Even the ODRL Information Model diagram—which is well-designed—is necessarily incomplete.
+
+- **Multiple audiences**: A conceptual overview for the White Paper needs different emphasis than a technical reference diagram.
+
+**Current Approach**: Two diagrams at different abstraction levels:
+
+| Diagram | Purpose | Focus |
+|---------|---------|-------|
+| `rl2-overview.drawio.svg` | Conceptual introduction | Layers, key relationships (Policy→Norm, Promise↔Agent, Promise→Norm) |
+| `rl2-information-model.drawio.svg` | Technical reference | All classes, inheritance, selected property arrows |
+
+**Future Options**:
+
+1. **Multiple focused diagrams**: Separate views for Agent relationships, Condition hierarchy, Protocol flow, etc.
+
+2. **Interactive tooling**: A web-based visualization with filtering/drill-down (premature for current stage)
+
+3. **Notation conventions**: Establish rules for what arrows to show vs. imply (e.g., "Agent is referenced by most classes" as a note rather than arrows everywhere)
+
+4. **Generated diagrams**: Auto-generate from the TTL using tools like WebVOWL, with manual refinement
+
+**Current Position**: Accept that static diagrams will be incomplete. Prioritize clarity over completeness. Revisit when the specification stabilizes and an interactive documentation site becomes worthwhile.
+
+---
+
 ## Notes
 
 These topics represent potential future enhancements. They do not affect the validity of the current RL2 specification. Feedback and proposals are welcome.
