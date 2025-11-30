@@ -343,9 +343,9 @@ rl2p:caseStatus a owl:ObjectProperty ;
     rdfs:comment "Current status of the case." .
 
 rl2p:CaseStatus a owl:Class ;
-    owl:oneOf (rl2p:Pending rl2p:Approved rl2p:Denied rl2p:Expired rl2p:Revoked) .
+    owl:oneOf (rl2p:CasePending rl2p:Approved rl2p:Denied rl2p:Expired rl2p:Revoked) .
 
-rl2p:Pending a rl2p:CaseStatus ;
+rl2p:CasePending a rl2p:CaseStatus ;
     rdfs:label "Pending" ;
     rdfs:comment "Access request is under evaluation or awaiting duty fulfillment." .
 
@@ -627,7 +627,7 @@ ex:ctx1 a rl2p:ContextAssertion ;
 # Case is created
 ex:case1 a rl2p:Case ;
     rl2p:initialRequest ex:request1 ;
-    rl2p:caseStatus rl2p:Pending ;
+    rl2p:caseStatus rl2p:CasePending ;
     rl2p:caseCreated "2025-01-15T09:00:00Z"^^xsd:dateTime .
 ```
 
@@ -749,7 +749,7 @@ ex:case1 rl2p:caseStatus rl2p:Expired .
 # Re-certification duty is created (could be a new case or extension)
 ex:recertCase1 a rl2p:Case ;
     rl2p:initialRequest ex:recertRequest1 ;
-    rl2p:caseStatus rl2p:Pending ;
+    rl2p:caseStatus rl2p:CasePending ;
     rl2p:caseCreated "2026-01-15T09:00:00Z"^^xsd:dateTime ;
     rl2p:caseNote "Re-certification required for expired access grant." .
 
