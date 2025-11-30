@@ -40,6 +40,8 @@ This document gives a full formal semantics for RL2.
 
 ## Relationship to Prior ODRL Formalization Work
 
+*This section is non-normative.*
+
 RL2's semantics build on and extend prior work in ODRL formalization:
 
 | Work | Contribution | RL2 Extension |
@@ -1136,6 +1138,8 @@ Key correspondence:
 
 ## Discussion
 
+*This section is non-normative.*
+
 The RL2 semantics unify normative logic, temporal logic, event calculus, and promise theory in a way that:
 
 * remains RDF-compatible
@@ -1149,6 +1153,8 @@ RL2 provides, for the first time, a rigorous semantic foundation capable of supp
 ---
 
 ## Mechanization
+
+*This section is non-normative.*
 
 RL2's semantics are explicitly designed for mechanization in proof assistants. The abstract syntax maps cleanly to inductive datatypes, and the operational rules are syntax-directed.
 
@@ -1198,6 +1204,8 @@ See **RL2_ResearchPlan.md** for the complete mechanization roadmap, phased imple
 ---
 
 ## Expressive Characterization
+
+*This section is non-normative.*
 
 RL2's expressive power can be characterized formally as:
 

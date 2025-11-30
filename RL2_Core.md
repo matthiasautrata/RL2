@@ -143,6 +143,12 @@ The RL2 ontology and validation shapes are defined in separate, machine-readable
 
 These files are normative. The sections below provide explanatory prose and representative excerpts.
 
+### Alignment Modules
+
+*This subsection is non-normative.*
+
+RL2 Core is standalone and does not import external ontologies. However, optional alignment modules may provide `owl:equivalentClass` and `rdfs:subClassOf` mappings to standard vocabularies such as PROV-O, OWL-Time, and FOAF. See **RL2_DiscussionTopics.md §1** for discussion of alignment strategies.
+
 ---
 
 ## Ontology Overview
@@ -341,6 +347,8 @@ rl2:PolicyShape a sh:NodeShape ;
 
 ## Example Policy
 
+*This section is non-normative.*
+
 This example demonstrates a standalone RL2 policy with a privilege, duty, and prohibition:
 
 ```turtle
@@ -440,6 +448,8 @@ RL2 distinguishes between normative roles (deontic significance) and functional 
 ---
 
 ## RL2 Architecture Diagram
+
+*This section is non-normative.*
 
 ```
                       +-------------------+

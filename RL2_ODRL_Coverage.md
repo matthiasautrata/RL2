@@ -26,7 +26,7 @@
 
 This document provides a comprehensive mapping showing that:
 
-> **Every ODRL 2.2 expression can be represented in RL2 without loss of meaning, and RL2 satisfies all known ODRL 3.0 requirements.**
+> **Every ODRL 2.2 expression can be represented in RL2 without loss of meaning, and RL2 covers all ODRL 3.0 use cases identified in W3C Community Group notes.**
 
 RL2 is a strict superset of ODRL:
 
@@ -35,6 +35,19 @@ RL2 is a strict superset of ODRL:
 * RL2 adds normative, operational, temporal, and role semantics missing in ODRL.
 * RL2 covers all emerging ODRL 3.0 use cases (dynamic collections, event-driven activation, multi-party workflows).
 * The mapping is total, deterministic, and semantics-preserving.
+
+### Assumptions and Clarifications
+
+This mapping assumes the following baseline semantics for ODRL:
+
+* **[Pucella-Weissman 2006]** — Static semantics for permissions and obligations
+* **[Steyskal-Polleres 2015]** — Action dependencies and rule-based reasoning
+* **[W3C ODRL Formal Semantics]** — Draft evaluator behavior specification
+
+The following ODRL features are explicitly excluded or deferred:
+
+* **`odrl:inheritFrom`** — No direct RL2 equivalent. Inheritance requires flattening to atomic policies before evaluation. See **RL2_DiscussionTopics.md** for discussion.
+* **Implementation-specific conflict resolution** — RL2 supports W3C-defined conflict strategies; vendor-specific extensions may require profile mappings.
 
 ---
 
