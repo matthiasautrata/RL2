@@ -259,6 +259,21 @@ This separation enables policies that reason about both imposed obligations *and
 
 ---
 
+## Conceptual Model
+
+![RL2 Conceptual Architecture](rl2-overview.svg)
+
+The diagram illustrates how RL2's core concepts relate:
+
+- **Policy Container** holds clauses (norms) and may specify grantor, grantee, and conditions
+- **Norms** (Privilege, Duty, Prohibition, etc.) form the normative layer, connecting subjects to actions and objects
+- **Promise** is modeled separately—agents make promises to each other, which may create norms
+- **Conditions** constrain when norms apply (logical, temporal, contextual, event-based, or dynamic)
+- The **Operational Layer** tracks obligation lifecycle (Pending → Active → Fulfilled/Violated)
+- The **RL2 Protocol** defines the request/response interface for policy evaluation
+
+---
+
 ## Architecture Overview
 
 RL2 integrates into existing systems through three components:

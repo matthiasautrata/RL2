@@ -24,7 +24,7 @@ date: 2025-01-01
 - SHACL Validation
 - Example Policy
 - Role System
-- Diagram: RL2 Architecture
+- RL2 Information Model
 - References
 
 ---
@@ -463,34 +463,23 @@ RL2 distinguishes between normative roles (deontic significance) and functional 
 
 ---
 
-## RL2 Architecture Diagram
+## RL2 Information Model
 
 *This section is non-normative.*
 
-```
-                      +-------------------+
-                      |    rl2:Policy     |
-                      |   (+ condition)   |
-                      +---------+---------+
-                                |
-                                v
-                        +---------------+
-                        |   rl2:Norm    |
-                        +---------------+
-        -------------------------------------------------
-        |                 |                |            |
-   Privilege            Duty             Claim        Power ...
-        |
-        v
-+-----------------+      +------------------+
-| Agents & Roles  |      |  Actions/Assets  |
-+-----------------+      +------------------+
-        |
-        v
-+---------------------------------------------------------+
-| Operational / Temporal / Contextual (Events, States...) |
-+---------------------------------------------------------+
-```
+![RL2 Information Model](rl2-information-model.svg)
+
+The diagram shows the complete RL2 information model, including:
+
+- **Policy Layer**: Policy containers (Set, Offer, Agreement, Privacy, Assertion) with their properties
+- **Normative Layer**: Hohfeldian norms (Privilege, Duty, Prohibition, Claim, Power, Liability, Immunity)
+- **Promise Layer**: Voluntary commitments between agents, which may create norms
+- **Structural Elements**: Agent, Action, Asset, and AssetCollection
+- **Conditions**: Constraint types (Logical, Temporal, Contextual, Event, DynamicOperandRef) with operators
+- **Operational Layer**: Event, StateTransition, ObligationState, EffectiveInterval
+- **Protocol Layer** (rl2p:): Request, EvaluationResult, Case, DutyRequirement, ContextAssertion, Decision
+
+Dashed lines indicate cross-namespace references between RL2 Core (rl2:) and RL2 Protocol (rl2p:).
 
 ---
 
