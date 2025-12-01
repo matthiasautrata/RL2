@@ -467,6 +467,17 @@ rl2:after a owl:ObjectProperty ;
 ############################################################
 # 6. Temporal and Contextual Constructs
 ############################################################
+#
+# Scope Note: RL2 Core provides interval-based temporal constraints
+# (EffectiveInterval with start/end) and basic sequencing (rl2:after).
+# Richer temporal operators — such as Allen's interval relations
+# (before, during, overlaps, meets), recurrence patterns, relative
+# durations, or business-day calculations — are deliberately omitted
+# from Core. These are delegated to domain profiles, which can define
+# temporal vocabulary appropriate to their use cases without mandating
+# complexity that not all domains require.
+#
+############################################################
 
 rl2:EffectiveInterval a owl:Class ;
     rdfs:label "Effective Interval" ;

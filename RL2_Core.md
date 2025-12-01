@@ -303,6 +303,8 @@ rl2:end rdfs:domain rl2:EffectiveInterval ; rdfs:range xsd:dateTime .
 
 SHACL validation ensures `start ≤ end`.
 
+**Scope boundary**: RL2 Core provides interval-based temporal constraints and basic sequencing (`rl2:after`). Richer temporal operators — Allen's interval relations (before, during, overlaps), recurrence patterns, relative durations, business-day calculations — are delegated to domain profiles. This avoids mandating complexity that not all use cases require.
+
 ### Policy Containers
 
 Policies bundle norms into containers:
