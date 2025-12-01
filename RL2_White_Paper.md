@@ -293,6 +293,81 @@ RL2 integrates into existing systems through three components:
 
 ---
 
+## Scope and Positioning
+
+RL2 is a **semantically well-specified policy language**. Its primary contribution is providing unambiguous meaning for policy expressions—not replacing existing systems, but complementing them with a rigorous semantic foundation.
+
+The RL2 Protocol (RL2P) defines an evaluation interface, enabling RL2 to serve as both a specification language and an executable policy format. However, RL2's value lies primarily in semantic precision: policies authored in RL2 have clear, verifiable meaning regardless of where or how they are enforced.
+
+### Complementing ODRL
+
+RL2 is a semantic superset of ODRL 2.2 and covers all identified ODRL 3.0 use cases. Every ODRL construct has a direct RL2 equivalent, and the translation is semantics-preserving. See **RL2_ODRL_Coverage.md** for the complete mapping.
+
+RL2 complements ODRL by providing:
+
+- **Hohfeldian normative precision**: Distinguishing Privilege, Duty, Claim, Power, Liability, and Immunity where ODRL uses broader categories
+- **Promise Theory integration**: Modeling voluntary bilateral commitments as a distinct concept from imposed obligations
+- **Operational semantics**: Explicit obligation lifecycle (Pending → Active → Fulfilled/Violated) with deterministic state transitions, drawing on the ODRE framework
+- **Policy-level activation conditions**: Enabling dynamic policy applicability based on events
+
+ODRL policies can be compiled to RL2 for formal analysis, then deployed via ODRL-compatible systems or native RL2 evaluation.
+
+### Complementing Data Contract Standards
+
+The emerging data mesh paradigm requires **data contracts**—formal agreements between data producers and consumers specifying schemas, quality guarantees, and usage terms. Current efforts include:
+
+- **OMG Data Product Ontology (DPROD)**: A 2024 specification extending DCAT for data product metadata, which references ODRL for usage policies
+- **Open Data Contract Standard (ODCS)**: A YAML-based schema for data contracts with quality rules
+- **Open Data Product Specification (ODPS)**: Metadata standard with recent data contract support
+
+These specifications focus on *metadata* and *schema*—they describe what data products look like and reference external policy languages for usage terms. RL2 can serve as that policy language:
+
+- **Usage terms** expressed as RL2 Privileges, Duties, and Prohibitions
+- **Quality commitments** modeled as Promises from producer to consumer
+- **Access conditions** specified via RL2's condition framework (temporal, contextual, event-based)
+- **Violation semantics** defined through the operational layer
+
+RL2 does not replace these standards; it provides semantic depth for the policy components they reference.
+
+*Investigation ongoing: A formal alignment between RL2 and DPROD/ODCS is under development.*
+
+### Complementing Authorization Engines
+
+Modern authorization systems include Cedar (AWS), OPA/Rego (CNCF), XACML (OASIS), and proprietary solutions. These are optimized for **runtime access control decisions**—determining whether a principal can perform an action on a resource, evaluated in milliseconds.
+
+RL2 occupies a different niche: **policy specification and verification**. The relationship is complementary:
+
+| Concern | Authorization Engines | RL2 |
+|---------|----------------------|-----|
+| **Primary goal** | Fast runtime decisions | Semantic precision and verification |
+| **Optimization** | Evaluation speed (μs–ms) | Formal properties, auditability |
+| **Obligation handling** | Limited or external | Native lifecycle tracking |
+| **Temporal semantics** | Typically external | Built-in deadlines, intervals, sequences |
+| **Normative distinctions** | Permission/deny | Full Hohfeldian framework |
+
+A typical integration pattern:
+
+1. Policies are authored and verified in RL2
+2. Static access rules compile to Cedar, OPA, or XACML for runtime enforcement
+3. Dynamic obligations and temporal constraints are tracked via RL2P or integrated systems
+4. RL2 semantics serve as the source of truth for audit, compliance, and dispute resolution
+
+RL2 does not aim to replace Cedar's speed or OPA's expressiveness. Rather, it provides a semantic layer where policies can be formally specified, verified, and translated to appropriate enforcement mechanisms.
+
+*Investigation ongoing: Compilation targets for Cedar and OPA are under research.*
+
+### Building on ODRE
+
+RL2's operational layer draws on research into enforceable digital rights, particularly the ODRE (Open Digital Rights Enforcement) framework. Key influences include:
+
+- **Obligation lifecycle**: The Pending → Active → Fulfilled/Violated state machine, enabling runtime tracking of duty satisfaction
+- **Synchronous and asynchronous enforcement**: Policies can be evaluated on-demand (access request) or continuously (monitoring)
+- **Event-triggered transitions**: State changes driven by observable events
+
+RL2 extends ODRE by integrating operational semantics with Hohfeldian normative theory and Promise Theory, providing a unified framework for both descriptive and enforceable policies.
+
+---
+
 ## Motivation and Applications
 
 As automated systems—including AI agents—take on compliance and enforcement tasks, they require policies with unambiguous semantics. A policy language with formal operational semantics enables:

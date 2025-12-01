@@ -54,9 +54,13 @@
 - https://www.w3.org/community/odrl/
 - Emerging requirements that RL2 anticipates and addresses
 
-**[ODRE]** Poltronieri, Andrea, and Cesare Stefanelli. "ODRE: An Operational Framework for Digital Rights Enforcement."
-- Operational semantics for duty lifecycle (Pending → Active → Fulfilled/Violated)
-- RL2 incorporates ODRE state machine concepts
+**[ODRE 2024]** Poltronieri, Andrea, et al. "Open Digital Rights Enforcement Framework (ODRE): From Descriptive to Enforceable Policies." *Computers & Security*, 2024.
+- https://www.sciencedirect.com/science/article/pii/S0167404824005881
+- https://arxiv.org/abs/2409.17602
+- Provides ODRL with enforcement capabilities via operational semantics
+- Defines obligation lifecycle (Pending → Active → Fulfilled/Violated)
+- Covers synchronous and asynchronous enforcement modes
+- RL2 incorporates ODRE state machine concepts and extends with Hohfeldian normative theory
 
 **[Pucella-Weissman 2006]** Pucella, Riccardo, and Vicky Weissman. "A Formal Foundation for ODRL." 2006.
 - https://arxiv.org/abs/cs/0601085
@@ -90,6 +94,39 @@
 **[OB-XACML]** Marra, A.L., et al. "OB-XACML: Towards a Full Support of Obligations in XACML." *Trust, Privacy and Security in Digital Business*, Springer, 2015.
 - https://link.springer.com/chapter/10.1007/978-3-319-17127-2_14
 - Obligation handling patterns that informed RL2 duty tracking
+
+**[Cedar 2024]** Cutler, John G., et al. "Cedar: A New Language for Expressive, Fast, Safe, and Analyzable Authorization." *Proceedings of the ACM on Programming Languages* (OOPSLA), 2024.
+- https://dl.acm.org/doi/10.1145/3649835
+- https://docs.cedarpolicy.com/
+- AWS authorization language with formal verification in Lean
+- Supports RBAC and ABAC; lacks obligation lifecycle and temporal semantics
+- RL2 comparison: Cedar focuses on fast runtime decisions; RL2 adds normative and operational layers
+
+**[OPA/Rego]** Open Policy Agent. "Policy Language (Rego)." CNCF Project.
+- https://www.openpolicyagent.org/
+- General-purpose policy engine based on Datalog
+- Highly expressive but Turing-complete; runtime exceptions possible
+- RL2 comparison: RL2 trades expressiveness for decidability and formal verification
+
+## Data Products and Data Contracts
+
+**[DPROD 2024]** Object Management Group. "Data Product Ontology (DPROD) Version 1.0." OMG Specification, 2024.
+- https://www.omg.org/spec/DPROD/
+- Extends W3C DCAT for data product metadata
+- References ODRL for usage policies; RL2 can serve as the policy layer
+
+**[ODCS]** BITOL. "Open Data Contract Standard (ODCS) v3.0."
+- https://bitol-io.github.io/open-data-contract-standard/
+- YAML-based schema for data contracts with quality rules and policies
+- Focuses on metadata; RL2 provides semantic policy framework
+
+**[ODPS]** Open Data Products Initiative. "Open Data Product Specification."
+- https://opendataproducts.org/
+- Metadata standard for data products with data contract support (2024)
+
+**[DCAT]** W3C. "Data Catalog Vocabulary (DCAT) - Version 3." W3C Recommendation, 2024.
+- https://www.w3.org/TR/vocab-dcat-3/
+- Vocabulary for data catalogs; DPROD extends DCAT for data products
 
 ## Formal Verification
 

@@ -62,14 +62,18 @@ RL2 does not import or depend on external ODRL definitions. It defines all neces
 
 ### Normative Completeness
 
-RL2 incorporates full Hohfeldian normative distinctions:
+RL2 incorporates the Hohfeldian normative distinctions as subclasses of `Norm`:
 
-* Privilege
-* Duty
-* Claim
-* Power
-* Liability
-* Immunity
+* Privilege (correlative: No-Claim)
+* Duty (correlative: Claim)
+* Claim (correlative: Duty)
+* Power (correlative: Liability)
+* Liability (correlative: Power)
+* Immunity (correlative: Disability)
+
+Additionally, RL2 defines `Prohibition` as a distinct subclass for practical convenience—Hohfeld would model this as a Duty to refrain, but explicit prohibition simplifies policy authoring.
+
+Note: The correlatives No-Claim and Disability are not modeled as explicit classes in RL2; they represent the *absence* of a normative position rather than a position itself.
 
 ### Voluntary Cooperation
 
@@ -170,14 +174,25 @@ rl2:Immunity rdfs:subClassOf rl2:Norm .
 
 **Hohfeldian Correlatives**:
 
-| Right-holder has | Correlative |
-|------------------|-------------|
-| Privilege | No-Claim |
-| Claim | Duty |
-| Power | Liability |
-| Immunity | Disability |
+Hohfeld identified eight fundamental legal concepts arranged in four correlative pairs. When one party holds a position, the other party necessarily holds its correlative:
 
-Properties like `rl2:correlativeTo`, `rl2:affectsNorm`, `rl2:exposedTo`, and `rl2:immuneFrom` capture these relationships.
+| Position | Correlative | Relationship |
+|----------|-------------|--------------|
+| Privilege | No-Claim | If A has a privilege to φ, B has no claim that A not φ |
+| Claim | Duty | If A has a claim that B φ, B has a duty to φ |
+| Power | Liability | If A has power to change B's position, B is liable to that change |
+| Immunity | Disability | If A is immune from B's power, B is disabled from exercising it |
+
+**RL2 Modeling Decisions**:
+
+1. **No-Claim and Disability are not explicit classes.** These represent the *absence* of a normative position rather than a position itself. A No-Claim is simply the lack of a Claim; a Disability is the lack of a Power. Modeling absences as classes would be ontologically awkward and computationally unnecessary—we can infer them from the absence of the corresponding positive position.
+
+2. **Prohibition is an RL2 addition.** In strict Hohfeldian terms, a prohibition is a Duty to refrain from an action, with a correlative Claim that the action not be performed. RL2 models Prohibition as a distinct subclass for practical reasons:
+   - Policy authors think in terms of "you may not do X" rather than "you have a duty to not do X"
+   - It allows `rl2:prohibitedAction` as a dedicated property, avoiding awkward negation constructs
+   - ODRL and similar languages treat prohibition as a first-class concept; this eases translation
+
+Properties like `rl2:correlativeTo`, `rl2:affectsNorm`, `rl2:exposedTo`, and `rl2:immuneFrom` capture relationships between correlative positions.
 
 ### Promise Theory Layer
 
