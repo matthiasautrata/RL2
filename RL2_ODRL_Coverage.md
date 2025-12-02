@@ -87,7 +87,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 | odrl:Permission  | rl2:Privilege  | Same deontic meaning      |
 | odrl:Prohibition | rl2:Prohibition | Direct deontic mapping    |
 | odrl:Duty        | rl2:Duty       | Direct                    |
-| odrl:Constraint  | rl2:Condition  | RL2 more general          |
+| odrl:Constraint  | rl2:AtomicConstraint | Simple ODRL constraints; RL2 also has LogicalConstraint, TemporalConstraint, etc. |
 | odrl:Asset       | rl2:Asset      | Direct                    |
 | odrl:Action      | rl2:Action     | Direct                    |
 | odrl:Party       | rl2:Agent      | Direct                    |
@@ -211,7 +211,7 @@ odrl:constraint [
 # A privacy or data governance profile would define:
 #   ex:purpose a rl2:LeftOperand .
 
-_:c a rl2:Condition ;
+_:c a rl2:AtomicConstraint ;
     rl2:leftOperand ex:purpose ;
     rl2:constraintOperator rl2:eq ;
     rl2:rightOperand "research" .
@@ -441,7 +441,7 @@ ex:StewardshipFulfilled a rl2:Condition ;
     rl2:requires ex:StewardshipPromise .
 
 ex:StewardshipPromise a rl2:Promise ;
-    rl2:promiser ex:Researcher ;
+    rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
     rl2:promiseContent ex:DataStewardship ;
     rl2:promiseState rl2:PromiseFulfilled .

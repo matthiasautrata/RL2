@@ -96,7 +96,7 @@ Norm ::=
 #### Promises
 
 ```
-Promise ::= Promise(Agent promiser, Agent promisee, PromiseContent)
+Promise ::= Promise(Agent promisor, Agent promisee, PromiseContent)
 ```
 
 where `PromiseContent ∈ {Action, Duty, Condition}` (matching the `rl2:PromiseContent` union class in the ontology).
@@ -280,7 +280,8 @@ Logical conditions:
 ⟦ And(c1, c2)  ⟧(Env) = ⟦c1⟧(Env) ∧ ⟦c2⟧(Env)
 ⟦ Or(c1, c2)   ⟧(Env) = ⟦c1⟧(Env) ∨ ⟦c2⟧(Env)
 ⟦ Not(c)       ⟧(Env) = ¬⟦c⟧(Env)
-⟦ Xone(c1..cn) ⟧(Env) = exactly one of ⟦c1⟧(Env)..⟦cn⟧(Env) is true
+⟦ Xone(c1..cn) ⟧(Env) = true iff exactly one of ⟦c1⟧(Env)..⟦cn⟧(Env) is true
+                        (false when zero or more than one)
 ```
 
 Temporal:
@@ -389,7 +390,7 @@ Example paths:
 
 #### matches : Event × EventPattern → Boolean
 
-The function `matches(e, pattern)` checks if an event matches an expected pattern:
+The function `matches(e, pattern)` checks if an event matches an expected pattern. An `EventPattern` is simply an `Event` instance used as a template—the actual event must have the same type (or subtype) and all properties specified in the pattern (e.g., `rl2:approver`):
 
 ```
 matches : Event × EventPattern → Boolean
@@ -444,6 +445,23 @@ extractDeadline(c) =
         Or(c1, c2)                → max(extractDeadline(c1), extractDeadline(c2))
         _                         → None
 ```
+
+#### deadline : PromiseContent × State → Boolean
+
+The function `deadline(content, Σ)` checks if the promise content's temporal bound has passed:
+
+```
+deadline : PromiseContent × State → Boolean
+
+deadline(content, Σ) =
+    case content of
+        Action(a, x, s)  → false                        -- Raw actions have no inherent deadline
+        Duty(d)          → timeout(d.condition, Σ)      -- Duty deadline from its condition
+        Condition(c)     → timeout(c, Σ)                -- Condition deadline directly
+```
+
+This function is used in the Promise Violation rule to determine when a pending promise
+has exceeded its temporal bounds without fulfillment.
 
 #### apply : Operator × Value × Value → Boolean
 

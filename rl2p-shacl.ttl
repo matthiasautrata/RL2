@@ -89,8 +89,8 @@ rl2p:EvaluationResultShape a sh:NodeShape ;
         sh:path rl2p:decision ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-        sh:in (rl2p:Permit rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) ;
-        sh:message "An EvaluationResult must have exactly one decision (Permit, Deny, Indeterminate, or NotApplicable)."
+        sh:in (rl2p:Permit rl2p:PermitWithObligations rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) ;
+        sh:message "An EvaluationResult must have exactly one decision (Permit, PermitWithObligations, Deny, Indeterminate, or NotApplicable)."
     ] ;
     sh:property [
         sh:path rl2p:evaluationTime ;

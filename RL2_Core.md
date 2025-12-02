@@ -84,7 +84,7 @@ Based on Promise Theory:
 
 ### Clear Role Semantics
 
-Normative roles (subject, counterparty, promiser, promisee)
+Normative roles (subject, counterparty, promisor, promisee)
 are distinct from syntactic/functional roles (grantor, approver, operator).
 
 ### Operational Semantics
@@ -192,7 +192,7 @@ Hohfeld identified eight fundamental legal concepts arranged in four correlative
    - It allows `rl2:prohibitedAction` as a dedicated property, avoiding awkward negation constructs
    - ODRL and similar languages treat prohibition as a first-class concept; this eases translation
 
-Properties like `rl2:correlativeTo`, `rl2:affectsNorm`, `rl2:exposedTo`, and `rl2:immuneFrom` capture relationships between correlative positions.
+Properties like `rl2:correlativeTo`, `rl2:affectsNorm`, `rl2:exposedTo`, and `rl2:immuneFrom` capture relationships between correlative positions. Valid `correlativeTo` pairings are: Duty ↔ Claim, Power ↔ Liability, Immunity ↔ Disability.
 
 ### Promise Theory Layer
 
@@ -200,9 +200,9 @@ Promises model voluntary commitments between agents:
 
 ```turtle
 rl2:Promise a owl:Class ;
-    rdfs:comment "Voluntary cooperative commitment from promiser to promisee." .
+    rdfs:comment "Voluntary cooperative commitment from promisor to promisee." .
 
-rl2:promiser rdfs:domain rl2:Promise ; rdfs:range rl2:Agent .
+rl2:promisor rdfs:domain rl2:Promise ; rdfs:range rl2:Agent .
 rl2:promisee rdfs:domain rl2:Promise ; rdfs:range rl2:Agent .
 rl2:promiseContent rdfs:domain rl2:Promise ; rdfs:range rl2:PromiseContent .
 ```
@@ -217,7 +217,7 @@ RL2 deliberately separates `Promise` from `Norm` (and its subclasses like `Duty`
 |--------|------|---------|
 | **Source** | Imposed by policy or authority | Voluntary commitment by an agent |
 | **Nature** | Deontic position (*must*, *may*, *may not*) | Cooperative undertaking (*will*) |
-| **Parties** | Subject bears burden; counterparty may be abstract | Promiser commits *to* a specific promisee |
+| **Parties** | Subject bears burden; counterparty may be abstract | Promisor commits *to* a specific promisee |
 
 **Example**: "Alice must delete data within 30 days" is a **Duty** imposed by policy. "Alice commits to Bob to handle data responsibly" is a **Promise** Alice voluntarily made.
 
@@ -261,6 +261,7 @@ rl2:Condition a owl:Class ;
 RL2 Core does not define specific actions or left operands — these are provided by **domain profiles** (e.g., media licensing, data governance, software licensing).
 
 **Condition subclasses**:
+- `rl2:AtomicConstraint` — simple comparison (leftOperand, operator, rightOperand)
 - `rl2:LogicalConstraint` — combines conditions via `and`, `or`, `xone`, `not`
 - `rl2:TemporalConstraint` — time-based conditions
 - `rl2:ContextualConstraint` — environment-dependent conditions
@@ -470,7 +471,7 @@ RL2 distinguishes between normative roles (deontic significance) and functional 
 
 | Role | Property | Description |
 |------|----------|-------------|
-| Promiser | `rl2:promiser` | Agent making a voluntary commitment |
+| Promisor | `rl2:promisor` | Agent making a voluntary commitment |
 | Promisee | `rl2:promisee` | Agent who is the beneficiary of the promise |
 
 ## Functional (Syntactic) Roles

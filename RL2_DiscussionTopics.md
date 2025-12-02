@@ -185,7 +185,7 @@ This maps directly to RL2's existing constructs—no extensions required.
 | `dcon:DataContract` (extends `odrl:Offer`) | `rl2:Offer` |
 | `dcon:DataContractSubscription` (extends `odrl:Agreement`) | `rl2:Agreement` |
 | `dcon:Promise` | `rl2:Promise` |
-| `dcon:ProviderPromise` | `rl2:Promise` with `rl2:promiser` |
+| `dcon:ProviderPromise` | `rl2:Promise` with `rl2:promisor` |
 | `dcon:hasEffectivePeriod` | `rl2:TemporalConstraint` + `rl2:EffectiveInterval` |
 | `dcon:Status` (Pending/Active/Retired) | `rl2:ObligationState` or Protocol `CaseStatus` |
 
@@ -746,14 +746,24 @@ Mapping RL2 to related standards:
 - Backward compatibility guarantees
 - Migration guidance between versions
 
+**Conformance Test Suite**
+
+A test suite for validating RL2 implementations:
+
+- Valid policies that MUST pass SHACL validation
+- Invalid policies that MUST fail SHACL validation
+- Evaluation scenarios with expected outcomes (decision, duty set, state)
+- Edge cases: empty duty sets, temporal boundaries, delegation, conflict resolution
+
 ### Current Position
 
 These are documentation tasks, not specification changes. Priority order:
 
 1. BCP with examples (highest value for adoption)
-2. Profile development guide (enables ecosystem)
-3. Standards alignment (interoperability)
-4. Versioning policy (governance)
+2. Conformance test suite (implementation validation)
+3. Profile development guide (enables ecosystem)
+4. Standards alignment (interoperability)
+5. Versioning policy (governance)
 
 ---
 

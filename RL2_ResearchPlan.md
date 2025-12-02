@@ -204,7 +204,7 @@ Every abstract syntax object has a corresponding SHACL-valid RDF representation
 ```
 
 **(C2) Expressive Completeness**
-Every ODRL construct has an RL2 equivalent; RL2 is a strict superset.
+Every ODRL construct has an RL2 equivalent; RL2 is a strict superset (see RL2_ODRL_Coverage.md).
 
 ---
 

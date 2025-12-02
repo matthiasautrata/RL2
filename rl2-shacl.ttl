@@ -138,7 +138,7 @@ rl2:ImmunityShape a sh:NodeShape ;
 # Promise shape
 rl2:PromiseShape a sh:NodeShape ;
     sh:targetClass rl2:Promise ;
-    sh:property [ sh:path rl2:promiser ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:promisor ; sh:minCount 1 ; sh:class rl2:Agent ] ;
     sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:class rl2:Agent ] ;
     sh:property [
         sh:path rl2:promiseContent ;
@@ -155,9 +155,11 @@ rl2:PromiseShape a sh:NodeShape ;
 # Condition Shapes
 ############################################################
 
-# Atomic conditions (base Condition class used for simple comparisons)
-rl2:AtomicConditionShape a sh:NodeShape ;
-    sh:targetClass rl2:Condition ;
+# Atomic constraints are simple comparisons (leftOperand, operator, rightOperand).
+# Note: This shape targets rl2:AtomicConstraint specifically, not the base Condition class,
+# to avoid false positives with SHACL engines that perform RDFS inference on subclasses.
+rl2:AtomicConstraintShape a sh:NodeShape ;
+    sh:targetClass rl2:AtomicConstraint ;
     sh:property [ sh:path rl2:leftOperand ; sh:minCount 1 ] ;
     sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:ComparisonOperator ] ;
     sh:or (
@@ -165,7 +167,10 @@ rl2:AtomicConditionShape a sh:NodeShape ;
         [ sh:property [ sh:path rl2:rightOperandRef ; sh:minCount 1 ] ]
     ) .
 
-# Logical constraints combine sub-conditions via logical operators
+# Logical constraints combine sub-conditions via logical operators.
+# Note: The 'not' operator requires exactly one operand; 'and', 'or', 'xone' require
+# at least two. This shape validates the minimum; implementations should enforce
+# operator-specific cardinality as defined in the ontology comments.
 rl2:LogicalConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:LogicalConstraint ;
     sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:LogicalOperator ] ;

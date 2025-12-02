@@ -4,7 +4,7 @@ A next-generation policy language unifying normative, descriptive, and operation
 
 ## Overview
 
-RL2 provides a strict superset of ODRL 2.2 with:
+RL2 provides a strict superset of ODRL 2.2 (see [ODRL Coverage](RL2_ODRL_Coverage.md)) with:
 - **Formal semantics** suitable for verified runtime kernels
 - **Hohfeldian normative relations** (privilege, duty, claim, power, liability, immunity)
 - **Promise Theory** integration for voluntary cooperation

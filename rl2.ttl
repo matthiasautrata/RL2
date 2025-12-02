@@ -61,7 +61,12 @@ rl2:Immunity a owl:Class ;
 rl2:correlativeTo a owl:ObjectProperty, owl:SymmetricProperty ;
     rdfs:domain rl2:Norm ;
     rdfs:range rl2:Norm ;
-    rdfs:comment "Links correlative Hohfeldian positions (Duty-Claim, Power-Liability, Immunity-Power)." .
+    rdfs:comment """Links correlative Hohfeldian positions. Valid pairings:
+    - Duty ↔ Claim (duty-bearer owes to claim-holder)
+    - Power ↔ Liability (power-holder can alter liability-bearer's position)
+    - Immunity ↔ Disability (immune party protected from disabled party's power)
+    Note: Privilege correlates with No-Right, but No-Right is not modeled in RL2
+    as it represents absence of claim rather than a positive normative position.""" .
 
 rl2:claimHolder a owl:ObjectProperty ;
     rdfs:domain rl2:Claim ;
@@ -94,9 +99,9 @@ rl2:immuneFrom a owl:ObjectProperty ;
 
 rl2:Promise a owl:Class ;
     rdfs:label "Promise" ;
-    rdfs:comment "Voluntary cooperative commitment from promiser to promisee." .
+    rdfs:comment "Voluntary cooperative commitment from promisor to promisee." .
 
-rl2:promiser a owl:ObjectProperty ;
+rl2:promisor a owl:ObjectProperty ;
     rdfs:domain rl2:Promise ;
     rdfs:range rl2:Agent ;
     rdfs:comment "Agent making the promise." .
@@ -111,7 +116,7 @@ rl2:PromiseContent a owl:Class ;
     rdfs:label "Promise Content" ;
     rdfs:comment """Union of types that may constitute the content of a promise.
     Note: A promise references one of these types to describe what is promised.
-    The promiser commits to performing an Action, fulfilling a Duty, or ensuring
+    The promisor commits to performing an Action, fulfilling a Duty, or ensuring
     a Condition holds. This is a pragmatic modeling choice; the promise is
     'about' the content, not identical to it.""" .
 
@@ -195,6 +200,13 @@ rl2:Condition a owl:Class ;
     rdfs:label "Condition" ;
     rdfs:comment "A constraint or requirement that must hold for a norm to be active." .
 
+rl2:AtomicConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Atomic Constraint" ;
+    rdfs:comment """A simple comparison constraint with left operand, operator, and right operand.
+    Use this class for basic conditions like 'purpose eq research' or 'count lte 10'.
+    For compound conditions, use LogicalConstraint; for time-based, use TemporalConstraint.""" .
+
 rl2:LogicalConstraint a owl:Class ;
     rdfs:subClassOf rl2:Condition ;
     rdfs:label "Logical Constraint" ;
@@ -231,9 +243,10 @@ rl2:action a owl:ObjectProperty ;
     rdfs:comment "Action specified in a norm." .
 
 rl2:prohibitedAction a owl:ObjectProperty ;
+    rdfs:subPropertyOf rl2:action ;
     rdfs:domain rl2:Prohibition ;
     rdfs:range rl2:Action ;
-    rdfs:comment "Action prohibited by the norm." .
+    rdfs:comment "Action prohibited by the norm. Subproperty of rl2:action for uniform norm queries." .
 
 rl2:object a owl:ObjectProperty ;
     rdfs:domain rl2:Norm ;
@@ -289,7 +302,9 @@ rl2:requires a owl:ObjectProperty ;
 rl2:dynamicOperand a owl:DatatypeProperty ;
     rdfs:domain rl2:DynamicOperandReference ;
     rdfs:range xsd:string ;
-    rdfs:comment "Path expression resolved at evaluation time." .
+    rdfs:comment """Path expression resolved at evaluation time.
+    SECURITY: Implementations must sanitize or validate path expressions
+    to prevent injection attacks. Use allowlisted paths where possible.""" .
 
 rl2:contextPath a owl:DatatypeProperty ;
     rdfs:domain rl2:ContextualConstraint ;
@@ -299,7 +314,9 @@ rl2:contextPath a owl:DatatypeProperty ;
 rl2:dynamicQuery a owl:DatatypeProperty ;
     rdfs:domain rl2:AssetCollection ;
     rdfs:range xsd:string ;
-    rdfs:comment "Query expression used to materialize dynamic collections." .
+    rdfs:comment """Query expression used to materialize dynamic collections.
+    SECURITY: Implementations must sanitize or parameterize queries
+    to prevent injection attacks. Use allowlisted query templates where possible.""" .
 
 rl2:interval a owl:ObjectProperty ;
     rdfs:domain rl2:TemporalConstraint ;
@@ -343,7 +360,7 @@ rl2:xone a rl2:LogicalOperator ;
 
 rl2:not a rl2:LogicalOperator ;
     rdfs:label "not" ;
-    rdfs:comment "Logical negation: the sub-condition must not hold." .
+    rdfs:comment "Logical negation: the sub-condition must not hold. Requires exactly one operand." .
 
 # Comparison Operators
 rl2:eq a rl2:ComparisonOperator ;
@@ -462,7 +479,11 @@ rl2:toState a owl:ObjectProperty ;
     rdfs:comment "State after the transition." .
 
 rl2:after a owl:ObjectProperty ;
-    rdfs:comment "Temporal sequence relation between events or transitions." .
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Event ;
+    rdfs:comment """Temporal sequence relation: subject event must occur after object event.
+    Semantics are implementation-defined; domain profiles may refine with precise
+    temporal logic (e.g., immediately-after vs. eventually-after).""" .
 
 ############################################################
 # 6. Temporal and Contextual Constructs

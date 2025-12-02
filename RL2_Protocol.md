@@ -121,6 +121,8 @@ rl2p:requestTime a owl:DatatypeProperty ;
     rdfs:comment "When the request was submitted." .
 ```
 
+**Note on Delegation:** When `requestor` differs from `requestingAgent`, validation of delegation authority is outside the scope of RL2. Implementations must authenticate requestors and verify delegation rights before policy evaluation.
+
 ## Example
 
 ```turtle
@@ -239,16 +241,6 @@ rl2p:sourcePolicy a owl:ObjectProperty ;
     rdfs:range rl2:Policy ;
     rdfs:comment "The policy that imposed this duty." .
 
-rl2p:dutyLabel a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Human-readable label (captured at evaluation time)." .
-
-rl2p:dutyDescription a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Human-readable description (captured at evaluation time)." .
-
 rl2p:dutyStatus a owl:ObjectProperty ;
     rdfs:domain rl2p:DutyRequirement ;
     rdfs:range rl2:ObligationState ;
@@ -268,11 +260,34 @@ rl2p:imposedTime a owl:DatatypeProperty ;
 ex:dutyReq1 a rl2p:DutyRequirement ;
     rl2p:requiresDuty ex:managerApprovalDuty ;
     rl2p:sourcePolicy ex:loanAccessPolicy ;
-    rl2p:dutyLabel "Manager Approval" ;
-    rl2p:dutyDescription "Obtain approval from department manager before accessing loan data." ;
     rl2p:dutyStatus rl2:Active ;  # Activation condition has been met; duty must be performed
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
+
+# Human-readable labels are available via the linked duty:
+# ex:managerApprovalDuty rdfs:label "Manager Approval" ;
+#     rdfs:comment "Obtain approval from department manager before accessing loan data." .
 ```
+
+## Duty Set Enrichment
+
+When the semantic `Eval()` function returns a `DutySet`, each `Duty` must be transformed into a `DutyRequirement` for the protocol response:
+
+```
+enrich : (Duty, Policy, State, Timestamp) → DutyRequirement
+
+enrich(d, P, Σ, t) =
+    DutyRequirement where
+        requiresDuty = d
+        sourcePolicy = P
+        dutyStatus   = Σ.ObligationState(d)
+        imposedTime  = t
+```
+
+This transformation:
+1. **Links to the source duty** via `rl2p:requiresDuty`
+2. **Records provenance** via `rl2p:sourcePolicy`
+3. **Captures current status** from the evaluation state
+4. **Timestamps the imposition** using the evaluation time
 
 ---
 
@@ -380,7 +395,7 @@ rl2p:caseNote a owl:DatatypeProperty ;
     rdfs:range xsd:string ;
     rdfs:comment "Administrative notes on the case." .
 
-rl2p:policyGeneration a owl:ObjectProperty ;
+rl2p:policyGeneration a owl:DatatypeProperty ;
     rdfs:domain rl2p:Case ;
     rdfs:range xsd:anyURI ;
     rdfs:comment """The policy generation under which this case is evaluated.
@@ -521,11 +536,15 @@ ex:ctx2 a rl2p:ContextAssertion ;
 rl2p:Decision a owl:Class ;
     rdfs:label "Decision" ;
     rdfs:comment "The outcome of a policy evaluation." ;
-    owl:oneOf (rl2p:Permit rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) .
+    owl:oneOf (rl2p:Permit rl2p:PermitWithObligations rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) .
 
 rl2p:Permit a rl2p:Decision ;
     rdfs:label "Permit" ;
-    rdfs:comment "Access is permitted (possibly with duties)." .
+    rdfs:comment "Access is permitted unconditionally (no outstanding duties)." .
+
+rl2p:PermitWithObligations a rl2p:Decision ;
+    rdfs:label "Permit with Obligations" ;
+    rdfs:comment "Access is permitted contingent on fulfillment of associated duties." .
 
 rl2p:Deny a rl2p:Decision ;
     rdfs:label "Deny" ;
@@ -544,7 +563,8 @@ rl2p:NotApplicable a rl2p:Decision ;
 
 | Decision | Meaning | Duties |
 |----------|---------|--------|
-| **Permit** | Access granted | May have duties; all must be fulfilled |
+| **Permit** | Access granted unconditionally | No outstanding duties |
+| **PermitWithObligations** | Access granted contingent on duty fulfillment | Has duties; all must be fulfilled |
 | **Deny** | Access denied | N/A |
 | **Indeterminate** | Cannot decide | Missing context or evaluation error |
 | **NotApplicable** | No matching policy | Request falls outside policy scope |

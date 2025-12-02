@@ -102,11 +102,15 @@ rl2p:explanation a owl:DatatypeProperty ;
 rl2p:Decision a owl:Class ;
     rdfs:label "Decision" ;
     rdfs:comment "The outcome of a policy evaluation." ;
-    owl:oneOf (rl2p:Permit rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) .
+    owl:oneOf (rl2p:Permit rl2p:PermitWithObligations rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) .
 
 rl2p:Permit a rl2p:Decision ;
     rdfs:label "Permit" ;
-    rdfs:comment "Access is permitted (possibly with duties)." .
+    rdfs:comment "Access is permitted unconditionally (no outstanding duties)." .
+
+rl2p:PermitWithObligations a rl2p:Decision ;
+    rdfs:label "Permit with Obligations" ;
+    rdfs:comment "Access is permitted contingent on fulfillment of associated duties." .
 
 rl2p:Deny a rl2p:Decision ;
     rdfs:label "Deny" ;
@@ -138,16 +142,6 @@ rl2p:sourcePolicy a owl:ObjectProperty ;
     rdfs:domain rl2p:DutyRequirement ;
     rdfs:range rl2:Policy ;
     rdfs:comment "The policy that imposed this duty." .
-
-rl2p:dutyLabel a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Human-readable label (captured at evaluation time)." .
-
-rl2p:dutyDescription a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Human-readable description (captured at evaluation time)." .
 
 rl2p:dutyStatus a owl:ObjectProperty ;
     rdfs:domain rl2p:DutyRequirement ;
@@ -255,7 +249,7 @@ rl2p:caseNote a owl:DatatypeProperty ;
     rdfs:range xsd:string ;
     rdfs:comment "Administrative notes on the case." .
 
-rl2p:policyGeneration a owl:ObjectProperty ;
+rl2p:policyGeneration a owl:DatatypeProperty ;
     rdfs:domain rl2p:Case ;
     rdfs:range xsd:anyURI ;
     rdfs:comment """The policy generation under which this case is evaluated.
