@@ -5,26 +5,84 @@ A next-generation policy language unifying normative, descriptive, and operation
 ## Overview
 
 RL2 provides a strict superset of ODRL 2.2 (see [ODRL Coverage](RL2_ODRL_Coverage.md)) with:
+
 - **Formal semantics** suitable for verified runtime kernels
 - **Hohfeldian normative relations** (privilege, duty, claim, power, liability, immunity)
 - **Promise Theory** integration for voluntary cooperation
 - **Operational semantics** with explicit state transitions
 - **RDF/OWL native** with SHACL validation
 
-## Specifications
+## Getting Started
+
+**New to RL2?** Start here:
+
+1. **[RL2_Primer.md](RL2_Primer.md)** — Learn RL2 concepts step by step
+2. **[RL2_Vocabulary.md](RL2_Vocabulary.md)** — Look up any class or property
+
+## Documentation
+
+### Conceptual Documentation
 
 | Document | Description |
 |----------|-------------|
-| [RL2_Core.md](RL2_Core.md) | Ontology and SHACL shapes |
+| [RL2_Core.md](RL2_Core.md) | Overview and documentation hub |
+| [RL2_Primer.md](RL2_Primer.md) | Progressive tutorial for learning RL2 |
+| [RL2_Vocabulary.md](RL2_Vocabulary.md) | Complete class and property reference |
+| [RL2_White_Paper.md](RL2_White_Paper.md) | Motivation and design overview |
+
+### Technical Specifications
+
+| Document | Description |
+|----------|-------------|
 | [RL2_Semantics.md](RL2_Semantics.md) | Formal denotational and operational semantics |
 | [RL2_Protocol.md](RL2_Protocol.md) | Runtime evaluation protocol |
 | [RL2_ODRL_Coverage.md](RL2_ODRL_Coverage.md) | ODRL 2.2 feature coverage |
-| [RL2_White_Paper.md](RL2_White_Paper.md) | Motivation and design overview |
+
+### Normative Files
+
+| File | Description |
+|------|-------------|
+| [rl2.ttl](rl2.ttl) | OWL ontology (Turtle) |
+| [rl2-shacl.ttl](rl2-shacl.ttl) | SHACL validation shapes |
+
+### Reference
+
+| Document | Description |
+|----------|-------------|
 | [RL2_References.md](RL2_References.md) | Citations and glossary |
+| [RL2_ResearchPlan.md](RL2_ResearchPlan.md) | Mechanization roadmap |
+
+## Quick Example
+
+```turtle
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix ex:  <https://example.org/> .
+
+# A simple data use agreement
+ex:agreement a rl2:Agreement ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:usePrivilege, ex:deletionDuty .
+
+# Researcher may use the dataset
+ex:usePrivilege a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:use ;
+    rl2:object ex:Dataset .
+
+# Researcher must delete by deadline
+ex:deletionDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:delete ;
+    rl2:object ex:Dataset ;
+    rl2:obligationState rl2:Pending .
+```
+
+See [RL2_Primer.md](RL2_Primer.md) for a complete walkthrough.
 
 ## Status
 
-Draft v0.2 - Under active development.
+Draft v0.2 — Under active development.
 
 ## License
 

@@ -81,9 +81,12 @@
 - Extends ODRL with activation events and temporal aspects
 - Operational semantics via Discrete State Machines
 
-**[Cicala-Fornara-Harth 2025]** Cicala, Paolo, Nicoletta Fornara, and Andreas Harth. "Towards a Formal Semantics of the Open Digital Rights Language (ODRL 2.2)." *OPAL*, 2025.
+**[Bonatti-Fornara-Harth 2025]** Bonatti, Piero Andrea, Nicoletta Fornara, and Andreas Harth. "Towards a Formal Semantics of the Open Digital Rights Language (ODRL 2.2)." *OPAL 2025* (co-located with ESWC), Portorož, Slovenia, June 2025.
 - https://ceur-ws.org/Vol-3977/OPAL2025-4.pdf
-- Recent formalization effort identifying gaps in ODRL specification
+- Proposes declarative, model-theoretic semantics for ODRL 2.2's core constructs
+- Identifies ambiguities in ODRL's informal specification (duty fulfillment semantics, pre/post-condition duties, constraint activation vs fulfillment, gap resolution, policy scope)
+- RL2 addresses these same issues through clean-slate design rather than retroactive formalization
+- Includes formal definitions of compliance for monitoring, access control, and policy comparison mechanisms
 
 ## Access Control
 
