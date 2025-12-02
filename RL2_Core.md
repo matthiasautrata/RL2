@@ -301,7 +301,12 @@ rl2:start rdfs:domain rl2:EffectiveInterval ; rdfs:range xsd:dateTime .
 rl2:end rdfs:domain rl2:EffectiveInterval ; rdfs:range xsd:dateTime .
 ```
 
-SHACL validation ensures `start ≤ end`.
+**Open intervals**: Both `start` and `end` are optional, allowing three patterns:
+- **Open-ended** (start only): "from date X onwards"
+- **Deadline** (end only): "until date Y"
+- **Closed** (both): "from X to Y"
+
+SHACL validation ensures `start ≤ end` when both are present.
 
 **Scope boundary**: RL2 Core provides interval-based temporal constraints and basic sequencing (`rl2:after`). Richer temporal operators — Allen's interval relations (before, during, overlaps), recurrence patterns, relative durations, business-day calculations — are delegated to domain profiles. This avoids mandating complexity that not all use cases require.
 

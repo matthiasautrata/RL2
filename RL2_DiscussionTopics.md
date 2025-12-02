@@ -464,6 +464,299 @@ Enterprises need unified modeling for all of the above. RL2 provides it without 
 
 ---
 
+## 9. Context Subject Typing in Protocol
+
+**Status**: Under discussion
+
+**Background**: The RL2 Protocol's `rl2p:contextSubject` property is currently untyped—it can reference either a literal value or a resource IRI. This ambiguity may cause interoperability issues between implementations.
+
+**The Problem**: Context assertions are used to provide facts for policy evaluation:
+
+```turtle
+ex:ctx1 a rl2p:ContextAssertion ;
+    rl2p:contextSubject ex:Alice ;           # Resource reference
+    rl2p:contextProperty ex:department ;
+    rl2p:contextValueRef ex:AutoFinance .
+
+ex:ctx2 a rl2p:ContextAssertion ;
+    rl2p:contextSubject "user123" ;          # Literal value - is this valid?
+    rl2p:contextProperty ex:userId ;
+    rl2p:contextValue "active" .
+```
+
+Should `contextSubject` accept literals, or only resource IRIs?
+
+**Possible Approaches**:
+
+1. **Split properties**: `rl2p:contextSubjectIRI` (ObjectProperty) and `rl2p:contextSubjectLiteral` (DatatypeProperty)
+
+2. **Resource-only**: Require `contextSubject` to be a resource; literal identifiers must be wrapped in a resource
+
+3. **Union with SHACL**: Keep single property, use `sh:or` in SHACL to validate either form
+
+**Considerations**:
+- Splitting properties adds verbosity but is unambiguous
+- Resource-only is cleaner but may not fit all integration patterns
+- Union approach is flexible but may complicate query patterns
+
+---
+
+## 10. Multi-Party Agreements
+
+**Status**: Partially addressed — enforcement works, metadata is limited
+
+**Background**: The current `AgreementShape` requires exactly one `grantor` and one `grantee`. However, real-world agreements often involve multiple parties (e.g., data sharing consortiums, co-signers, multi-stakeholder governance).
+
+### Already Supported: Multi-Party Approval Enforcement
+
+The common "co-signer must approve" pattern is **already expressible** using `EventConstraint`:
+
+```turtle
+ex:dataShareAgreement a rl2:Agreement ;
+    rl2:grantor ex:DataProvider ;
+    rl2:grantee ex:DataConsumer ;
+    rl2:clause ex:accessPrivilege .
+
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:DataConsumer ;
+    rl2:action ex:use ;
+    rl2:object ex:Dataset ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:EventConstraint ;
+            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:DataProvider ]
+        ] ;
+        rl2:operand [
+            a rl2:EventConstraint ;
+            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:LegalDept ]  # Co-signer
+        ]
+    ] .
+```
+
+The privilege only activates when **both** approval events exist in Σ. This handles:
+
+- **Blocking co-signers**: All required approvals must be present
+- **N-of-M approval**: Use `rl2:or` with multiple EventConstraints
+- **Sequential approval**: Use `rl2:after` to require ordering
+
+### What's Not Supported: Agreement-Level Party Metadata
+
+The gap is **structural/metadata**, not **enforcement**:
+
+1. **Explicit party enumeration**: No way to declare "this agreement has parties A, B, C" as metadata independent of the norms
+2. **Role symmetry**: `grantor`/`grantee` implies asymmetry; peer-to-peer agreements don't fit cleanly
+3. **Signature tracking**: No standard way to record "who has signed" vs "who must sign" at the agreement level
+
+### Current Position
+
+For **enforcement** of multi-party approval, use the existing `EventConstraint` mechanism — it's compositional and already has formal semantics.
+
+For **agreement metadata** (party enumeration, signature status), this could be addressed by:
+
+- A simple `rl2:party` property (but this adds no semantic value without accompanying enforcement semantics)
+- Protocol-level tracking of agreement signatures (similar to Case lifecycle)
+- Domain profiles that define agreement metadata for specific use cases
+
+No changes to RL2 Core are currently proposed. The enforcement mechanism is sufficient; metadata extensions can be added by profiles if needed.
+
+---
+
+## 11. Recurrent Duties (Periodic Obligations)
+
+**Status**: Under discussion
+
+**Background**: RL2 currently models duties with single-deadline semantics. However, many real-world obligations are recurring: "submit a report every quarter", "renew certification annually", "perform backup daily".
+
+**The Gap**: There is no native way to express:
+- Periodic recurrence (daily, weekly, monthly)
+- Maximum occurrences
+- Per-period violation semantics (does missing one period violate the whole duty, or just that instance?)
+
+**Possible Approaches**:
+
+1. **RecurrentDuty subclass**:
+   ```turtle
+   rl2:RecurrentDuty rdfs:subClassOf rl2:Duty .
+
+   rl2:period a owl:DatatypeProperty ;
+       rdfs:domain rl2:RecurrentDuty ;
+       rdfs:range xsd:duration .
+
+   rl2:maxOccurrences a owl:DatatypeProperty ;
+       rdfs:domain rl2:RecurrentDuty ;
+       rdfs:range xsd:integer .
+   ```
+
+2. **iCal-style recurrence rules**:
+   ```turtle
+   ex:quarterlyReport a rl2:Duty ;
+       rl2:recurrence "FREQ=QUARTERLY;BYMONTH=3,6,9,12" .
+   ```
+
+3. **Profile-level**: Delegate to domain profiles that need recurrence
+
+**Semantic Complexity**:
+- Each recurrence instance needs its own obligation state (Pending → Active → Fulfilled/Violated)
+- The formal semantics would need to model "duty instances" vs "duty templates"
+- Violation of one instance may or may not affect other instances
+
+**Current Position**: This is significant complexity. The compositional approach (create new duties via Power exercise or policy activation) may suffice for many cases. A dedicated recurrence mechanism would be valuable but requires careful design.
+
+---
+
+## 12. Duty Consumption Modes
+
+**Status**: Under discussion
+
+**Background**: When a duty is attached to a privilege, how many times must it be fulfilled? Consider:
+
+- **Pay-per-view**: Each viewing action requires separate payment
+- **Subscription**: One payment enables unlimited viewing for a period
+- **One-time setup**: Complete training once, then access indefinitely
+
+RL2 currently doesn't distinguish between "one duty fulfillment enables many actions" vs "one duty per action".
+
+**The Problem**: Given:
+```turtle
+ex:usePrivilege a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:viewDataset ;
+    rl2:condition [ rl2:requires ex:paymentDuty ] .
+
+ex:paymentDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:pay ;
+    rl2:obligationState rl2:Fulfilled .
+```
+
+Does one fulfilled payment enable:
+- One view? (pay-per-action)
+- Unlimited views? (pay-once)
+- Views until some expiration? (subscription)
+
+**Possible Approaches**:
+
+1. **Duty consumption mode property**:
+   ```turtle
+   rl2:dutyConsumptionMode a owl:ObjectProperty ;
+       rdfs:domain rl2:Duty ;
+       rdfs:range rl2:ConsumptionMode .
+
+   rl2:ConsumptionMode owl:oneOf (rl2:Once rl2:PerAction rl2:Unlimited) .
+   ```
+
+2. **Explicit via conditions**: Combine with temporal constraints and counters
+   ```turtle
+   ex:paymentDuty a rl2:Duty ;
+       rl2:condition [ rl2:leftOperand ex:usageCount ; rl2:constraintOperator rl2:eq ; rl2:rightOperand 0 ] .
+   ```
+
+3. **Protocol-level**: Track fulfillment-to-action mappings in Cases rather than in policy
+
+**Considerations**:
+- This affects the formal semantics of duty fulfillment
+- Counters/usage tracking may belong in state (Σ) rather than policy
+- Some consumption models are temporal (subscription = fulfilled + within interval)
+
+**Current Position**: The distinction is real and affects policy interpretation. However, it may be addressable via existing mechanisms (temporal conditions, protocol-level tracking) rather than new core vocabulary. Further analysis needed.
+
+---
+
+## 13. Profile Guidance (RL2-Minimal vs RL2-Full)
+
+**Status**: Under discussion
+
+**Background**: RL2 includes a rich set of constructs: Hohfeldian norms (7 types), Promises, Conditions (6 subtypes), Protocol artifacts, and more. Not all implementations need all features.
+
+**The Need**: Clear guidance on which RL2 constructs to use for common scenarios:
+
+| Use Case | Required Constructs |
+|----------|---------------------|
+| Simple access control | Privilege, Prohibition, Policy |
+| Obligations with deadlines | + Duty, TemporalConstraint, ObligationState |
+| Approval workflows | + EventConstraint, Event |
+| Bilateral commitments | + Promise, PromiseState |
+| Normative reasoning | + Claim, Power, Liability, Immunity |
+| Full enterprise governance | All of the above |
+
+**Proposed Profiles**:
+
+1. **RL2-Minimal**: Privilege, Prohibition, Duty, Policy, Condition (atomic + temporal)
+   - Sufficient for: ODRL-equivalent policies, basic access control with obligations
+
+2. **RL2-Standard**: Minimal + Promise, EventConstraint, DynamicOperandReference
+   - Sufficient for: Approval workflows, data contracts, bilateral agreements
+
+3. **RL2-Full**: Standard + Power, Liability, Immunity, Claim
+   - Sufficient for: Full normative reasoning, legal compliance modeling
+
+**Documentation Approach**:
+- Quick-start guide using Minimal profile
+- Examples showing when to "level up" to Standard or Full
+- Clear labeling in Core spec of which profile each construct belongs to
+
+**Current Position**: This is documentation work, not specification change. Should be prioritized for adoption.
+
+---
+
+## 14. Documentation Roadmap
+
+**Status**: Future work
+
+**Background**: RL2 currently has specification documents (Core, Semantics, Protocol) and a White Paper. For adoption, additional documentation is needed.
+
+### Needed Documents
+
+**Best Current Practice (BCP) Document**
+
+A practical guide with worked examples for common patterns:
+
+- **Multi-party agreements**: Co-signer workflows, N-of-M approval, sequential signing (using EventConstraint)
+- **Data Quality (DQV) integration**: Quality metrics as left operands, thresholds as conditions
+- **SLO/SLA modeling**: Promises with measurable conditions, violation remedies
+- **Data contracts**: Producer/consumer commitments, schema guarantees, delivery schedules
+- **Approval workflows**: Committee review, escalation, rejection handling
+- **Temporal patterns**: Deadlines, open intervals, relative durations via DynamicOperandReference
+
+**Profile Development Guide**
+
+How to create domain-specific RL2 profiles:
+
+- Defining Actions and LeftOperands for a domain
+- SHACL shapes for profile-specific validation
+- Namespace conventions and versioning
+- Interoperability with RL2 Core
+
+**Standards Alignment Guide**
+
+Mapping RL2 to related standards:
+
+- **PROV-O**: Case/Event provenance, activity tracking
+- **OWL-Time**: Temporal interval alignment
+- **FOAF/ORG**: Agent modeling
+- **DQV**: Quality vocabulary integration
+- **DCAT/DPROD**: Data product metadata
+
+**Versioning and Evolution**
+
+- RL2 Core versioning policy
+- Profile versioning independent of Core
+- Backward compatibility guarantees
+- Migration guidance between versions
+
+### Current Position
+
+These are documentation tasks, not specification changes. Priority order:
+
+1. BCP with examples (highest value for adoption)
+2. Profile development guide (enables ecosystem)
+3. Standards alignment (interoperability)
+4. Versioning policy (governance)
+
+---
+
 ## Notes
 
 These topics represent potential future enhancements. They do not affect the validity of the current RL2 specification. Feedback and proposals are welcome.

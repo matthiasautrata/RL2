@@ -196,6 +196,11 @@ rl2:TemporalConstraintShape a sh:NodeShape ;
     ] .
 
 # Effective interval shape with start <= end validation
+# Note: Both start and end are OPTIONAL, allowing:
+#   - Open-ended intervals (start only): "from date X onwards"
+#   - Deadline intervals (end only): "until date Y"
+#   - Closed intervals (both): "from X to Y"
+# The sh:lessThanOrEquals constraint only applies when both are present.
 rl2:EffectiveIntervalShape a sh:NodeShape ;
     sh:targetClass rl2:EffectiveInterval ;
     sh:property [
