@@ -695,6 +695,7 @@ ex:deadlineRef a rl2:DynamicOperandReference ;
 **Type**: `owl:Class`
 
 **Optional Properties**:
+- `rl2:eventTime` — When the event occurred
 - `rl2:operationalAgent` — Agent performing the event
 - `rl2:participant` — General participant in the event
 - `rl2:approver` — Agent whose approval this event represents
@@ -1058,6 +1059,7 @@ ex:complianceAssertion a rl2:Assertion ;
 |----------|--------|-------|-------------|
 | `rl2:start` | EffectiveInterval | xsd:dateTime | Interval start |
 | `rl2:end` | EffectiveInterval | xsd:dateTime | Interval end |
+| `rl2:eventTime` | Event | xsd:dateTime | When event occurred |
 | `rl2:after` | Event | Event | Temporal sequence |
 
 ### Operational Properties

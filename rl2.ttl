@@ -411,6 +411,11 @@ rl2:Event a owl:Class ;
     rdfs:label "Event" ;
     rdfs:comment "Observable event that may trigger obligations or transitions." .
 
+rl2:eventTime a owl:DatatypeProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "When the event occurred." .
+
 # Obligation States (enumeration pattern)
 rl2:ObligationState a owl:Class ;
     rdfs:label "Obligation State" ;

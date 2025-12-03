@@ -252,6 +252,16 @@ rl2p:imposedTime a owl:DatatypeProperty ;
     rdfs:domain rl2p:DutyRequirement ;
     rdfs:range xsd:dateTime ;
     rdfs:comment "When this duty requirement was imposed." .
+
+rl2p:dutyLabel a owl:DatatypeProperty ;
+    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Human-readable label for the duty requirement." .
+
+rl2p:dutyDescription a owl:DatatypeProperty ;
+    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Human-readable description of what the duty requires." .
 ```
 
 ## Example

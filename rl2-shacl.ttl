@@ -242,6 +242,12 @@ rl2:AssetCollectionShape a sh:NodeShape ;
 rl2:EventShape a sh:NodeShape ;
     sh:targetClass rl2:Event ;
     sh:property [
+        sh:path rl2:eventTime ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "An Event may have at most one event time."
+    ] ;
+    sh:property [
         sh:path rl2:operationalAgent ;
         sh:maxCount 1 ;
         sh:class rl2:Agent ;
