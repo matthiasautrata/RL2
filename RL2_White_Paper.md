@@ -310,6 +310,8 @@ RL2 complements ODRL by providing:
 - **Operational semantics**: Explicit obligation lifecycle (Pending → Active → Fulfilled/Violated) with deterministic state transitions, drawing on the ODRE framework
 - **Policy-level activation conditions**: Enabling dynamic policy applicability based on events
 
+These extensions address known ODRL limitations—including informal semantics and lack of enforcement specification—systematically catalogued in recent research [ODRL Limitations 2025].
+
 ODRL policies can be compiled to RL2 for formal analysis, then deployed via ODRL-compatible systems or native RL2 evaluation.
 
 ### Complementing Data Contract Standards
@@ -356,11 +358,11 @@ RL2 does not aim to replace Cedar's speed or OPA's expressiveness. Rather, it pr
 
 *Investigation ongoing: Compilation targets for Cedar and OPA are under research.*
 
-### Building on ODRE
+### Building on ODRE and Usage Control Research
 
-RL2's operational layer draws on research into enforceable digital rights, particularly the ODRE (Open Digital Rights Enforcement) framework. Key influences include:
+RL2's operational layer draws on research into enforceable digital rights, particularly the ODRE (Open Digital Rights Enforcement) framework and the UCON_ABC usage control model [UCON_ABC]. Key influences include:
 
-- **Obligation lifecycle**: The Pending → Active → Fulfilled/Violated state machine, enabling runtime tracking of duty satisfaction
+- **Obligation lifecycle**: The Pending → Active → Fulfilled/Violated state machine, enabling runtime tracking of duty satisfaction. UCON introduced continuity (ongoing controls) and mutability concepts; RL2 formalizes these through explicit state transitions and the Power normative concept.
 - **Synchronous and asynchronous enforcement**: Policies can be evaluated on-demand (access request) or continuously (monitoring)
 - **Event-triggered transitions**: State changes driven by observable events
 

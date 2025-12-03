@@ -926,6 +926,8 @@ ex:dataContract a rl2:Agreement ;
 - Privileges for data subjects (access, deletion, portability)
 - Conditions related to consent and purpose
 
+**Note**: For comprehensive GDPR coverage, Privacy policies benefit from integration with vocabularies such as DPV (Data Privacy Vocabulary) and GDPRtEXT. See [Rodríguez-Doncel 2024] for analysis of policy language coverage of GDPR informational items.
+
 **Example**:
 ```turtle
 ex:privacyPolicy a rl2:Privacy ;

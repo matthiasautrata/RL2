@@ -44,6 +44,8 @@ The RL2 ontology and validation shapes are defined in machine-readable files:
 
 These files are **normative**. The Primer and Vocabulary provide explanatory prose.
 
+RL2's OWL-based representation enables decidable policy reasoning within OWL-DL bounds, following principles established in semantic policy frameworks [OWL-POLAR].
+
 ---
 
 ## Conceptual Model

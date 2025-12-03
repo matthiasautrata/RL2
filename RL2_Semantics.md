@@ -905,7 +905,7 @@ Eval(U, R, Σ, Ctx) =
 
 ### Conflict Resolution
 
-When multiple norms apply, conflicts must be resolved. RL2 supports configurable conflict strategies:
+When multiple norms apply, conflicts must be resolved. RL2 supports configurable conflict strategies. More sophisticated defeasibility mechanisms—such as rule priorities and exclusionary rules—are available in frameworks like LegalRuleML [LegalRuleML] and may be incorporated in future RL2 profiles.
 
 ```
 resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, strategy) =

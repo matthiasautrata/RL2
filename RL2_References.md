@@ -164,6 +164,43 @@
 - Used for CompCert verified C compiler
 - Alternative to Why3/Lean for RL2 mechanization
 
+## Deontic Logic and Normative Reasoning
+
+**[UCON_ABC]** Park, Jaehong, and Ravi Sandhu. "The UCON_ABC Usage Control Model." *ACM Transactions on Information and System Security (TISSEC)* 7(1), February 2004.
+- https://profsandhu.com/journals/tissec/ucon-abc.pdf
+- Foundational usage control model integrating Authorizations, oBligations, and Conditions
+- Introduces continuity (ongoing controls) and mutability of attributes
+- **RL2 relevance**: UCON uses binary obligation states (satisfied/revoked) vs RL2's explicit lifecycle (Pending→Active→Fulfilled/Violated). UCON's continuity concept validates RL2's operational layer; its mutability patterns support RL2's Power normative concept. Functional decision model (f(subject, resource, env, obligations)) informs Why3 mechanization.
+- **Gap**: UCON lacks Hohfeldian normative categories; operates via allow/deny rather than explicit normative relations
+
+**[LegalRuleML]** Athan, Tara, Guido Governatori, Monica Palmirani, Adrian Paschke, and Adam Wyner. "LegalRuleML: Design Principles and Foundations." *Reasoning Web 2015*, LNCS 9203, Springer, 2015.
+- https://link.springer.com/chapter/10.1007/978-3-319-21768-0_6
+- XML format extending RuleML for legal domain norms; based on defeasible logic
+- Includes deontic operators: obligations, permissions, prohibitions, rights
+- **RL2 relevance**: LegalRuleML's defeasibility (rule conflicts, exclusionary rules) addresses normative conflict that RL2 currently delegates to profiles. Its temporalized normative positions align with RL2's operational semantics. Syntax based on defeasible logic offers alternative formalization path.
+- **Gap**: LegalRuleML uses XML vs RL2's RDF/OWL; lacks Promise Theory integration
+
+**[OWL-POLAR]** Sensoy, Murat, Timothy J. Norman, Wamberto W. Vasconcelos, and Katia Sycara. "OWL-POLAR: A Framework for Semantic Policy Representation and Reasoning." *Journal of Web Semantics* 12-13, April 2012.
+- https://www.sciencedirect.com/science/article/abs/pii/S1570826811000965
+- OWL-DL based policy representation with decidable reasoning
+- Covers permissions, prohibitions, obligations; conflict detection and resolution
+- **RL2 relevance**: Directly relevant—uses OWL-DL like RL2. Demonstrates decidable policy reasoning within OWL bounds. Conflict anticipation mechanisms could inform RL2 conflict handling. Authority modeling (who issues policy) parallels RL2's grantor/grantee.
+- **Gap**: Predates SHACL; focuses on multi-agent systems rather than data governance
+
+**[Rodríguez-Doncel 2024]** Esteves, Beatriz, Víctor Rodríguez-Doncel, et al. "Analysis of Ontologies and Policy Languages to Represent Information Flows in GDPR." *Semantic Web Journal*, 2024.
+- https://journals.sagepub.com/doi/10.3233/SW-223009
+- Surveys 13 policy languages and 9 data protection vocabularies against 57 GDPR informational items
+- Finds ODRL + DPV + GDPRtEXT covers 39/57 items; identifies temporal/spatial constraint gaps
+- **RL2 relevance**: Validates ODRL as best foundation (which RL2 extends). Identifies gaps RL2 should address: retention periods, data expiry, sector-specific constraints. Suggests vocabulary layering approach (core + domain profiles) that aligns with RL2's profile extensibility.
+- **Action**: Review 57 GDPR items for RL2 Privacy policy coverage
+
+**[ODRL Limitations 2025]** "Improving ODRL 2.2: Current Limitations and Theoretical Solutions." *OPAL 2025* (co-located with ESWC), June 2025.
+- https://ceur-ws.org/Vol-3977/OPAL2025-6.pdf
+- Systematically catalogs ODRL 2.2 limitations with proposed taxonomy
+- Notes ODRL has only informal English semantics; no enforcement specification
+- **RL2 relevance**: Directly validates RL2's design rationale—RL2 addresses these exact gaps through formal operational semantics. Paper's taxonomy of limitations provides checklist for RL2 completeness verification.
+- **Action**: Cross-reference limitation taxonomy against RL2 design decisions
+
 ## Semantic Web
 
 **[OWL 2]** W3C. "OWL 2 Web Ontology Language." W3C Recommendation, 11 December 2012.
