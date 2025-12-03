@@ -11,9 +11,9 @@ purpose: "Reference documentation for all RL2 ontology terms"
 
 This document provides complete reference documentation for every class, property, and named individual in the RL2 ontology. It is organized for lookup, not learning.
 
-**If you're new to RL2**, start with **RL2_Primer.md**, which teaches concepts progressively.
+For readers new to RL2, **RL2_Primer.md** provides a progressive introduction to the concepts.
 
-**If you need to look something up**, this is the right place.
+This document serves as the authoritative lookup reference for RL2 terms.
 
 ### Document Structure
 
@@ -1188,14 +1188,14 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 Hohfeld identified these as correlatives of Privilege and Immunity respectively. RL2 does not model them as explicit classes because:
 
 1. They represent *absences* of positions, not positions themselves
-2. We can infer them: if no Claim exists, then No-Claim; if no Power exists, then Disability
-3. Modeling absences as classes would be ontologically awkward
+2. They are inferrable: absence of Claim implies No-Claim; absence of Power implies Disability
+3. Modeling absences as classes is ontologically problematic
 
 ### Why Prohibition Is a Separate Class
 
 In strict Hohfeldian terms, prohibition is a Duty to refrain. RL2 separates it because:
 
-1. Policy authors think "may not" rather than "duty to not"
+1. Policy authors express prohibitions as "may not" rather than "duty to not"
 2. `rl2:prohibitedAction` is clearer than negated action constructs
 3. It aligns with ODRL and eases translation
 
@@ -1216,6 +1216,12 @@ RL2 Core leaves these deliberately open for profiles to define:
 - **Assets**: Domain-specific asset types
 - **Agents**: Domain-specific agent classifications
 - **Temporal extensions**: Allen relations, recurrence, etc.
+
+---
+
+## References
+
+For complete bibliography and glossary, see **RL2_References.md**.
 
 ---
 
