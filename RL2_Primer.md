@@ -10,7 +10,7 @@ prerequisites: "Basic familiarity with RDF and policy concepts"
 
 ## About This Document
 
-This primer provides a practical introduction to reading, understanding, and writing RL2 policies. Concepts are introduced progressively, with examples at each step. Upon completion, readers will be able to:
+This  primer provides a practical introduction to reading, understanding, and writing RL2 policies. Concepts are introduced progressively, with examples at each step. Upon completion, readers will be able to:
 
 - Understand the problems RL2 addresses
 - Read RL2 policies and trace their evaluation
