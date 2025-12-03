@@ -1,0 +1,102 @@
+<mxfile version="21.6.8" type="device">
+  <diagram id="rl2-roadmap" name="RL2 Roadmap">
+    <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- LAYER 1: POLICY CONTEXT -->
+        <mxCell id="layer1_bg" value="1. Policy Context" style="group;rounded=1;whiteSpace=wrap;html=1;fillColor=#f5faff;strokeColor=#a8c6fa;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5;fontColor=#333333;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="440" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="policy" value="Policy&lt;br&gt;(Abstract)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="360" y="60" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="policy_types" value="Types: Offer, Agreement" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="250" y="110" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="offer" value="Offer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="220" y="150" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="agreement" value="Agreement" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="520" y="150" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_offer_pol" value="subClassOf" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;entryX=0;entryY=0.5;exitX=1;exitY=0.5;" edge="1" parent="1" source="offer" target="policy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_agr_pol" value="subClassOf" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" edge="1" parent="1" source="agreement" target="policy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- LAYER 2: THE SENTENCE -->
+        <mxCell id="subject" value="Agent&#xa;(Subject)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="270" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="norm_bg" value="2. Normative Relation" style="group;rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff4;strokeColor=#bbf7d0;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5;fontColor=#333333;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="230" width="360" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="norm" value="Norm" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#16a34a;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="380" y="260" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="types" value="Types: Privilege, Duty, Prohibition,&#xa;Claim, Power, Liability, Immunity" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="250" y="340" width="340" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="action" value="Action" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="660" y="250" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asset" value="Asset&#xa;(Object)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="660" y="310" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_pol_norm" value="rl2:clause" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" edge="1" parent="1" source="policy" target="norm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_subj" value="rl2:subject" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" edge="1" parent="1" source="norm" target="subject">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_act" value="rl2:action" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;exitX=1;exitY=0.25;" edge="1" parent="1" source="norm" target="action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_obj" value="rl2:object" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;exitX=1;exitY=0.75;" edge="1" parent="1" source="norm" target="asset">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- LAYER 3: LOGIC -->
+        <mxCell id="logic_bg" value="4. Logic &amp; Conditions" style="group;rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#fed7aa;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5;fontColor=#333333;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="430" width="440" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="condition" value="Condition" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="360" y="460" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="atomic" value="AtomicConstraint" style="rounded=1;whiteWhite=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;" vertex="1" parent="1">
+          <mxGeometry x="240" y="540" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="logical" value="LogicalConstraint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;" vertex="1" parent="1">
+          <mxGeometry x="460" y="540" width="140" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_norm_cond" value="rl2:condition" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" edge="1" parent="1" source="norm" target="condition">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_atomic_sub" value="subClassOf" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;entryX=0.25;entryY=1;exitX=0.5;exitY=0;" edge="1" parent="1" source="atomic" target="condition">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_logic_sub" value="subClassOf" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;entryX=0.75;entryY=1;exitX=0.5;exitY=0;" edge="1" parent="1" source="logical" target="condition">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_logic_op" value="rl2:operand" style="endArrow=classic;html=1;rounded=0;curved=1;entryX=1;entryY=0.5;exitX=1;exitY=0.5;" edge="1" parent="1" source="logical" target="condition">
+          <mxGeometry relative="1" as="geometry">
+             <mxPoint x="620" y="520" as="targetPoint"/>
+             <Array as="points">
+                <mxPoint x="620" y="555"/>
+                <mxPoint x="620" y="480"/>
+             </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
