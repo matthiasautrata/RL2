@@ -13,8 +13,8 @@
   dc:description """A companion specification for interoperable policy evaluation.
   Defines request/response formats, duty lifecycle tracking, case management,
   and context assertions for RL2 policy evaluation.""" ;
-  owl:versionInfo "0.2" ;
-  owl:versionIRI <https://rl2.example/protocol/0.2> ;
+  owl:versionInfo "0.3" ;
+  owl:versionIRI <https://rl2.example/protocol/0.3> ;
   owl:imports <https://rl2.example/ontology> .
 
 ############################################################

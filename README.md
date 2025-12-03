@@ -82,7 +82,7 @@ See [RL2_Primer.md](RL2_Primer.md) for a complete walkthrough.
 
 ## Status
 
-Draft v0.2 — Under active development.
+Draft v0.3 — Under active development.
 
 ## License
 

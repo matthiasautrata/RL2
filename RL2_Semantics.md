@@ -1,7 +1,7 @@
 ---
 title: "RL2 Formal Semantics"
 subtitle: "A Unified Normative, Operational, and Semantic Framework for Rights and Data Policies"
-version: "0.2"
+version: "0.3"
 status: "Draft"
 date: 2025-01-01
 abstract: |

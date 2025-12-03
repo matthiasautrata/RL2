@@ -1,7 +1,7 @@
 ---
 title: "RL2 Core Specification"
 subtitle: "A Unified Normative, Descriptive, and Operational Rights Language"
-version: "0.2"
+version: "0.3"
 status: "Draft"
 date: 2025-01-01
 ---

@@ -1,4 +1,4 @@
-# RL2 Coverage of ODRL (Draft v0.2)
+# RL2 Coverage of ODRL (Draft v0.3)
 
 *A unified mapping of ODRL 2.2 and ODRL 3.0 use cases to RL2*
 
