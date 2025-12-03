@@ -1,6 +1,6 @@
 # RL2: Rights Language 2
 
-A next-generation policy language unifying normative, descriptive, and operational semantics for digital rights and data governance.
+A  next-generation policy language unifying normative, descriptive, and operational semantics for digital rights and data governance.
 
 ## Overview
 
