@@ -812,6 +812,62 @@ ex:approvalPrivilege a rl2:Privilege ;
 
 For more patterns, see **usecases/README.md** which documents 10 use cases demonstrating duty state preconditions.
 
+### Profile-Declared Operands
+
+In the examples above, `ex:purpose` is used as a left operand. Where does it come from?
+
+RL2 Core defines the **mechanism** for conditions (operators, constraint types) but does not define domain-specific operands like `purpose`, `location`, or `dataOwner`. These are provided by **profiles**—domain-specific extensions that declare operands with explicit resolution semantics.
+
+**Architectural Principle**: All runtime and contextual data access goes through declared `rl2:LeftOperand` instances with explicit resolution paths.
+
+**Example Profile Declaration**:
+
+```turtle
+@prefix privacy: <https://rl2.example/profile/privacy#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+privacy:purposeOperand a rl2:LeftOperand ;
+    rdfs:label "Purpose" ;
+    rl2:resolutionPath "context.purpose" ;
+    rdfs:range privacy:Purpose .
+
+privacy:dataOwnerOperand a rl2:LeftOperand ;
+    rdfs:label "Data Owner" ;
+    rl2:resolutionPath "asset.dataOwner" ;
+    rdfs:range rl2:Agent .
+```
+
+**Usage in Policy**:
+
+```turtle
+ex:gdprPrivilege a rl2:Privilege ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand privacy:dataOwnerOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef rl2:currentAgent
+    ] .
+```
+
+**Resolution Path Roots**:
+
+| Root | Meaning | Example |
+|------|---------|---------|
+| `agent` | Requesting agent | `agent.department` |
+| `asset` | Requested asset | `asset.classification` |
+| `state` | System state (Σ) | `state.Events.approval.operationalAgent` |
+| `context` | Request context | `context.purpose` |
+| `request` | Request metadata | `request.requestTime` |
+
+This architecture ensures:
+- **No ad-hoc vocabulary** — Profiles own domain operands
+- **Formal grounding** — All access maps to `resolve`/`deref` in the semantics
+- **Type safety** — Operands declare expected ranges
+- **Validation** — SHACL verifies operand usage
+
+See **profiles/** for example profiles and **RL2_Semantics.md** for the formal resolution semantics.
+
 ---
 
 ## 9. Policy Containers
@@ -1273,6 +1329,7 @@ If the researcher attempted to distribute:
 - **RL2_Vocabulary.md** — Complete class and property reference
 - **rl2.ttl** — Normative OWL ontology
 - **rl2-shacl.ttl** — SHACL validation shapes
+- **profiles/** — Domain-specific profiles with declared operands
 
 ### Formal Semantics
 
@@ -1309,6 +1366,7 @@ If the researcher attempted to distribute:
 | Combine conditions | `rl2:LogicalConstraint` with `rl2:and`/`rl2:or` |
 | Bundle norms | `rl2:Policy` with `rl2:clause` |
 | Create bilateral agreement | `rl2:Agreement` |
+| Access contextual data | Profile-declared `rl2:LeftOperand` with `rl2:resolutionPath` |
 
 ---
 

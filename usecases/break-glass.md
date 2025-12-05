@@ -1,7 +1,7 @@
 # Use Case 3: Break Glass (Personal Liability)
 
 **Pattern:** Event + Identity binding (Tun-sollen)
-**Identity Check:** `operationalAgent = currentAgent`
+**Identity Check:** `eventPerformerOperand = currentAgent`
 **Category:** Emergency access with accountability
 
 ## Scenario
@@ -19,9 +19,31 @@ Emergency access to fire suppression controls requires breaking a glass panel. O
 - Audit trail critical
 - Cannot "draft off" someone else's emergency action
 
+## Profile-Declared Operands
+
+This use case requires a profile that declares the operand for accessing event performer information. The operand is resolved via the canonical path mechanism defined in RL2_Semantics.
+
+```turtle
+@prefix emergency: <https://example.org/profile/emergency#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Profile-declared operand for accessing the performer of an event
+emergency:eventPerformerOperand a rl2:LeftOperand ;
+    rdfs:label "Event Performer" ;
+    rdfs:comment "Resolves to the agent who performed the triggering event." ;
+    rl2:resolutionPath "state.Events.breakGlassEvent.operationalAgent" ;
+    rdfs:range rl2:Agent .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix emergency: <https://example.org/profile/emergency#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
 ex:breakGlassEvent a rl2:Event ;
     rdfs:comment "Template for glass-breaking events" .
 
@@ -40,15 +62,29 @@ ex:emergencyAccessPrivilege a rl2:Privilege ;
         ] ;
         rl2:operand [
             # Check 2: Did I perform it?
+            # Uses profile-declared operand with explicit resolution path
             a rl2:AtomicConstraint ;
-            rl2:leftOperand rl2:eventPerformer ;  # Event performer from context
+            rl2:leftOperand emergency:eventPerformerOperand ;
             rl2:constraintOperator rl2:eq ;
             rl2:rightOperandRef rl2:currentAgent
         ]
     ] .
 ```
 
-Note: For event-based identity binding, the event's `operationalAgent` is compared against the requester. This uses contextual event tracking rather than duty state querying.
+## Resolution Semantics
+
+When evaluating the identity binding condition:
+
+1. `emergency:eventPerformerOperand` is resolved via its declared `rl2:resolutionPath`
+2. `deref("state.Events.breakGlassEvent.operationalAgent", Env)` retrieves the agent who performed the event
+3. `rl2:currentAgent` resolves to `Env.Agent` (the requesting agent)
+4. The constraint holds if these are equal (Tun-sollen identity binding)
+
+This aligns with the formal semantics in RL2_Semantics.md:
+```
+resolve(op, Env, targetNorm) =
+    _ | op.resolutionPath ≠ ⊥ → deref(op.resolutionPath, Env)
+```
 
 ## Evaluation
 
@@ -61,8 +97,19 @@ Note: For event-based identity binding, the event's `operationalAgent` is compar
 
 The precondition is an **Event** (physical action), not a **Duty** (normative obligation). The identity binding ensures the person who performed the irreversible action is the one who benefits/bears responsibility.
 
+## Why Profile-Declared Operands?
+
+Previous versions of this use case introduced ad-hoc properties like `rl2:eventPerformer`. This bypassed RL2's formal evaluation calculus and created semantic orphans—properties that work intuitively but have no grounding in the `resolve`/`deref` machinery.
+
+By using profile-declared operands with explicit resolution paths:
+- **No ontology pollution**: RL2 Core doesn't grow
+- **Type safety**: The operand declares `rdfs:range rl2:Agent`
+- **Validation**: SHACL can verify the operand is used correctly
+- **Mechanization**: Clear mapping to Why3/Lean verification targets
+- **Auditability**: All data access points are explicit and declared
+
 ## Comparison
 
 - **ODRL:** Cannot model event-based preconditions with identity binding
 - **UCON:** Would require user-attribute check
-- **RL2:** `EventConstraint` + identity binding via context
+- **RL2:** `EventConstraint` + profile-declared operand with resolution path

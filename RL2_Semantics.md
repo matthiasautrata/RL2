@@ -343,40 +343,61 @@ The condition semantics rely on several helper functions. For a verified kernel,
 
 The function `resolve(leftOperand, Env, targetNorm?)` maps a left operand to a value. The optional `targetNorm` parameter is required for norm state operands.
 
+**Resolution Precedence**: Operands are resolved in the following order:
+
+1. **Core operands** (obligationStateOperand, dutyPerformerOperand) — handled specially
+2. **Path-based resolution** — if `op.resolutionPath` is defined, use `deref()`
+3. **Function-based resolution** — if `op.resolutionFunction` is defined, invoke it
+4. **External lookup** — fallback to context-based resolution
+
 ```
 resolve : LeftOperand × Env × Norm? → Value ∪ {⊥}
 
 resolve(op, Env, targetNorm) =
     case op of
+        -- Core operands (norm state queries)
         obligationStateOperand →
             if targetNorm ≠ ⊥ then Env.Σ.ObligationState(targetNorm)
             else ⊥
         dutyPerformerOperand →
             if targetNorm ≠ ⊥ then Env.Σ.DutyPerformer(targetNorm)
             else ⊥
-        dateTime    → Env.Σ.Clock
-        agent       → Env.Agent
-        asset       → Env.Asset
-        profile(p)  → lookupProfile(p, op, Env)
-        _           → lookupExternal(op, Env.Context)
+
+        -- Profile-declared operands with explicit resolution
+        _ | op.resolutionPath ≠ ⊥ →
+            deref(op.resolutionPath, Env)
+
+        _ | op.resolutionFunction ≠ ⊥ →
+            invokeFunction(op.resolutionFunction, Env)
+
+        -- Legacy/fallback resolution
+        _  → lookupExternal(op, Env.Context)
 ```
 
 Where:
 * `obligationStateOperand` queries `Σ.ObligationState(targetNorm)` — returns Pending, Active, Fulfilled, or Violated
 * `dutyPerformerOperand` queries `Σ.DutyPerformer(targetNorm)` — returns the Agent who fulfilled the duty, or ⊥
-* `lookupProfile(p, op, Env)` resolves operands defined by profile `p`
-* `lookupExternal(op, Ctx)` resolves operands from external context (HR systems, directories, etc.)
+* `op.resolutionPath` — path expression declared on the operand via `rl2:resolutionPath`
+* `op.resolutionFunction` — function name declared on the operand via `rl2:resolutionFunction`
+* `invokeFunction(name, Env)` — implementation-specific function invocation
+* `lookupExternal(op, Ctx)` — resolves operands from external context (HR systems, directories, etc.)
 * `⊥` indicates undefined (evaluation fails if encountered)
+
+**Architectural Principle**: All runtime and contextual data access SHOULD go through declared `rl2:LeftOperand` instances with explicit `rl2:resolutionPath` or `rl2:resolutionFunction`. This ensures:
+- Type safety (operands can declare expected ranges)
+- Validation (SHACL can verify operand usage)
+- Mechanization (clear mapping to formal verification targets)
+- Auditability (all data access points are declared)
 
 RL2 Core defines the following left operand instances:
 * `obligationStateOperand` → queries duty state from Σ (requires `targetNorm`)
 * `dutyPerformerOperand` → queries who fulfilled a duty from Σ (requires `targetNorm`)
 
-Profiles may define additional left operands such as:
-* `purpose` → resolved from request context
-* `dateTime` → resolved from Env.Σ.Clock
-* `recipient` → resolved from agent metadata
-* `department` → resolved via external lookup (e.g., HR system)
+Profiles define domain-specific left operands with resolution paths, such as:
+* `purpose` → `rl2:resolutionPath "context.purpose"`
+* `dataOwner` → `rl2:resolutionPath "asset.dataOwner"`
+* `eventPerformer` → `rl2:resolutionPath "state.Events.*.operationalAgent"`
+* `department` → `rl2:resolutionFunction "lookupDepartment"`
 
 #### Dynamic References
 
@@ -395,7 +416,17 @@ The `currentAgent` reference resolves to `Env.Agent` — the agent making the cu
 
 #### deref : Path × Env → Value
 
-The function `deref(path, Env)` traverses a path expression to retrieve a value:
+The function `deref(path, Env)` traverses a path expression to retrieve a value. This is the **primary mechanism for resolving profile-declared operands** via `rl2:resolutionPath`.
+
+**Canonical Path Roots** (normatively defined):
+
+| Root | Meaning | Example Paths |
+|------|---------|---------------|
+| `agent` | Env.Agent (requesting agent) | `agent.department`, `agent.clearanceLevel` |
+| `asset` | Env.Asset (requested asset) | `asset.classification`, `asset.dataOwner` |
+| `state` | Σ (system state) | `state.Clock`, `state.Events.breakGlassEvent.operationalAgent` |
+| `context` | External request context | `context.purpose`, `context.jurisdiction` |
+| `request` | rl2p:Request fields | `request.requestTime`, `request.requestingAgent` |
 
 ```
 deref : Path × Env → Value ∪ {⊥}
@@ -407,6 +438,7 @@ deref(path, Env) =
         "asset"   → Env.Asset
         "context" → Env.Context
         "state"   → Env.Σ
+        "request" → Env.Request
         _         → ⊥
     in foldl(navigate, root, tail(segments))
 
@@ -417,6 +449,39 @@ navigate(obj, segment) =
         Map     → obj[segment] if segment ∈ keys(obj) else ⊥
         _       → ⊥
 ```
+
+**Event Access Pattern**: To access properties of events in Σ.Events, use paths like:
+- `state.Events.breakGlassEvent.operationalAgent` — specific named event type
+- `state.Events.*.operationalAgent` — wildcard (see selection rules below)
+
+**Wildcard Selection Rules** (normative):
+
+When a path segment is `*`, the following selection rules apply:
+
+1. **Within `state.Events.*`**: Returns the **most recent event** that matches the EventConstraint in the same LogicalConstraint (if any). If no EventConstraint is present, returns the most recent event of any type.
+
+2. **Selection is singular**: Wildcards always resolve to a single value, not a set. This ensures `deref` remains a total function over allowed paths.
+
+3. **Precedence**: If multiple events could match:
+   - Events matching an explicit EventConstraint take precedence
+   - Among matching events, the most recent (by `rl2:eventTime`) is selected
+   - If no events match, returns ⊥
+
+Formally:
+```
+navigate(Events, "*") =
+    let candidates = { e ∈ Events | matchesConstraintInScope(e) }
+    in if candidates = ∅ then ⊥
+       else maxBy(eventTime, candidates)
+```
+
+This rule ensures that identity binding patterns like:
+```turtle
+rl2:leftOperand emergency:eventPerformerOperand ;  # resolutionPath "state.Events.*.operationalAgent"
+```
+correctly resolve to the performer of the **triggering event** when used alongside an EventConstraint.
+
+**Security Note**: Implementations MUST validate path roots against the canonical set above. Arbitrary paths could enable unauthorized data access.
 
 Example paths:
 * `agent.department` → the agent's department

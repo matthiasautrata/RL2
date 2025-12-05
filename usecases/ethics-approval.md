@@ -1,7 +1,7 @@
 # Use Case 7: Ethics Board Approval
 
 **Pattern:** Multi-party workflow with identity binding
-**Identity Check:** `operationalAgent = currentAgent`
+**Identity Check:** `eventBeneficiaryOperand = currentAgent`
 **Category:** Research governance, IRB compliance
 
 ## Scenario
@@ -19,9 +19,42 @@ A researcher must obtain ethics board approval before accessing sensitive resear
 - Audit trail for compliance
 - Common in IRB/ethics workflows
 
+## Profile-Declared Operands
+
+This use case requires a research governance profile that declares operands for accessing approval event properties. All context access goes through the canonical path mechanism.
+
+```turtle
+@prefix research: <https://example.org/profile/research#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Profile-declared operand for the beneficiary of an approval event
+# The approval event payload contains a 'beneficiary' field indicating
+# the agent for whom approval was granted
+research:eventBeneficiaryOperand a rl2:LeftOperand ;
+    rdfs:label "Event Beneficiary" ;
+    rdfs:comment """Resolves to the agent who is the beneficiary of an approval event.
+    This is the researcher for whom ethics approval was granted.""" ;
+    rl2:resolutionPath "state.Events.ethicsApprovalEvent.beneficiary" ;
+    rdfs:range rl2:Agent .
+
+# Profile-declared operand for approval expiration
+research:approvalExpirationOperand a rl2:LeftOperand ;
+    rdfs:label "Approval Expiration" ;
+    rdfs:comment "Resolves to the expiration timestamp of the approval." ;
+    rl2:resolutionPath "state.Events.ethicsApprovalEvent.expirationDate" ;
+    rdfs:range xsd:dateTime .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix research: <https://example.org/profile/research#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
 ex:ethicsApprovalEvent a rl2:Event ;
     rdfs:comment "Approval from ethics board for specific researcher" .
 
@@ -42,9 +75,9 @@ ex:sensitiveDataAccess a rl2:Privilege ;
         ] ;
         rl2:operand [
             # Check 2: Was approval for me (current agent)?
-            # This uses event participant matching
+            # Uses profile-declared operand with explicit resolution path
             a rl2:AtomicConstraint ;
-            rl2:leftOperand rl2:eventBeneficiary ;
+            rl2:leftOperand research:eventBeneficiaryOperand ;
             rl2:constraintOperator rl2:eq ;
             rl2:rightOperandRef rl2:currentAgent
         ] ;
@@ -56,6 +89,16 @@ ex:sensitiveDataAccess a rl2:Privilege ;
     ] .
 ```
 
+## Resolution Semantics
+
+When evaluating the identity binding condition:
+
+1. `research:eventBeneficiaryOperand` has `rl2:resolutionPath "state.Events.ethicsApprovalEvent.beneficiary"`
+2. `resolve(research:eventBeneficiaryOperand, Env, ⊥)` calls `deref("state.Events.ethicsApprovalEvent.beneficiary", Env)`
+3. This navigates: `Env.Σ.Events["ethicsApprovalEvent"].beneficiary` → returns the approved researcher
+4. `rl2:currentAgent` resolves to `Env.Agent`
+5. Constraint holds if these are equal
+
 ## Evaluation
 
 | Scenario | Approval For | Request By | Result |
@@ -66,21 +109,44 @@ ex:sensitiveDataAccess a rl2:Privilege ;
 
 ## Multi-Approval Variant
 
-For N-of-M approval (e.g., 2 of 3 committee members):
+For N-of-M approval (e.g., 2 of 3 committee members), the profile would declare a function-based operand:
 
 ```turtle
+research:approvalCountOperand a rl2:LeftOperand ;
+    rdfs:label "Approval Count" ;
+    rdfs:comment "Counts approvals for the current agent from committee members." ;
+    rl2:resolutionFunction "countApprovalsForAgent" ;
+    rdfs:range xsd:integer .
+```
+
+Policy usage:
+```turtle
 rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [
-        # At least 2 approvals from any committee members
-        # (Implementation would use counting constraint)
-    ]
+    a rl2:AtomicConstraint ;
+    rl2:leftOperand research:approvalCountOperand ;
+    rl2:constraintOperator rl2:gte ;
+    rl2:rightOperand 2
 ] .
 ```
+
+The `countApprovalsForAgent` function is implementation-specific but its interface is declared in the profile.
+
+## Why Profile-Declared Operands?
+
+Previous versions introduced `rl2:eventBeneficiary` as an ad-hoc property. This:
+- Polluted the RL2 Core ontology
+- Had no formal grounding in `resolve`/`deref`
+- Could not be validated by SHACL
+- Created maintenance burden
+
+With profile-declared operands:
+- The research governance profile owns `research:eventBeneficiaryOperand`
+- Resolution path is explicit and auditable
+- SHACL can verify usage constraints
+- Different profiles can use different field names for the same concept
 
 ## Comparison
 
 - **Paper-based:** Manual verification, error-prone
-- **XACML:** Complex attribute matching
-- **RL2:** `EventConstraint` + identity binding via context + temporal bounds
+- **XACML:** Complex attribute matching, no event model
+- **RL2:** `EventConstraint` + profile-declared operand with resolution path + temporal bounds

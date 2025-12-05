@@ -41,6 +41,7 @@ The RL2 ontology and validation shapes are defined in machine-readable files:
 |------|-------------|
 | **[rl2.ttl](rl2.ttl)** | Complete RL2 OWL ontology in Turtle format |
 | **[rl2-shacl.ttl](rl2-shacl.ttl)** | SHACL shapes for syntax validation |
+| **[profiles/](profiles/)** | Domain-specific profiles with declared operands |
 
 These files are **normative**. The Primer and Vocabulary provide explanatory prose.
 
@@ -228,6 +229,15 @@ Policies have stateful behavior. Duties follow a lifecycle: Pending → Active �
 - **Duty state preconditions** — Privileges conditioned on prior duty fulfillment
 - **Identity binding** — Tun-sollen (same agent) vs. Sein-sollen (any agent)
 - **Separation of Duty** — Two-man rules requiring different agents
+
+### Profile-Declared Operands
+All runtime and contextual data access goes through declared `rl2:LeftOperand` instances with explicit resolution paths. This architectural principle ensures:
+- **No ad-hoc vocabulary** — Profiles own domain-specific operands
+- **Formal grounding** — All access maps to `resolve`/`deref` semantics
+- **Type safety** — Operands declare expected ranges
+- **Validation** — SHACL can verify operand usage and path roots
+
+See **profiles/** for example profiles and **RL2_Semantics.md** for resolution semantics.
 
 ### RDF-native, SHACL-validated
 The ontology is fully RDF/OWL, with SHACL shapes defining structural constraints.

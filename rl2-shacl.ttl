@@ -331,3 +331,106 @@ rl2:NormPriorityShape a sh:NodeShape ;
         sh:datatype xsd:integer ;
         sh:message "Norm priority must be an integer."
     ] .
+
+############################################################
+# Profile-Declared Operand Shapes
+############################################################
+#
+# These shapes validate profile-declared left operands and their
+# resolution mechanisms. Operands should declare either a
+# resolutionPath (for deref-based resolution) or a resolutionFunction
+# (for implementation-specific function calls).
+#
+# The path root validation shape ensures resolution paths use only
+# canonical roots: agent, asset, state, context, request.
+
+# LeftOperand shape - validates profile-declared operands
+rl2:LeftOperandShape a sh:NodeShape ;
+    sh:targetClass rl2:LeftOperand ;
+    sh:property [
+        sh:path rl2:resolutionPath ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "resolutionPath must be a string path expression."
+    ] ;
+    sh:property [
+        sh:path rl2:resolutionFunction ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "resolutionFunction must be a function name string."
+    ] .
+
+# Path root validation - ensures resolution paths use canonical roots
+# This shape validates that resolutionPath values start with allowed roots.
+# Canonical roots: agent, asset, state, context, request
+rl2:ResolutionPathRootShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this rl2:resolutionPath ?path .
+            }
+        """
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "resolutionPath must start with a canonical root: agent, asset, state, context, or request." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this ?path WHERE {
+                $this rl2:resolutionPath ?path .
+                FILTER(
+                    !STRSTARTS(?path, "agent.") &&
+                    !STRSTARTS(?path, "asset.") &&
+                    !STRSTARTS(?path, "state.") &&
+                    !STRSTARTS(?path, "context.") &&
+                    !STRSTARTS(?path, "request.") &&
+                    ?path != "agent" &&
+                    ?path != "asset" &&
+                    ?path != "state" &&
+                    ?path != "context" &&
+                    ?path != "request"
+                )
+            }
+        """
+    ] .
+
+# Operand resolution recommendation - warn if neither path nor function specified
+# This is a WARNING-level shape (sh:severity sh:Warning) since operands may
+# use legacy external resolution or be core operands with built-in resolution.
+rl2:OperandResolutionRecommendationShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this a rl2:LeftOperand .
+                FILTER NOT EXISTS { ?this rl2:resolutionPath ?p }
+                FILTER NOT EXISTS { ?this rl2:resolutionFunction ?f }
+                FILTER(?this NOT IN (rl2:obligationStateOperand, rl2:dutyPerformerOperand))
+            }
+        """
+    ] ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Profile-declared LeftOperand should specify either resolutionPath or resolutionFunction for explicit resolution semantics." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this WHERE {
+                $this a rl2:LeftOperand .
+                FILTER NOT EXISTS { $this rl2:resolutionPath ?p }
+                FILTER NOT EXISTS { $this rl2:resolutionFunction ?f }
+            }
+        """
+    ] .
+
+# AtomicConstraint leftOperand validation - ensure leftOperand is a LeftOperand
+rl2:AtomicConstraintLeftOperandShape a sh:NodeShape ;
+    sh:targetClass rl2:AtomicConstraint ;
+    sh:property [
+        sh:path rl2:leftOperand ;
+        sh:class rl2:LeftOperand ;
+        sh:message "leftOperand must be an instance of rl2:LeftOperand."
+    ] .

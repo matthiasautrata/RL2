@@ -309,7 +309,59 @@ rl2:LeftOperand a owl:Class ;
     RL2 Core does not define specific left operand instances; these are
     provided by profiles (e.g., privacy, media licensing, financial).
     Profiles define left operands as individuals of this class, such as
-    purpose, dateTime, spatial, recipient, payAmount, fileFormat, etc.""" .
+    purpose, dateTime, spatial, recipient, payAmount, fileFormat, etc.
+
+    Profile-defined operands SHOULD specify either rl2:resolutionPath or
+    rl2:resolutionFunction to indicate how values are resolved at evaluation time.
+    This ensures all contextual data access is declared, typed, and validatable.""" .
+
+# Operand Resolution Mechanism
+#
+# All runtime/contextual data access SHOULD go through declared LeftOperand
+# instances with explicit resolution paths. This eliminates ad-hoc vocabulary
+# and ensures alignment with the formal evaluation calculus (resolve/deref).
+
+rl2:resolutionPath a owl:DatatypeProperty ;
+    rdfs:domain rl2:LeftOperand ;
+    rdfs:range xsd:string ;
+    rdfs:label "Resolution Path" ;
+    rdfs:comment """Path expression used to resolve this operand via deref().
+
+    Canonical path roots (normatively defined):
+    - agent.*    : Env.Agent (requesting agent attributes)
+    - asset.*    : Env.Asset (requested asset attributes)
+    - state.*    : Σ (events, duty states, clock)
+    - context.*  : External request context (purpose, jurisdiction, etc.)
+    - request.*  : rl2p:Request fields (requestTime, etc.)
+
+    Examples:
+    - 'agent.department'
+    - 'asset.classification'
+    - 'asset.dataOwner'
+    - 'state.Events.breakGlassEvent.operationalAgent'
+    - 'context.purpose'
+    - 'state.Clock'
+
+    Resolution semantics are defined by deref(path, Env) in RL2_Semantics.
+    SECURITY: Implementations MUST validate paths against allowed roots.""" .
+
+rl2:resolutionFunction a owl:DatatypeProperty ;
+    rdfs:domain rl2:LeftOperand ;
+    rdfs:range xsd:string ;
+    rdfs:label "Resolution Function" ;
+    rdfs:comment """Named function for operand resolution when path access is insufficient.
+
+    Use this when resolution requires:
+    - External API calls (e.g., HR system lookup)
+    - Complex computation (e.g., risk scoring)
+    - Aggregation (e.g., count of events matching pattern)
+
+    Functions are profile-defined and implementation-specific. The function
+    name serves as a contract between policy authors and evaluator implementations.
+
+    Example: 'lookupDepartment', 'computeRiskScore', 'countApprovals'
+
+    Resolution semantics: invokeFunction(functionName, Env) in RL2_Semantics.""" .
 
 rl2:leftOperand a owl:ObjectProperty ;
     rdfs:domain rl2:Condition ;

@@ -291,6 +291,34 @@ RL2 integrates into existing systems through three components:
 **Enforcer**
 - The API gateway or data platform that queries the evaluator and acts on decisions.
 
+### Profile-Declared Operands
+
+A key architectural principle in RL2 is the separation between the **policy calculus** (norms, conditions, operators) and the **observation model** (what contextual data can be accessed).
+
+RL2 Core defines the mechanism for conditions but does not define domain-specific operands like `purpose`, `dataOwner`, or `jurisdiction`. These are provided by **profiles**—domain-specific extensions that declare operands with explicit resolution semantics:
+
+```turtle
+@prefix privacy: <https://rl2.example/profile/privacy#> .
+
+privacy:purposeOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "context.purpose" ;
+    rdfs:range privacy:Purpose .
+
+privacy:dataOwnerOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "asset.dataOwner" ;
+    rdfs:range rl2:Agent .
+```
+
+This architecture provides:
+
+- **No ontology drift:** RL2 Core remains stable; profiles own domain semantics
+- **Formal grounding:** All data access maps to the `resolve`/`deref` functions in the semantics
+- **Type safety:** Operands declare expected ranges, enabling validation
+- **Enterprise adaptability:** Different profiles for privacy (GDPR), media licensing, financial services, etc.
+- **Mechanization:** Clean mapping to verification targets (Why3, Lean)
+
+Conceptually, RL2 follows the same pattern as TLA+ (state variables), Rego (input.*), and Datalog (EDB predicates)—separating the policy logic from the observation interface.
+
 ---
 
 ## Scope and Positioning
