@@ -156,7 +156,7 @@ ex:StewardshipPromiseCheck a rl2:Condition ;
     rl2:requires ex:StewardshipPromise .
 
 ex:StewardshipPromise a rl2:Promise ;
-    rl2:promiser ex:Researcher ;
+    rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
     rl2:promiseContent ex:DataStewardship ;
     rl2:promiseState rl2:PromiseFulfilled .
@@ -250,7 +250,7 @@ But the promise itself is not the duty—it is the *source* of the duty. This di
 ### In the RL2 Model
 
 RL2 models this as:
-- `rl2:Promise` connects agents via `promiser` and `promisee`
+- `rl2:Promise` connects agents via `promisor` and `promisee`
 - `rl2:Duty` (and other norms) are separate classes that may be created as a consequence
 - A condition can check whether a promise exists (`rl2:requires ex:StewardshipPromise`)
 - The promise's state is tracked independently (`rl2:promiseState`)

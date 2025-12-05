@@ -256,7 +256,7 @@
 : A duty not to perform an action. Equivalent to a duty to refrain.
 
 **Promise**
-: A voluntary commitment from a promiser to a promisee (Promise Theory).
+: A voluntary commitment from a promisor to a promisee (Promise Theory).
 
 ## Policy Terms
 
@@ -355,7 +355,7 @@
 **Promisee**
 : Promise role; agent who is the beneficiary of a promise.
 
-**Promiser**
+**Promisor**
 : Promise role; agent making a voluntary commitment.
 
 **Subject**

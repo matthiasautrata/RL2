@@ -33,8 +33,8 @@ RL2 uses **explicit AtomicConstraints** to query duty state, rather than a speci
 
 | LeftOperand | Queries | Returns |
 |-------------|---------|---------|
-| `rl2:obligationState` | `Σ.ObligationState(targetNorm)` | Pending, Active, Fulfilled, Violated |
-| `rl2:dutyPerformer` | `Σ.DutyPerformer(targetNorm)` | Agent who fulfilled, or ⊥ |
+| `rl2:obligationStateOperand` | `Σ.ObligationState(targetNorm)` | Pending, Active, Fulfilled, Violated |
+| `rl2:dutyPerformerOperand` | `Σ.DutyPerformer(targetNorm)` | Agent who fulfilled, or ⊥ |
 
 ### Identity Binding Patterns
 
@@ -90,7 +90,7 @@ ex:accessPrivilege a rl2:Privilege ;
             # Check 1: Is the duty fulfilled?
             a rl2:AtomicConstraint ;
             rl2:targetNorm ex:paymentDuty ;
-            rl2:leftOperand rl2:obligationState ;
+            rl2:leftOperand rl2:obligationStateOperand ;
             rl2:constraintOperator rl2:eq ;
             rl2:rightOperand rl2:Fulfilled
         ] ;
@@ -98,7 +98,7 @@ ex:accessPrivilege a rl2:Privilege ;
             # Check 2: Did I fulfill it?
             a rl2:AtomicConstraint ;
             rl2:targetNorm ex:paymentDuty ;
-            rl2:leftOperand rl2:dutyPerformer ;
+            rl2:leftOperand rl2:dutyPerformerOperand ;
             rl2:constraintOperator rl2:eq ;
             rl2:rightOperandRef rl2:currentAgent
         ]
