@@ -46,16 +46,15 @@ The roadmap proceeds in phases, with each phase introducing one or more profiles
 ### Conformance Declaration
 
 ```turtle
-# Implementations declare which profiles they support
-ex:MyEvaluator a rl2:Evaluator ;
-    rl2:conformsTo
-        rl2p:Core,           # Required
-        rl2p:Hohfeldian,     # Optional
-        rl2p:Events .        # Optional
+# NOTE: Conformance and profile declarations are conceptual only.
+# Actual properties for conformance declaration TBD in RL2-Protocol profile.
 
-# Policies declare which profiles they require
-ex:myPolicy a rl2:Policy ;
-    rl2:requiresProfile rl2p:Core, rl2p:Hohfeldian .
+# Example (non-normative):
+# ex:MyEvaluator a rl2:Evaluator ;
+#     rl2p:conformsTo rl2p:Core, rl2p:Hohfeldian, rl2p:Events .
+
+# ex:myPolicy a rl2:Policy ;
+#     rl2p:requiresProfile rl2p:Core, rl2p:Hohfeldian .
 ```
 
 ---
@@ -127,7 +126,7 @@ rl2:derive      # Create derivative works
 | SKOS vocabulary bloat | Minimal interoperable action set (7 actions) |
 | Action/Asset refinements overengineering | Removed; use conditions for constraints |
 | Unclear temporal semantics | Explicit intervals with defined evaluation |
-| No conflict resolution guidance | Explicit strategies (prohibit-overrides, permit-overrides) |
+| No conflict resolution guidance | Clear semantics: prohibition overrides privilege; use scoped conditions for exceptions |
 
 ### Use Cases
 
@@ -201,7 +200,7 @@ ex:deletionDuty a rl2:Duty ;
 
 ---
 
-#### UC-0.3: Prohibition with Exception (Logical Conditions)
+#### UC-0.3: Prohibition with Exception (Scoped Conditions)
 **Domain:** Confidential information protection
 **Scenario:** Staff may not distribute client data except to legal counsel
 
@@ -209,11 +208,19 @@ ex:deletionDuty a rl2:Duty ;
 ex:confidentialityPolicy a rl2:Set ;
     rl2:clause ex:distributionBan, ex:legalException .
 
+# Scoped prohibition: applies only when recipient is NOT legal counsel
 ex:distributionBan a rl2:Prohibition ;
     rl2:subject ex:Staff ;
     rl2:prohibitedAction rl2:distribute ;
-    rl2:object ex:ClientData .
+    rl2:object ex:ClientData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:recipient ;
+        rl2:constraintOperator rl2:neq ;
+        rl2:rightOperandRef ex:LegalCounsel
+    ] .
 
+# Exception: applies only when recipient IS legal counsel
 ex:legalException a rl2:Privilege ;
     rl2:subject ex:Staff ;
     rl2:action rl2:distribute ;
@@ -226,11 +233,13 @@ ex:legalException a rl2:Privilege ;
     ] .
 ```
 
-**Evaluation (prohibit-overrides strategy):**
-- Request to distribute to LegalCounsel → Permit (privilege matches, prohibition doesn't apply)
-- Request to distribute to external party → Deny (prohibition applies)
+**Evaluation (no conflict - conditions partition the space):**
+- Request to distribute to LegalCounsel → Permit (only privilege applies)
+- Request to distribute to external party → Deny (only prohibition applies)
 
-**ODRL Gap:** No clear conflict resolution guidance.
+**Note:** The complementary conditions (eq vs neq) ensure the prohibition and privilege never overlap, avoiding any conflict that would require resolution.
+
+**ODRL Gap:** No clear pattern for exceptions. RL2 shows scoped conditions as the clean approach.
 
 ---
 
@@ -379,13 +388,12 @@ ex:reportingDuty a rl2:Duty ;
 
 ---
 
-#### UC-0.8: Conflict Resolution Strategies
+#### UC-0.8: Prohibition Override Behavior
 **Domain:** Healthcare record access
-**Scenario:** Demonstrate different conflict resolution strategies
+**Scenario:** Demonstrate that activated prohibitions override privileges
 
 ```turtle
 ex:healthcarePolicy a rl2:Set ;
-    rl2:conflictStrategy rl2:prohibitOverrides ;  # Explicit strategy
     rl2:clause ex:doctorAccess, ex:emergencyBlock .
 
 ex:doctorAccess a rl2:Privilege ;
@@ -406,9 +414,9 @@ ex:emergencyBlock a rl2:Prohibition ;
     ] .
 ```
 
-**Evaluation:**
-- Normal mode: doctorAccess matches, emergencyBlock doesn't → Permit
-- Emergency mode: both match, prohibitOverrides strategy → Deny
+**Evaluation (prohibition overrides when activated):**
+- Normal mode: doctorAccess matches, emergencyBlock condition fails → Permit
+- Emergency mode: both match, prohibition activated → Deny (prohibition overrides privilege)
 
 ---
 
