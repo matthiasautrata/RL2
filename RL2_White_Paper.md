@@ -67,6 +67,7 @@ RL2 models this as an **Operational Duty** with a clear lifecycle.
 
 ```turtle
 @prefix rl2:  <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ex:   <https://example.org/> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
@@ -86,6 +87,17 @@ ex:usePrivilege a rl2:Privilege ;
     rl2:action ex:use ;
     rl2:object ex:Dataset .
 
+# Profile-declared operands for temporal constraints
+ex:clockOperand a rl2:LeftOperand ;
+    rdfs:label "System Clock" ;
+    rdfs:comment "Current system time from state." ;
+    rl2:resolutionPath "state.Clock" .
+
+ex:deadlineOperand a rl2:DynamicOperandReference ;
+    rdfs:label "Deletion Deadline" ;
+    rdfs:comment "Computed as 30 days after access event timestamp." ;
+    rl2:dynamicOperand "state.Events.AccessEvent.timestamp + P30D" .
+
 ex:deleteDuty a rl2:Duty ;
     rl2:subject ex:Researcher ;
     rl2:action ex:delete ;
@@ -93,14 +105,12 @@ ex:deleteDuty a rl2:Duty ;
     rl2:obligationState rl2:Pending ;
     # Explicit Operational Semantics
     # Deadline: must be fulfilled within 30 days of access
+    # Modeled as: current time must be before deadline for duty to remain active
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            # Deadline is 30 days after the access event
-            rl2:end [ a rl2:DynamicOperandReference ;
-                      rl2:dynamicOperand "event.AccessEvent.timestamp + P30D" ]
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:clockOperand ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperandRef ex:deadlineOperand
     ] .
 ```
 

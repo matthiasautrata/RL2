@@ -83,7 +83,7 @@ An RL2 policy admits exactly one interpretation. The evaluator produces consiste
 
 ### RL2 Extensions to ODRL
 
-RL2 is a strict superset of ODRL. The following table summarizes the extensions:
+RL2 is a semantic superset of ODRL—it can express everything ODRL can, though some constructs require transformation during compilation (e.g., `odrl:inheritFrom` requires flattening). The following table summarizes the extensions:
 
 | ODRL Limitation | RL2 Extension |
 |-----------------|---------------|

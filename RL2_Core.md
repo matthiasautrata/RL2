@@ -8,7 +8,7 @@ date: 2025-01-05
 
 ## Overview
 
-RL2 ("Rights Language 2") is a next-generation policy language designed as a standalone successor to existing rights languages. It provides a **strict superset** of capabilities found in ODRL 2.2, DPCL, Promise Theory, and ODRE.
+RL2 ("Rights Language 2") is a next-generation policy language designed as a standalone successor to existing rights languages. It provides a **semantic superset** of capabilities found in ODRL 2.2, DPCL, Promise Theory, and ODRE—expressing every concept these languages can express, though not necessarily replicating their vocabulary verbatim.
 
 RL2 unifies:
 - **Descriptive policies** (permissions, prohibitions, duties)

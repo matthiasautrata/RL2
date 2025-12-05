@@ -28,13 +28,13 @@ This document provides a comprehensive mapping showing that:
 
 > **Every ODRL 2.2 expression can be represented in RL2 without loss of meaning, and RL2 covers all ODRL 3.0 use cases identified in W3C Community Group notes.**
 
-RL2 is a strict superset of ODRL:
+RL2 is a **semantic superset** of ODRL—it can express every ODRL concept, though some constructs require compilation/transformation rather than direct vocabulary mapping:
 
-* All ODRL 2.2 constructs have exact RL2 equivalents.
+* All ODRL 2.2 concepts have RL2 representations (some via direct equivalents, others via compilation).
 * RL2 resolves ODRL ambiguities and fills gaps.
 * RL2 adds normative, operational, temporal, and role semantics missing in ODRL.
 * RL2 covers all emerging ODRL 3.0 use cases (dynamic collections, event-driven activation, multi-party workflows).
-* The mapping is total, deterministic, and semantics-preserving.
+* The mapping is semantics-preserving; see "Assumptions and Clarifications" below for constructs requiring transformation.
 
 ### Assumptions and Clarifications
 
@@ -44,10 +44,11 @@ This mapping assumes the following baseline semantics for ODRL:
 * **[Steyskal-Polleres 2015]** — Action dependencies and rule-based reasoning
 * **[W3C ODRL Formal Semantics]** — Draft evaluator behavior specification
 
-The following ODRL features are explicitly excluded or deferred:
+The following ODRL features require transformation or clarification:
 
 * **`odrl:inheritFrom`** — No direct RL2 equivalent. Inheritance requires flattening to atomic policies before evaluation. See **RL2_DiscussionTopics.md** for discussion.
-* **Implementation-specific conflict resolution** — RL2 supports W3C-defined conflict strategies; vendor-specific extensions may require profile mappings.
+* **`odrl:Request` (policy type)** — RL2 does not model requests as policies. The `odrl:Request` policy type was never standardized or widely adopted. RL2 handles request semantics via `rl2p:Request` in the Protocol ontology—a runtime evaluation artifact, not a policy container.
+* **Implementation-specific conflict resolution** — RL2 supports priority-based conflict resolution via `rl2:priority`. W3C-style conflict strategies (prohibit-overrides, permit-overrides) are defined in evaluation semantics but not as ontology vocabulary.
 
 ---
 
@@ -101,7 +102,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 | odrl:assignee    | rl2:subject                     | Semantically identical              |
 | odrl:assigner    | rl2:counterparty / rl2:grantor  | Depending on semantic or syntactic  |
 | odrl:constraint  | rl2:condition                   | Generalizes                         |
-| odrl:conflict    | rl2:condition + rule precedence | RL2 handles via semantics           |
+| odrl:conflict    | rl2:priority + evaluator config | Policy priority; strategy is evaluator config |
 | odrl:duty        | rl2:Duty                        | Direct mapping                      |
 | odrl:permission  | rl2:Privilege                   | Direct mapping                      |
 | odrl:prohibition | rl2:Prohibition                 | Direct deontic mapping              |

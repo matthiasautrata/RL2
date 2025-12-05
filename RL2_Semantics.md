@@ -1036,7 +1036,15 @@ Eval(U, R, Σ, Ctx) =
 
 ### Conflict Resolution
 
-When multiple norms apply, conflicts must be resolved. RL2 supports configurable conflict strategies. More sophisticated defeasibility mechanisms—such as rule priorities and exclusionary rules—are available in frameworks like LegalRuleML [LegalRuleML] and may be incorporated in future RL2 profiles.
+When multiple norms apply, conflicts must be resolved. RL2 provides two complementary mechanisms:
+
+1. **Policy-level priority** (`rl2:priority`): Norms may declare an integer priority; higher values override lower. This is vocabulary defined in the ontology.
+
+2. **Evaluator-level strategy**: The evaluator is configured with a conflict resolution strategy (e.g., prohibit-overrides, permit-overrides). This is **evaluator configuration**, not policy vocabulary—analogous to XACML combining algorithms.
+
+The `strategy` parameter in `resolveDecision` below represents evaluator configuration. Policies express norms and priorities; evaluators decide how to combine conflicting results when priorities are equal.
+
+More sophisticated defeasibility mechanisms—such as exclusionary rules—are available in frameworks like LegalRuleML [LegalRuleML] and may be incorporated in future RL2 profiles.
 
 ```
 resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, strategy) =
