@@ -398,9 +398,8 @@ rl2:dynamicOperand a owl:DatatypeProperty ;
 rl2:dynamicQuery a owl:DatatypeProperty ;
     rdfs:domain rl2:AssetCollection ;
     rdfs:range xsd:string ;
-    rdfs:comment """Query expression used to materialize dynamic collections.
-    SECURITY: Implementations must sanitize or parameterize queries
-    to prevent injection attacks. Use allowlisted query templates where possible.""" .
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:comment """DEPRECATED in RL2 Core. Materialization of dynamic collections is profile-specific and must define its own semantics and validation. Core AssetCollection remains for static membership; profiles MAY define their own dynamic resolvers.""" .
 
 rl2:interval a owl:ObjectProperty ;
     rdfs:domain rl2:TemporalConstraint ;

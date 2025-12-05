@@ -345,7 +345,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 
 | ODRL 3.0 Requirement       | RL2 Construct(s)                              | Coverage | Semantics Reference |
 | -------------------------- | --------------------------------------------- | -------- | ------------------- |
-| Dynamic asset collections  | rl2:AssetCollection, rl2:dynamicQuery         | Full     | RL2_Semantics §matches |
+| Dynamic asset collections  | rl2:AssetCollection (dynamic materialization profile-specific) | Partial  | Profile semantics (Core deprecates rl2:dynamicQuery) |
 | Dynamic operand references | rl2:DynamicOperandReference, rl2:currentAgent | Full     | RL2_Semantics §resolve, §deref |
 | Path expressions           | rl2:resolutionPath, rl2:dynamicOperand        | Full     | RL2_Semantics §deref |
 | Temporal validity          | rl2:TemporalConstraint, rl2:EffectiveInterval | Full     | RL2_Semantics §timeout, §TemporalInterval |
@@ -372,16 +372,7 @@ All ODRL 3.0 use cases listed above are covered with both ontology constructs an
 
 ### Dynamic Asset Collections
 
-RL2 supports:
-
-```turtle
-ex:DynamicCollection a rl2:AssetCollection ;
-    rl2:dynamicQuery """
-        SELECT ?asset WHERE {
-            ?asset ex:classification ex:RestrictedResearch .
-        }
-    """ .
-```
+RL2 Core supports AssetCollection with static members. Dynamic materialization (e.g., "all assets with classification RestrictedResearch") is profile-specific; Core no longer embeds query strings. Profiles may define resolvers or registry references to populate collections.
 
 ### Multi-Party Approval Workflows
 

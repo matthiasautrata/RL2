@@ -490,7 +490,7 @@ ex:delete a rl2:Action .
 
 **Properties**:
 - `rl2:member` — Static member assets
-- `rl2:dynamicQuery` — Query expression for dynamic membership
+- `rl2:dynamicQuery` — DEPRECATED in Core; profiles must define their own dynamic materialization mechanism if needed
 
 **SHACL Shape**: `rl2:AssetCollectionShape`
 
@@ -499,12 +499,9 @@ ex:delete a rl2:Action .
 ex:sensitiveAssets a rl2:AssetCollection ;
     rl2:member ex:customerData ;
     rl2:member ex:financialRecords .
-
-ex:classifiedDocs a rl2:AssetCollection ;
-    rl2:dynamicQuery "SELECT ?d WHERE { ?d ex:classification 'SECRET' }" .
 ```
 
-**Security Note**: Implementations must sanitize `dynamicQuery` values to prevent injection attacks.
+**Note**: Dynamic materialization is profile-specific. RL2 Core no longer specifies a query string; profiles may define resolution functions or registry references if needed.
 
 ---
 
@@ -1124,7 +1121,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
 | `rl2:member` | AssetCollection | Asset | Static member |
-| `rl2:dynamicQuery` | AssetCollection | xsd:string | Query for dynamic membership |
+| `rl2:dynamicQuery` | AssetCollection | xsd:string | DEPRECATED in Core; dynamic materialization belongs in profiles |
 
 ---
 

@@ -329,6 +329,61 @@ rl2:NormPriorityShape a sh:NodeShape ;
     ] .
 
 ############################################################
+# Additional consistency checks
+############################################################
+
+# Ensure state.Events.<Type> uses a declared Event type (or wildcard)
+rl2:EventPathTypeShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this ?path WHERE {
+                ?this rl2:resolutionPath ?path .
+                FILTER(STRSTARTS(?path, "state.Events."))
+                FILTER(?path != "state.Events.*" && !STRSTARTS(?path, "state.Events.*."))
+            }
+        """
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "resolutionPath segment after state.Events must be an Event type IRI declared in the graph, or use wildcard *." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this ?path WHERE {
+                $this rl2:resolutionPath ?path .
+                FILTER(STRSTARTS(?path, "state.Events."))
+                FILTER(?path != "state.Events.*" && !STRSTARTS(?path, "state.Events.*."))
+                BIND(REPLACE(?path, "^state\\.Events\\.([^\\.]+).*$", "$1") AS ?etypeLex)
+                FILTER NOT EXISTS {
+                    ?etype a rl2:Event .
+                    FILTER(STR(?etype) = ?etypeLex || STRAFTER(STR(?etype), "#") = ?etypeLex || STRENDS(STR(?etype), ?etypeLex))
+                }
+            }
+        """
+    ] .
+
+# Enforce targetNorm for norm state operands (already covered) and add type check for rightOperand vs leftOperand range
+rl2:OperandRangeTypeShape a sh:NodeShape ;
+    sh:targetClass rl2:AtomicConstraint ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "If leftOperand declares rdfs:range and rightOperand is an IRI, rightOperand should have that type." ;
+        sh:select """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this WHERE {
+                $this rl2:leftOperand ?op ;
+                      rl2:rightOperand ?right .
+                ?op rdfs:range ?expected .
+                FILTER(isIRI(?right))
+                FILTER NOT EXISTS { ?right a ?expected }
+            }
+        """
+    ] .
+
+############################################################
 # Profile-Declared Operand Shapes
 ############################################################
 #

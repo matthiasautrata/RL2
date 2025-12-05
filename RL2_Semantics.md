@@ -225,7 +225,7 @@ A state Σ contains:
 * event log
 * action log
 * temporal clock
-* promise statuses
+* promise records (including status, promisor/promisee, content)
 * duty states
 
 Formally:
@@ -235,12 +235,18 @@ Formally:
      Events : EventType → E*,
      Performed : A × X × S → Boolean,
      Metadata : S → Map,
-     PromiseState : Promise → {Pending, Fulfilled, Violated},
+     Promises : Promise → PromiseRecord,
      ObligationState : Duty → {Pending, Active, Fulfilled, Violated},
      DutyPerformer : Duty → Agent ∪ {⊥})
+
+PromiseRecord = (promisor : Agent,
+                 promisee : Agent,
+                 content : PromiseContent,
+                 state : PromiseState)
 ```
 
 Notes:
+- `PromiseState(p)` is shorthand for `Σ.Promises[p].state`; we keep the accessor for consistency with the duty/state notation.
 - `ObligationState` is the canonical name (matching `rl2:ObligationState` in the ontology).
 - `DutyPerformer` tracks which agent fulfilled a duty. Returns `⊥` if the duty has not been fulfilled. This enables identity binding patterns:
   - *Tun-sollen* (ought-to-do): `DutyPerformer(d) = currentAgent` — the same agent must fulfill
@@ -445,7 +451,7 @@ The function `deref(path, Env)` traverses a path expression to retrieve a value.
 |------|---------|---------------|
 | `agent` | Env.Agent (requesting agent) | `agent.department`, `agent.clearanceLevel` |
 | `asset` | Env.Asset (requested asset) | `asset.classification`, `asset.dataOwner` |
-| `state` | Σ (system state) | `state.Clock`, `state.Events.breakGlassEvent.operationalAgent` |
+| `state` | Σ (system state) | `state.Clock`, `state.Events.BreakGlassEvent.operationalAgent` |
 | `context` | External request context | `context.purpose`, `context.jurisdiction` |
 | `request` | rl2p:Request fields | `request.requestTime`, `request.requestingAgent` |
 
@@ -471,8 +477,10 @@ navigate(obj, segment) =
         _       → ⊥
 ```
 
+`Σ.Events` is indexed **by event type** (keyed by the event type IRI), each mapping to a time-ordered sequence of event instances of that type. The path segment immediately after `Events` MUST be that type key (e.g., `BreakGlassEvent`). Using an instance identifier there will yield `⊥` under these rules. To distinguish multiple events of the same type, add distinguishing properties in the `EventConstraint`; the selection rule then picks the most recent event of that type that matches those properties.
+
 **Event Access Pattern**: To access properties of events in Σ.Events, use paths like:
-- `state.Events.breakGlassEvent.operationalAgent` — specific named event type
+- `state.Events.BreakGlassEvent.operationalAgent` — specific event type key
 - `state.Events.*.operationalAgent` — wildcard (see selection rules below)
 
 **Wildcard Selection Rules** (normative):
@@ -509,6 +517,7 @@ Example paths:
 * `asset.classification` → the asset's classification level
 * `context.purpose` → the declared purpose from request context
 * `state.Clock` → current system time
+* `state.Events.BreakGlassEvent.operationalAgent` → performer of the most recent break-glass event
 
 #### matches : Event × EventPattern → Boolean
 
@@ -849,7 +858,12 @@ We use the notation `Σ[f ↦ v]` to denote state update:
 ```
 Σ[ObligationState(d) ↦ Active] =
     (Σ.Clock, Σ.Events, Σ.Performed, Σ.Metadata,
-     Σ.PromiseState, Σ.ObligationState[d ↦ Active])
+     Σ.Promises, Σ.ObligationState[d ↦ Active])
+
+Σ[PromiseState(p) ↦ Fulfilled] =
+    (Σ.Clock, Σ.Events, Σ.Performed, Σ.Metadata,
+     Σ.Promises[p ↦ Σ.Promises[p] with state = Fulfilled],
+     Σ.ObligationState)
 ```
 
 ### Duty Activation
@@ -905,7 +919,9 @@ A pending promise is fulfilled when its content holds:
 Σ.PromiseState(Promise(p,q,content)) = Pending
 contentHolds(content, Σ) = true
 ──────────────────────────────────────────────────────────────────
-(Σ, R, Ctx, Promise(p,q,content)) → (Σ[PromiseState(Promise(p,q,content)) ↦ Fulfilled], PromiseFulfilled(p,q,content))
+(Σ, R, Ctx, Promise(p,q,content)) →
+    (Σ[PromiseState(Promise(p,q,content)) ↦ Fulfilled],
+     PromiseFulfilled(p,q,content))
 ```
 
 ### Promise Violation
@@ -917,7 +933,9 @@ A pending promise is violated when its deadline expires without fulfillment:
 contentHolds(content, Σ) = false
 deadline(content, Σ) = true
 ──────────────────────────────────────────────────────────────────
-(Σ, R, Ctx, Promise(p,q,content)) → (Σ[PromiseState(Promise(p,q,content)) ↦ Violated], PromiseViolated(p,q,content))
+(Σ, R, Ctx, Promise(p,q,content)) →
+    (Σ[PromiseState(Promise(p,q,content)) ↦ Violated],
+     PromiseViolated(p,q,content))
 ```
 
 Where `deadline(content, Σ)` extracts and checks temporal bounds from the promise content.

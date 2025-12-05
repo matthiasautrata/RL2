@@ -345,7 +345,7 @@ These decisions can be revisited based on actual needs, but the default is pragm
 
 1. **Concurrency**: Semantics is single-threaded; real deployments may need concurrent duty tracking
 
-2. **Asset Collection Materialization**: `dynamicQuery` termination/finiteness must be proved per profile
+2. **Asset Collection Materialization**: Dynamic collection semantics are profile-specific (Core deprecates `dynamicQuery`); termination/finiteness must be proved per profile resolver
 
 3. **External Context**: `lookupExternal` is parameterized; each deployment must instantiate and verify
 

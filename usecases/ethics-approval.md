@@ -35,14 +35,14 @@ research:eventBeneficiaryOperand a rl2:LeftOperand ;
     rdfs:label "Event Beneficiary" ;
     rdfs:comment """Resolves to the agent who is the beneficiary of an approval event.
     This is the researcher for whom ethics approval was granted.""" ;
-    rl2:resolutionPath "state.Events.ethicsApprovalEvent.beneficiary" ;
+    rl2:resolutionPath "state.Events.EthicsApprovalEvent.beneficiary" ;
     rdfs:range rl2:Agent .
 
 # Profile-declared operand for approval expiration
 research:approvalExpirationOperand a rl2:LeftOperand ;
     rdfs:label "Approval Expiration" ;
     rdfs:comment "Resolves to the expiration timestamp of the approval." ;
-    rl2:resolutionPath "state.Events.ethicsApprovalEvent.expirationDate" ;
+    rl2:resolutionPath "state.Events.EthicsApprovalEvent.expirationDate" ;
     rdfs:range xsd:dateTime .
 ```
 
@@ -55,7 +55,8 @@ research:approvalExpirationOperand a rl2:LeftOperand ;
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ex:ethicsApprovalEvent a rl2:Event ;
+ex:EthicsApprovalEvent a rl2:Event ;
+    rl2:approver ex:EthicsBoard ;
     rdfs:comment "Approval from ethics board for specific researcher" .
 
 ex:sensitiveDataAccess a rl2:Privilege ;
@@ -68,10 +69,7 @@ ex:sensitiveDataAccess a rl2:Privilege ;
         rl2:operand [
             # Check 1: Has approval event occurred?
             a rl2:EventConstraint ;
-            rl2:expectsEvent [
-                a rl2:Event ;
-                rl2:approver ex:EthicsBoard
-            ]
+            rl2:expectsEvent ex:EthicsApprovalEvent
         ] ;
         rl2:operand [
             # Check 2: Was approval for me (current agent)?
@@ -93,9 +91,9 @@ ex:sensitiveDataAccess a rl2:Privilege ;
 
 When evaluating the identity binding condition:
 
-1. `research:eventBeneficiaryOperand` has `rl2:resolutionPath "state.Events.ethicsApprovalEvent.beneficiary"`
-2. `resolve(research:eventBeneficiaryOperand, Env, ⊥)` calls `deref("state.Events.ethicsApprovalEvent.beneficiary", Env)`
-3. This navigates: `Env.Σ.Events["ethicsApprovalEvent"].beneficiary` → returns the approved researcher
+1. `research:eventBeneficiaryOperand` has `rl2:resolutionPath "state.Events.EthicsApprovalEvent.beneficiary"`
+2. `resolve(research:eventBeneficiaryOperand, Env, ⊥)` calls `deref("state.Events.EthicsApprovalEvent.beneficiary", Env)`
+3. This navigates: `Env.Σ.Events[EthicsApprovalEvent].beneficiary` → returns the approved researcher (most recent matching EthicsApprovalEvent)
 4. `rl2:currentAgent` resolves to `Env.Agent`
 5. Constraint holds if these are equal
 

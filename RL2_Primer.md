@@ -206,12 +206,7 @@ ex:SensitiveData a rl2:AssetCollection ;
     rl2:member ex:FinancialData .
 ```
 
-Collections may also be defined dynamically via query:
-
-```turtle
-ex:AllClassifiedDocuments a rl2:AssetCollection ;
-    rl2:dynamicQuery "SELECT ?doc WHERE { ?doc ex:classification 'SECRET' }" .
-```
+Dynamic materialization (e.g., "all assets with classification SECRET") is profile-specific. Profiles may define resolution functions or registry references to produce a collection; RL2 Core no longer embeds query strings for this.
 
 ---
 

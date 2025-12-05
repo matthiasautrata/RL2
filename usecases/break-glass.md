@@ -32,7 +32,7 @@ This use case requires a profile that declares the operand for accessing event p
 emergency:eventPerformerOperand a rl2:LeftOperand ;
     rdfs:label "Event Performer" ;
     rdfs:comment "Resolves to the agent who performed the triggering event." ;
-    rl2:resolutionPath "state.Events.breakGlassEvent.operationalAgent" ;
+    rl2:resolutionPath "state.Events.BreakGlassEvent.operationalAgent" ;
     rdfs:range rl2:Agent .
 ```
 
@@ -44,7 +44,7 @@ emergency:eventPerformerOperand a rl2:LeftOperand ;
 @prefix emergency: <https://example.org/profile/emergency#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-ex:breakGlassEvent a rl2:Event ;
+ex:BreakGlassEvent a rl2:Event ;
     rdfs:comment "Template for glass-breaking events" .
 
 ex:emergencyAccessPrivilege a rl2:Privilege ;
@@ -58,7 +58,7 @@ ex:emergencyAccessPrivilege a rl2:Privilege ;
         rl2:operand [
             # Check 1: Has the event occurred?
             a rl2:EventConstraint ;
-            rl2:expectsEvent ex:breakGlassEvent
+            rl2:expectsEvent ex:BreakGlassEvent
         ] ;
         rl2:operand [
             # Check 2: Did I perform it?
@@ -76,7 +76,7 @@ ex:emergencyAccessPrivilege a rl2:Privilege ;
 When evaluating the identity binding condition:
 
 1. `emergency:eventPerformerOperand` is resolved via its declared `rl2:resolutionPath`
-2. `deref("state.Events.breakGlassEvent.operationalAgent", Env)` retrieves the agent who performed the event
+2. `deref("state.Events.BreakGlassEvent.operationalAgent", Env)` retrieves the agent who performed the event (most recent BreakGlassEvent instance)
 3. `rl2:currentAgent` resolves to `Env.Agent` (the requesting agent)
 4. The constraint holds if these are equal (Tun-sollen identity binding)
 

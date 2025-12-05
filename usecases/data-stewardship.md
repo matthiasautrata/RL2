@@ -40,7 +40,7 @@ governance:promisorOperand a rl2:LeftOperand ;
 governance:promiseStateOperand a rl2:LeftOperand ;
     rdfs:label "Promise State" ;
     rdfs:comment "Resolves to the current state of a promise." ;
-    rl2:resolutionPath "state.Promises.stewardshipPromise.promiseState" ;
+    rl2:resolutionPath "state.Promises.stewardshipPromise.state" ;
     rdfs:range rl2:PromiseState .
 ```
 

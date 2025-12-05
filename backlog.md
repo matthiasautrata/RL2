@@ -5,51 +5,24 @@
 
 ---
 
-## Completed in v0.4
+# RL2 Backlog
 
-### Permission-Bound Duties (ODRL Compatibility)
+**Date:** 2025-01-05
+**Status:** Post-v0.4 Implementation
 
-**Status:** COMPLETED
+  Should
+  - Tighten SHACL coverage for common patterns (e.g., event path + EventConstraint, operand range checks) once executable examples exist.
 
-Implemented the Unified State Approach for conditioning privileges on prior duty fulfillment:
 
-- Added `rl2:targetNorm`, `rl2:obligationStateOperand`, `rl2:dutyPerformerOperand`, `rl2:currentAgent`, `rl2:priority` to ontology
-- Updated Σ to include `DutyPerformer` tracking
-- Extended `resolve()` function for norm-targeted operands
-- Added `rl2p:performer` to protocol
-- Updated all documentation and use cases
+  Could
 
-See commit history for implementation details.
+  - Add concrete Hohfeldian/Prohibition coverage (Power, Liability, Immunity, Claim, Prohibition) so the core norm types in rl2.ttl and RL2_Primer.md are actually exercised.
+  - Expand examples for temporal complexity, xone/Composite conditions, and dynamic policy applicability to match operators and condition types already defined in RL2_Semantics.md and rl2.ttl.
+  - Show promise lifecycle beyond “pending → fulfilled” (deadlines/violations) to reflect the Promise rules in RL2_Semantics.md.
+  - Use more of the privacy profile operands and add at least one resolutionFunction example to illustrate both resolution modes promised in RL2_Vocabulary.md and the profile files.
+  - Produce executable .ttl versions of the use cases and run them through rl2-shacl.ttl / rl2p-shacl.ttl; right now nothing is machine-validated.
 
----
 
-## Remaining Items
-
-### Other ODRL Compatibility Issues
-
-#### Inheritance (`odrl:inheritFrom`)
-
-RL2 explicitly excludes runtime inheritance, requiring a pre-processing/flattening step. While semantically equivalent results can be achieved, it is not a syntactic superset.
-
-**Recommendation:** Explicitly document the transformation required for `inheritFrom` in ODRL mapping documentation.
-
-#### Conflict Strategies (`odrl:conflict`)
-
-ODRL allows policies to specify their conflict resolution strategy (e.g., `perm:perm`, `prohibit:perm`). RL2 relies on numeric priorities and compilation-time resolution.
-
-**Recommendation:** Document how ODRL conflict strategies map to RL2 priority-based resolution in ODRL coverage documentation.
-
-#### Policy Request Type
-
-ODRL defines `odrl:Request` as a policy class. `rl2.ttl` lacks a policy-level Request; `rl2p.ttl` introduces a runtime `rl2p:Request` (evaluation artifact, not a policy container).
-
-**Recommendation:** Add `rl2:Request` policy subclass or document mapping for `odrl:Request` policies.
-
----
-
-### Documentation Claim Refinement
-
-The claim in `RL2_ODRL_Coverage.md` that "RL2 is a strict superset of ODRL" should be softened to **"Semantic Superset"** or **"Expressive Superset"** to acknowledge that transformation/compilation is required for certain ODRL features (inheritance, permission-bound duties with different actions).
 
 ---
 
@@ -58,3 +31,18 @@ The claim in `RL2_ODRL_Coverage.md` that "RL2 is a strict superset of ODRL" shou
 - Formal verification targets (Why3, K Framework, Lean 4) - see RL2_ResearchPlan.md
 - Data contract alignment (DPROD, ODCS) - see RL2_White_Paper.md
 - Authorization engine compilation (Cedar, OPA) - ongoing research
+
+
+
+## Future Considerations
+
+- Formal verification targets (Why3, K Framework, Lean 4) - see RL2_ResearchPlan.md
+- Data contract alignment (DPROD, ODCS) - see RL2_White_Paper.md
+- Authorization engine compilation (Cedar, OPA) - ongoing research
+
+## Resolved
+
+- Clarified event path resolution and aligned examples to type-based access (`RL2_Semantics.md`, `usecases/break-glass.md`, `usecases/ethics-approval.md`)
+- Fix promise state access by modeling Σ.Promises as PromiseRecord map with state accessor; examples now use `state.Promises.<id>.state` (`RL2_Semantics.md`, `usecases/data-stewardship.md`)
+- Deprecated `rl2:dynamicQuery` in Core; asset collections remain with static members, dynamic materialization to be defined per profile (`rl2.ttl`, docs updated)
+- Added fulfillment audit links on `rl2p:DutyRequirement` (`fulfilledByAction`, `fulfilledByEvent`, `fulfillmentEvidence`) and documented in protocol example (`rl2p.ttl`, `RL2_Protocol.md`)

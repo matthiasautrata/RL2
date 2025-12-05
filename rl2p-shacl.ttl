@@ -165,6 +165,35 @@ rl2p:DutyRequirementShape a sh:NodeShape ;
         sh:datatype xsd:string
     ] .
 
+# Fulfillment links: if a duty is fulfilled, require evidence hooks
+rl2p:DutyFulfillmentAuditShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this WHERE {
+                ?this a rl2p:DutyRequirement ;
+                      rl2p:dutyStatus rl2:Fulfilled .
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2p:fulfilledByAction ;
+        sh:minCount 1 ;
+        sh:message "Fulfilled DutyRequirement should indicate the action that fulfilled it."
+    ] ;
+    sh:property [
+        sh:path rl2p:fulfilledByEvent ;
+        sh:minCount 1 ;
+        sh:message "Fulfilled DutyRequirement should reference the event evidencing fulfillment."
+    ] ;
+    sh:property [
+        sh:path rl2p:fulfillmentEvidence ;
+        sh:minCount 1 ;
+        sh:message "Fulfilled DutyRequirement should reference fulfillment evidence."
+    ] .
+
 ############################################################
 # Context Assertion Shapes
 ############################################################

@@ -253,6 +253,20 @@ rl2p:imposedTime a owl:DatatypeProperty ;
     rdfs:range xsd:dateTime ;
     rdfs:comment "When this duty requirement was imposed." .
 
+rl2p:fulfilledByAction a owl:ObjectProperty ;
+    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:range rl2:Action ;
+    rdfs:comment "The action that fulfilled this duty requirement (if fulfilled)." .
+
+rl2p:fulfilledByEvent a owl:ObjectProperty ;
+    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:range rl2:Event ;
+    rdfs:comment "The event/log entry evidencing fulfillment of this duty requirement." .
+
+rl2p:fulfillmentEvidence a owl:ObjectProperty ;
+    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment." .
+
 rl2p:dutyLabel a owl:DatatypeProperty ;
     rdfs:domain rl2p:DutyRequirement ;
     rdfs:range xsd:string ;
@@ -272,6 +286,13 @@ ex:dutyReq1 a rl2p:DutyRequirement ;
     rl2p:sourcePolicy ex:loanAccessPolicy ;
     rl2p:dutyStatus rl2:Active ;  # Activation condition has been met; duty must be performed
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
+
+# After fulfillment:
+# ex:dutyReq1
+#     rl2p:dutyStatus rl2:Fulfilled ;
+#     rl2p:fulfilledByAction ex:approveLoan ;
+#     rl2p:fulfilledByEvent ex:managerApprovalEvent ;
+#     rl2p:fulfillmentEvidence ex:approvalRecord123 .
 
 # Human-readable labels are available via the linked duty:
 # ex:managerApprovalDuty rdfs:label "Manager Approval" ;
