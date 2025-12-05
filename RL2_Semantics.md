@@ -257,10 +257,15 @@ Events : EventType → E*
 Events[type] = [e₁, e₂, ..., eₙ]  where eᵢ.eventTime ≤ eᵢ₊₁.eventTime
 ```
 
-Path access semantics:
-- `state.Events.<type>` returns the **most recent** event of that type: `last(Events[type])` or `⊥` if empty
-- `state.Events.<type>.<property>` returns that event's property
-- `state.Events.*` returns the most recent event across all types (see Wildcard Selection Rules)
+Path access semantics (normative):
+
+```
+state.Events.<type>           ≡  maxBy(eventTime, Events[type])  or ⊥ if empty
+state.Events.<type>.<prop>    ≡  (maxBy(eventTime, Events[type])).<prop>
+state.Events.*                ≡  maxBy(eventTime, ⋃ Events[t] for all t)
+```
+
+This "most-recent-wins" rule is provable and ensures deterministic event selection.
 
 This model supports both:
 - **Named event access**: `state.Events.breakGlassEvent.operationalAgent`
