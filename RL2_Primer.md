@@ -636,16 +636,17 @@ ex:validityPeriod a rl2:TemporalConstraint ;
 
 ### Contextual Constraints
 
-Contextual constraints evaluate the execution environment:
+Contextual constraints evaluate the execution environment using `AtomicConstraint` with an inline `LeftOperand`:
 
 ```turtle
-ex:locationCheck a rl2:ContextualConstraint ;
-    rl2:contextPath "request.location.country" ;
+ex:locationCheck a rl2:AtomicConstraint ;
+    rl2:leftOperand [ a rl2:LeftOperand ;
+                      rl2:resolutionPath "request.location.country" ] ;
     rl2:constraintOperator rl2:eq ;
     rl2:rightOperand "DE" .
 ```
 
-This requires that the request originate from Germany.
+This requires that the request originate from Germany. The inline `LeftOperand` with `resolutionPath` accesses the context path at evaluation time.
 
 ### Event Constraints
 

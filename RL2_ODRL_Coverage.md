@@ -346,7 +346,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | -------------------------- | --------------------------------------------- | -------- | ------------------- |
 | Dynamic asset collections  | rl2:AssetCollection, rl2:dynamicQuery         | Full     | RL2_Semantics §matches |
 | Dynamic operand references | rl2:DynamicOperandReference, rl2:currentAgent | Full     | RL2_Semantics §resolve, §deref |
-| Path expressions           | rl2:dynamicOperand, rl2:contextPath           | Full     | RL2_Semantics §deref |
+| Path expressions           | rl2:resolutionPath, rl2:dynamicOperand        | Full     | RL2_Semantics §deref |
 | Temporal validity          | rl2:TemporalConstraint, rl2:EffectiveInterval | Full     | RL2_Semantics §timeout, §TemporalInterval |
 | Duty sequencing            | Operational semantics, rl2:StateTransition    | Full     | RL2_Semantics §Operational Semantics |
 | Duty state preconditions   | rl2:obligationStateOperand, rl2:targetNorm    | Full     | RL2_Semantics §resolve |
@@ -354,7 +354,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | Multi-party approval       | rl2:EventConstraint + rl2:approver            | Full     | RL2_Semantics §EventConstraint, §matches |
 | Event-triggered activation | rl2:Event + rl2:triggeredBy                   | Full     | RL2_Semantics §Event Processing |
 | Sanctions/remedies         | rl2:Power, rl2:Liability, rl2:Claim           | Full     | RL2_Semantics §Hohfeldian, §Sanctions |
-| Context-dependent rules    | rl2:ContextualConstraint                      | Full     | RL2_Semantics §Contextual |
+| Context-dependent rules    | rl2:AtomicConstraint with inline LeftOperand  | Full     | RL2_Semantics §Atom, §resolve |
 | Policy composition         | Under discussion                              | —        | See RL2_DiscussionTopics.md |
 | Cross-policy influence     | Conditions referencing other policies         | Full     | RL2_Semantics §Composite |
 

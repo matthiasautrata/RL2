@@ -111,7 +111,6 @@ Condition ::=
     | Xone(Condition+)
     | Not(Condition)
     | TemporalInterval(t_start, t_end)
-    | Contextual(path, operator, value)
     | DynamicOperand(path)
     | EventConstraint(expectsEvent: Event)
     | Composite(requires: Condition+)
@@ -324,22 +323,6 @@ Temporal:
 ⟦ TemporalInterval(start,end) ⟧(Env) =
     true if start ≤ Env.Σ.Clock ≤ end
 ```
-
-Contextual:
-
-```
-⟦ Contextual(path, op, v) ⟧(Env) =
-    true if apply(op, deref(path, Env), v)
-```
-
-**Desugaring Note**: `Contextual(path, op, v)` is semantically equivalent to `Atom(anon, op, v)` where `anon` is an anonymous `LeftOperand` with `resolutionPath = path`. This means:
-
-- `ContextualConstraint` is **syntactic sugar** for `AtomicConstraint` with an inline path
-- Policy authors SHOULD prefer profile-declared operands for clarity and validation
-- `ContextualConstraint` remains available for simple, ad-hoc path access
-- Implementations MAY desugar `ContextualConstraint` to `AtomicConstraint` during compilation
-
-This establishes **operand purity**: at the semantic level, all runtime data access flows through the `resolve`/`deref` machinery via `LeftOperand` instances.
 
 Dynamic operand:
 

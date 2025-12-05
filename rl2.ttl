@@ -225,10 +225,6 @@ rl2:TemporalConstraint a owl:Class ;
     rdfs:label "Temporal Constraint" ;
     rdfs:comment "A condition based on time intervals or temporal relations." .
 
-rl2:ContextualConstraint a owl:Class ;
-    rdfs:subClassOf rl2:Condition ;
-    rdfs:label "Contextual Constraint" ;
-    rdfs:comment "Constraint depending on contextual state or environment." .
 
 rl2:DynamicOperandReference a owl:Class ;
     rdfs:subClassOf rl2:Condition ;
@@ -398,10 +394,6 @@ rl2:dynamicOperand a owl:DatatypeProperty ;
     SECURITY: Implementations must sanitize or validate path expressions
     to prevent injection attacks. Use allowlisted paths where possible.""" .
 
-rl2:contextPath a owl:DatatypeProperty ;
-    rdfs:domain rl2:ContextualConstraint ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Context path used in contextual constraints." .
 
 rl2:dynamicQuery a owl:DatatypeProperty ;
     rdfs:domain rl2:AssetCollection ;

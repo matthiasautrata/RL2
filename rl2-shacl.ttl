@@ -204,10 +204,6 @@ rl2:LogicalConstraintShape a sh:NodeShape ;
     sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:LogicalOperator ] ;
     sh:property [ sh:path rl2:operand ; sh:minCount 1 ; sh:class rl2:Condition ] .
 
-# Contextual constraints require a context path
-rl2:ContextualConstraintShape a sh:NodeShape ;
-    sh:targetClass rl2:ContextualConstraint ;
-    sh:property [ sh:path rl2:contextPath ; sh:minCount 1 ; sh:datatype xsd:string ] .
 
 # Dynamic operand references require a dynamic operand path
 rl2:DynamicOperandReferenceShape a sh:NodeShape ;

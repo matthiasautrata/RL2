@@ -110,7 +110,6 @@ Alphabetical listing of all RL2 classes with brief descriptions.
 | `rl2:Claim` | Normative | Correlative entitlement held by another agent |
 | `rl2:ComparisonOperator` | Operator | Operators for comparing values |
 | `rl2:Condition` | Condition | Base class for constraints |
-| `rl2:ContextualConstraint` | Condition | Constraint depending on environment |
 | `rl2:Duty` | Normative | An obligation imposed on an agent |
 | `rl2:DynamicOperandReference` | Condition | Reference resolved at evaluation time |
 | `rl2:EffectiveInterval` | Temporal | A time interval with start and end |
@@ -515,7 +514,7 @@ ex:classifiedDocs a rl2:AssetCollection ;
 
 **Type**: `owl:Class`
 
-**Subclasses**: AtomicConstraint, LogicalConstraint, TemporalConstraint, ContextualConstraint, EventConstraint, DynamicOperandReference
+**Subclasses**: AtomicConstraint, LogicalConstraint, TemporalConstraint, EventConstraint, DynamicOperandReference
 
 **Common Properties**:
 - `rl2:constraintOperator` — Operator for evaluation
@@ -617,29 +616,6 @@ ex:validity a rl2:TemporalConstraint ;
         rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
         rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime
     ] .
-```
-
----
-
-### rl2:ContextualConstraint
-
-**Definition**: A constraint depending on the evaluation context or environment.
-
-**Type**: `owl:Class`
-
-**Superclass**: `rl2:Condition`
-
-**Required Properties**:
-- `rl2:contextPath` — Path expression into the context
-
-**SHACL Shape**: `rl2:ContextualConstraintShape`
-
-**Example**:
-```turtle
-ex:locationCheck a rl2:ContextualConstraint ;
-    rl2:contextPath "request.location.country" ;
-    rl2:constraintOperator rl2:eq ;
-    rl2:rightOperand "DE" .
 ```
 
 ---
@@ -1122,7 +1098,6 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
 | `rl2:requires` | Condition | ConditionOrEvent | Composite requirement |
 | `rl2:interval` | TemporalConstraint | EffectiveInterval | Time interval |
-| `rl2:contextPath` | ContextualConstraint | xsd:string | Path into context |
 | `rl2:dynamicOperand` | DynamicOperandReference | xsd:string | Path expression |
 | `rl2:expectsEvent` | EventConstraint | Event | Required event |
 
@@ -1250,7 +1225,6 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires targetNorm |
 | `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires LogicalOperator, at least one operand |
 | `rl2:TemporalConstraintShape` | rl2:TemporalConstraint | Requires interval |
-| `rl2:ContextualConstraintShape` | rl2:ContextualConstraint | Requires contextPath |
 | `rl2:DynamicOperandReferenceShape` | rl2:DynamicOperandReference | Requires dynamicOperand |
 | `rl2:EventConstraintShape` | rl2:EventConstraint | Requires expectsEvent |
 
