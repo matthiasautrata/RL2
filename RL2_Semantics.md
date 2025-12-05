@@ -233,7 +233,7 @@ Formally:
 
 ```
 Σ = (Clock : T,
-     Events : E*,
+     Events : EventType → E*,
      Performed : A × X × S → Boolean,
      Metadata : S → Map,
      PromiseState : Promise → {Pending, Fulfilled, Violated},
@@ -247,6 +247,24 @@ Notes:
   - *Tun-sollen* (ought-to-do): `DutyPerformer(d) = currentAgent` — the same agent must fulfill
   - *Sein-sollen* (ought-to-be): Check only `ObligationState(d) = Fulfilled` — anyone may fulfill
   - *Separation of Duty*: `DutyPerformer(d) ≠ currentAgent` — a different agent must fulfill
+
+**Event Log Structure** (normative):
+
+`Σ.Events` is a **typed, temporally-ordered index**: a map from event type to a sequence of events of that type, ordered by `eventTime` (most recent last).
+
+```
+Events : EventType → E*
+Events[type] = [e₁, e₂, ..., eₙ]  where eᵢ.eventTime ≤ eᵢ₊₁.eventTime
+```
+
+Path access semantics:
+- `state.Events.<type>` returns the **most recent** event of that type: `last(Events[type])` or `⊥` if empty
+- `state.Events.<type>.<property>` returns that event's property
+- `state.Events.*` returns the most recent event across all types (see Wildcard Selection Rules)
+
+This model supports both:
+- **Named event access**: `state.Events.breakGlassEvent.operationalAgent`
+- **Pattern-based selection**: via EventConstraint + wildcard paths
 
 **Scope of Σ**: In practice, Σ represents the *evidence log* or *relevant history* for a given evaluation context—not a theoretically omniscient record of all actions ever performed. Implementations scope Σ to the Case being evaluated (see RL2_Protocol.md), tracking only events and actions relevant to that access request's lifecycle.
 
@@ -309,11 +327,26 @@ Contextual:
     true if apply(op, deref(path, Env), v)
 ```
 
+**Desugaring Note**: `Contextual(path, op, v)` is semantically equivalent to `Atom(anon, op, v)` where `anon` is an anonymous `LeftOperand` with `resolutionPath = path`. This means:
+
+- `ContextualConstraint` is **syntactic sugar** for `AtomicConstraint` with an inline path
+- Policy authors SHOULD prefer profile-declared operands for clarity and validation
+- `ContextualConstraint` remains available for simple, ad-hoc path access
+- Implementations MAY desugar `ContextualConstraint` to `AtomicConstraint` during compilation
+
+This establishes **operand purity**: at the semantic level, all runtime data access flows through the `resolve`/`deref` machinery via `LeftOperand` instances.
+
 Dynamic operand:
 
 ```
 ⟦ DynamicOperand(path) ⟧(Env) = deref(path, Env)
 ```
+
+**Usage Note**: `DynamicOperand` is primarily used internally for:
+- `rl2:currentAgent` (resolves to `Env.Agent`)
+- Dynamic deadline computation (e.g., `"event.AccessEvent.timestamp + P30D"`)
+
+Policy authors SHOULD NOT use raw `DynamicOperandReference` for context access. Instead, use profile-declared `LeftOperand` instances with `resolutionPath`. This ensures type safety and enables SHACL validation.
 
 Event constraint (approval requirement):
 
