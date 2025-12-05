@@ -1,9 +1,9 @@
 ---
 title: "RL2 Vocabulary Reference"
 subtitle: "Complete Class and Property Definitions"
-version: "0.2"
+version: "0.4"
 status: "Draft"
-date: 2025-01-01
+date: 2025-01-05
 purpose: "Reference documentation for all RL2 ontology terms"
 ---
 
@@ -72,8 +72,8 @@ The conventional prefix is `rl2:`.
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A unified normative, descriptive, and operational rights language." ;
-  owl:versionInfo "0.2" ;
-  owl:versionIRI <https://rl2.example/ontology/0.2> .
+  owl:versionInfo "0.4" ;
+  owl:versionIRI <https://rl2.example/ontology/0.4> .
 ```
 
 ### Conformance
@@ -536,14 +536,34 @@ ex:classifiedDocs a rl2:AssetCollection ;
 - `rl2:constraintOperator` — Comparison operator (must be ComparisonOperator)
 - One of: `rl2:rightOperand` (literal) or `rl2:rightOperandRef` (resource)
 
-**SHACL Shape**: `rl2:AtomicConstraintShape`
+**Optional Properties**:
+- `rl2:targetNorm` — Specifies which norm's state to query (required when using `obligationStateOperand` or `dutyPerformerOperand`)
 
-**Example**:
+**SHACL Shapes**: `rl2:AtomicConstraintShape`, `rl2:NormStateConstraintShape`
+
+**Example (simple comparison)**:
 ```turtle
 ex:purposeCheck a rl2:AtomicConstraint ;
     rl2:leftOperand ex:purpose ;
     rl2:constraintOperator rl2:eq ;
     rl2:rightOperand "research" .
+```
+
+**Example (duty state as precondition)**:
+```turtle
+# Check if a specific duty is fulfilled
+ex:dutyCheck a rl2:AtomicConstraint ;
+    rl2:targetNorm ex:paymentDuty ;
+    rl2:leftOperand rl2:obligationStateOperand ;
+    rl2:constraintOperator rl2:eq ;
+    rl2:rightOperand rl2:Fulfilled .
+
+# Check if the current agent fulfilled the duty (Tun-sollen pattern)
+ex:performerCheck a rl2:AtomicConstraint ;
+    rl2:targetNorm ex:paymentDuty ;
+    rl2:leftOperand rl2:dutyPerformerOperand ;
+    rl2:constraintOperator rl2:eq ;
+    rl2:rightOperandRef rl2:currentAgent .
 ```
 
 ---
@@ -658,15 +678,31 @@ ex:approvalRequired a rl2:EventConstraint ;
 
 **Superclass**: `rl2:Condition`
 
-**Required Properties**:
+**Required Properties** (for custom references):
 - `rl2:dynamicOperand` — Path expression to resolve
 
 **SHACL Shape**: `rl2:DynamicOperandReferenceShape`
 
-**Example**:
+**Core Instances**:
+
+| Instance | Resolves To | Description |
+|----------|-------------|-------------|
+| `rl2:currentAgent` | `Env.Agent` | The agent making the current request |
+
+**Example (path expression)**:
 ```turtle
 ex:deadlineRef a rl2:DynamicOperandReference ;
     rl2:dynamicOperand "event.AccessEvent.timestamp + P30D" .
+```
+
+**Example (using currentAgent for identity binding)**:
+```turtle
+# Check if the current agent fulfilled the duty (Separation of Duty)
+ex:sodCheck a rl2:AtomicConstraint ;
+    rl2:targetNorm ex:preparationDuty ;
+    rl2:leftOperand rl2:dutyPerformerOperand ;
+    rl2:constraintOperator rl2:neq ;       # NOT equal
+    rl2:rightOperandRef rl2:currentAgent . # Must be a DIFFERENT agent
 ```
 
 **Security Note**: Implementations must sanitize path expressions to prevent injection attacks.
@@ -680,9 +716,42 @@ ex:deadlineRef a rl2:DynamicOperandReference ;
 **Type**: `owl:Class`
 
 **Notes**:
-- RL2 Core does not define specific left operand instances
-- Profiles define domain-specific operands (purpose, dateTime, recipient, etc.)
+- RL2 Core defines two instances for norm state queries (see below)
+- Profiles define additional domain-specific operands (purpose, dateTime, recipient, etc.)
 - Examples: `purpose`, `dateTime`, `spatial`, `payAmount`
+
+**Core Instances**:
+
+| Instance | Description | Requires |
+|----------|-------------|----------|
+| `rl2:obligationStateOperand` | Queries ObligationState (Pending, Active, Fulfilled, Violated) of a norm from Σ | `rl2:targetNorm` |
+| `rl2:dutyPerformerOperand` | Queries the Agent who fulfilled a duty from Σ | `rl2:targetNorm` |
+
+**Example (Tun-sollen pattern — "I must fulfill the duty myself")**:
+```turtle
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Resource ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:obligationStateOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand rl2:Fulfilled
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:dutyPerformerOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef rl2:currentAgent
+        ]
+    ] .
+```
 
 ---
 
@@ -1012,6 +1081,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:affectsNorm` | Power | Norm | Norm that the power can affect |
 | `rl2:exposedTo` | Liability | Power | Power to which liability is exposed |
 | `rl2:immuneFrom` | Immunity | Power | Power from which immunity protects |
+| `rl2:priority` | Norm | xsd:integer | Numeric priority for conflict resolution (higher wins) |
 
 ### Promise Properties
 
@@ -1048,6 +1118,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:constraintOperator` | Condition | Operator | Operator for evaluation |
 | `rl2:rightOperand` | Condition | (literal) | Literal value for comparison |
 | `rl2:rightOperandRef` | Condition | (resource) | Resource for comparison |
+| `rl2:targetNorm` | AtomicConstraint | Norm | Norm whose state to query (for obligationStateOperand/dutyPerformerOperand) |
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
 | `rl2:requires` | Condition | ConditionOrEvent | Composite requirement |
 | `rl2:interval` | TemporalConstraint | EffectiveInterval | Time interval |
@@ -1125,6 +1196,19 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:PromiseFulfilled` | PromiseState | Successfully kept |
 | `rl2:PromiseViolated` | PromiseState | Broken |
 
+### Left Operand Instances
+
+| Individual | Type | Description |
+|------------|------|-------------|
+| `rl2:obligationStateOperand` | LeftOperand | Queries Σ.ObligationState(targetNorm) |
+| `rl2:dutyPerformerOperand` | LeftOperand | Queries Σ.DutyPerformer(targetNorm) |
+
+### Dynamic Reference Instances
+
+| Individual | Type | Description |
+|------------|------|-------------|
+| `rl2:currentAgent` | DynamicOperandReference | Resolves to Env.Agent at evaluation time |
+
 ---
 
 ## 14. SHACL Validation Summary
@@ -1162,7 +1246,8 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 
 | Shape | Target | Validates |
 |-------|--------|-----------|
-| `rl2:AtomicConstraintShape` | rl2:AtomicConstraint | Requires leftOperand, ComparisonOperator, rightOperand or rightOperandRef |
+| `rl2:AtomicConstraintShape` | rl2:AtomicConstraint | Requires leftOperand, ComparisonOperator, rightOperand or rightOperandRef; validates targetNorm if present |
+| `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires targetNorm |
 | `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires LogicalOperator, at least one operand |
 | `rl2:TemporalConstraintShape` | rl2:TemporalConstraint | Requires interval |
 | `rl2:ContextualConstraintShape` | rl2:ContextualConstraint | Requires contextPath |
@@ -1182,6 +1267,7 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:EventShape` | rl2:Event | At most one operationalAgent |
 | `rl2:StateTransitionShape` | rl2:StateTransition | Requires triggeredBy, fromState, toState |
 | `rl2:AssetCollectionShape` | rl2:AssetCollection | Members are Assets; at most one dynamicQuery |
+| `rl2:NormPriorityShape` | rl2:Norm | Priority must be an integer |
 
 ---
 
@@ -1229,4 +1315,4 @@ For complete bibliography and glossary, see **RL2_References.md**.
 
 ---
 
-*This vocabulary reference covers RL2 version 0.2. The normative definitions are in rl2.ttl and rl2-shacl.ttl.*
+*This vocabulary reference covers RL2 version 0.4. The normative definitions are in rl2.ttl and rl2-shacl.ttl.*

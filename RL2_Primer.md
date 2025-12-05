@@ -1,9 +1,9 @@
 ---
 title: "RL2 Primer"
 subtitle: "A Practical Introduction to Rights Language 2"
-version: "0.2"
+version: "0.4"
 status: "Draft"
-date: 2025-01-01
+date: 2025-01-05
 audience: "Students, practitioners, and implementers new to RL2"
 prerequisites: "Basic familiarity with RDF and policy concepts"
 ---
@@ -711,6 +711,107 @@ ex:complexPrivilege a rl2:Privilege ;
     ] .
 ```
 
+### Duty State as Precondition
+
+A common pattern is conditioning a privilege on prior duty fulfillment. RL2 supports this via two special left operands that query the state memory (Σ):
+
+| Left Operand | Queries | Returns |
+|--------------|---------|---------|
+| `rl2:obligationStateOperand` | `Σ.ObligationState(targetNorm)` | Pending, Active, Fulfilled, Violated |
+| `rl2:dutyPerformerOperand` | `Σ.DutyPerformer(targetNorm)` | Agent who fulfilled, or ⊥ |
+
+These operands require `rl2:targetNorm` to specify which norm to query.
+
+**Deontic Philosophy Connection:**
+
+| German Term | English | RL2 Pattern |
+|-------------|---------|-------------|
+| *Tun-sollen* | Ought-to-do (personal) | `obligationState = Fulfilled` AND `dutyPerformer = currentAgent` |
+| *Sein-sollen* | Ought-to-be (impersonal) | `obligationState = Fulfilled` only |
+
+**Pattern 1: Sein-sollen (Anyone May Fulfill)**
+
+"Access is permitted if the duty is fulfilled by anyone."
+
+```turtle
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Resource ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:targetNorm ex:paymentDuty ;
+        rl2:leftOperand rl2:obligationStateOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand rl2:Fulfilled
+    ] .
+```
+
+**Pattern 2: Tun-sollen (Same Agent Must Fulfill)**
+
+"Access is permitted only if I personally fulfilled the duty."
+
+```turtle
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Resource ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            # Check: Is the duty fulfilled?
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:obligationStateOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand rl2:Fulfilled
+        ] ;
+        rl2:operand [
+            # Check: Did I fulfill it?
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:dutyPerformerOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef rl2:currentAgent
+        ]
+    ] .
+```
+
+**Pattern 3: Separation of Duty (Different Agent Must Fulfill)**
+
+"Access is permitted only if someone OTHER than me fulfilled the prerequisite."
+
+This pattern implements the Two-Man Rule for sensitive operations:
+
+```turtle
+ex:approvalPrivilege a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:approveTransfer ;
+    rl2:object ex:WireTransfer ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:preparationDuty ;
+            rl2:leftOperand rl2:obligationStateOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand rl2:Fulfilled
+        ] ;
+        rl2:operand [
+            # NOT EQUAL: A different agent must have fulfilled
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:preparationDuty ;
+            rl2:leftOperand rl2:dutyPerformerOperand ;
+            rl2:constraintOperator rl2:neq ;
+            rl2:rightOperandRef rl2:currentAgent
+        ]
+    ] .
+```
+
+For more patterns, see **usecases/README.md** which documents 10 use cases demonstrating duty state preconditions.
+
 ---
 
 ## 9. Policy Containers
@@ -1217,4 +1318,4 @@ For definitions of terms used in this document, see **RL2_References.md**.
 
 ---
 
-*This primer covers RL2 version 0.2. For updates and errata, see the RL2 repository.*
+*This primer covers RL2 version 0.4. For updates and errata, see the RL2 repository.*

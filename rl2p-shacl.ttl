@@ -210,8 +210,34 @@ rl2p:ContextAssertionShape a sh:NodeShape ;
         sh:message "If specified, assertedBy must be an Agent."
     ] ;
     sh:property [
+        sh:path rl2p:performer ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "If specified, performer must be an Agent."
+    ] ;
+    sh:property [
         sh:path rl2p:fulfillmentEvidence ;
         sh:message "Fulfillment evidence may reference any resource."
+    ] .
+
+# Fulfillment assertions should include performer for identity binding
+# When contextProperty is dutyFulfilled, performer should be present
+rl2p:FulfillmentAssertionPerformerShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this WHERE {
+                ?this a rl2p:ContextAssertion ;
+                      rl2p:contextProperty rl2p:dutyFulfilled .
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2p:performer ;
+        sh:minCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "A dutyFulfilled assertion must specify the performer (the agent who fulfilled the duty)."
     ] .
 
 ############################################################

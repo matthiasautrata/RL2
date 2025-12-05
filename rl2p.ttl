@@ -13,8 +13,8 @@
   dc:description """A companion specification for interoperable policy evaluation.
   Defines request/response formats, duty lifecycle tracking, case management,
   and context assertions for RL2 policy evaluation.""" ;
-  owl:versionInfo "0.3" ;
-  owl:versionIRI <https://rl2.example/protocol/0.3> ;
+  owl:versionInfo "0.4" ;
+  owl:versionIRI <https://rl2.example/protocol/0.4> ;
   owl:imports <https://rl2.example/ontology> .
 
 ############################################################
@@ -207,6 +207,16 @@ rl2p:assertedBy a owl:ObjectProperty ;
     rdfs:domain rl2p:ContextAssertion ;
     rdfs:range rl2:Agent ;
     rdfs:comment "The agent or system that made this assertion." .
+
+rl2p:performer a owl:ObjectProperty ;
+    rdfs:domain rl2p:ContextAssertion ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment """The agent who performed the action that this assertion records.
+    Distinct from rl2p:assertedBy (the system reporting it).
+    Used to populate Σ.DutyPerformer for identity binding checks:
+    - Tun-sollen: dutyPerformer = currentAgent (same agent must fulfill and benefit)
+    - Sein-sollen: check only obligationState (anyone may fulfill)
+    - Separation of Duty: dutyPerformer ≠ currentAgent (different agent must fulfill)""" .
 
 ############################################################
 # 6. Fulfillment Vocabulary

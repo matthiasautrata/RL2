@@ -1,9 +1,9 @@
 ---
 title: "RL2 Evaluation Protocol"
 subtitle: "A Companion Specification for Interoperable Policy Evaluation"
-version: "0.2"
+version: "0.4"
 status: "Draft"
-date: 2025-01-01
+date: 2025-01-05
 ---
 
 ## Table of Contents

@@ -1,4 +1,4 @@
-# RL2 Coverage of ODRL (Draft v0.3)
+# RL2 Coverage of ODRL (Draft v0.4)
 
 *A unified mapping of ODRL 2.2 and ODRL 3.0 use cases to RL2*
 
@@ -194,6 +194,71 @@ _:d a rl2:Duty ;
     rl2:object S .
 ```
 
+### Permission-Bound Duties (CRITICAL)
+
+ODRL allows duties with different actions from the permitted action. For example, permit `display` if duty `pay` is fulfilled. This requires special transformation.
+
+**ODRL:**
+```turtle
+:offer1 a odrl:Offer ;
+    odrl:permission [
+        odrl:action odrl:display ;
+        odrl:target :photo123 ;
+        odrl:duty [
+            odrl:action odrl:pay ;
+            odrl:constraint [ odrl:payAmount 5.00 ]
+        ]
+    ] .
+```
+
+**RL2 Transformation:**
+```turtle
+# Step 1: Create standalone duty with URI
+ex:paymentDuty a rl2:Duty ;
+    rl2:subject ex:User ;
+    rl2:action ex:pay ;
+    rl2:object ex:Photo123 ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:payAmount ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand 5.00
+    ] .
+
+# Step 2: Add duty state precondition to privilege
+ex:displayPrivilege a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:display ;
+    rl2:object ex:Photo123 ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            # Check duty is fulfilled
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:obligationStateOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand rl2:Fulfilled
+        ] ;
+        rl2:operand [
+            # Check same agent fulfilled (ODRL implies SameSubject)
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:dutyPerformerOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef rl2:currentAgent
+        ]
+    ] .
+```
+
+**Transformation Rules:**
+1. Create `rl2:Duty` as standalone clause with URI for referenceability
+2. Add `LogicalConstraint` to permission's `rl2:condition` with:
+   - `AtomicConstraint` checking `obligationStateOperand = Fulfilled`
+   - `AtomicConstraint` checking `dutyPerformerOperand = currentAgent` (ODRL implies SameSubject)
+3. Combine with `rl2:and`
+
 ### Constraints
 
 **ODRL:**
@@ -280,10 +345,12 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | ODRL 3.0 Requirement       | RL2 Construct(s)                              | Coverage | Semantics Reference |
 | -------------------------- | --------------------------------------------- | -------- | ------------------- |
 | Dynamic asset collections  | rl2:AssetCollection, rl2:dynamicQuery         | Full     | RL2_Semantics §matches |
-| Dynamic operand references | rl2:DynamicOperandReference                   | Full     | RL2_Semantics §resolve, §deref |
+| Dynamic operand references | rl2:DynamicOperandReference, rl2:currentAgent | Full     | RL2_Semantics §resolve, §deref |
 | Path expressions           | rl2:dynamicOperand, rl2:contextPath           | Full     | RL2_Semantics §deref |
 | Temporal validity          | rl2:TemporalConstraint, rl2:EffectiveInterval | Full     | RL2_Semantics §timeout, §TemporalInterval |
 | Duty sequencing            | Operational semantics, rl2:StateTransition    | Full     | RL2_Semantics §Operational Semantics |
+| Duty state preconditions   | rl2:obligationStateOperand, rl2:targetNorm    | Full     | RL2_Semantics §resolve |
+| Identity binding (SoD)     | rl2:dutyPerformerOperand, rl2:currentAgent    | Full     | RL2_Semantics §resolve, §DutyPerformer |
 | Multi-party approval       | rl2:EventConstraint + rl2:approver            | Full     | RL2_Semantics §EventConstraint, §matches |
 | Event-triggered activation | rl2:Event + rl2:triggeredBy                   | Full     | RL2_Semantics §Event Processing |
 | Sanctions/remedies         | rl2:Power, rl2:Liability, rl2:Claim           | Full     | RL2_Semantics §Hohfeldian, §Sanctions |

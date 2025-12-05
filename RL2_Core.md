@@ -1,9 +1,9 @@
 ---
 title: "RL2 Core Specification"
 subtitle: "A Unified Normative, Descriptive, and Operational Rights Language"
-version: "0.3"
+version: "0.4"
 status: "Draft"
-date: 2025-01-01
+date: 2025-01-05
 ---
 
 ## Overview
@@ -161,6 +161,48 @@ See **RL2_Primer.md §11** for a complete walkthrough.
 
 ---
 
+## Duty State as Precondition Example
+
+RL2 supports conditioning privileges on duty fulfillment. This example shows a "pay-to-play" pattern where access requires prior payment:
+
+```turtle
+# The payment duty
+ex:paymentDuty a rl2:Duty ;
+    rl2:subject ex:User ;
+    rl2:action ex:pay ;
+    rl2:object ex:Subscription .
+
+# Access requires payment AND that the current user paid
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Content ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            # Check 1: Is the duty fulfilled?
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:obligationStateOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand rl2:Fulfilled
+        ] ;
+        rl2:operand [
+            # Check 2: Did I (current agent) fulfill it?
+            a rl2:AtomicConstraint ;
+            rl2:targetNorm ex:paymentDuty ;
+            rl2:leftOperand rl2:dutyPerformerOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef rl2:currentAgent
+        ]
+    ] .
+```
+
+See **usecases/README.md** for more patterns including Sein-sollen, Separation of Duty, and specific agent binding.
+
+---
+
 ## Related Specifications
 
 | Document | Description |
@@ -182,7 +224,10 @@ RL2 does not import or depend on external ODRL definitions. All constructs are d
 RL2 incorporates the full Hohfeldian framework: Privilege, Duty, Claim, Power, Liability, Immunity.
 
 ### Operational Semantics
-Policies have stateful behavior. Duties follow a lifecycle: Pending → Active → Fulfilled/Violated.
+Policies have stateful behavior. Duties follow a lifecycle: Pending → Active → Fulfilled/Violated. State can be queried via `obligationStateOperand` and `dutyPerformerOperand` to enable:
+- **Duty state preconditions** — Privileges conditioned on prior duty fulfillment
+- **Identity binding** — Tun-sollen (same agent) vs. Sein-sollen (any agent)
+- **Separation of Duty** — Two-man rules requiring different agents
 
 ### RDF-native, SHACL-validated
 The ontology is fully RDF/OWL, with SHACL shapes defining structural constraints.

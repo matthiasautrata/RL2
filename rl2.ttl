@@ -10,8 +10,8 @@
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A unified normative, descriptive, and operational rights language." ;
-  owl:versionInfo "0.3" ;
-  owl:versionIRI <https://rl2.example/ontology/0.3> .
+  owl:versionInfo "0.4" ;
+  owl:versionIRI <https://rl2.example/ontology/0.4> .
 
 ############################################################
 # 1. Normative Layer (DPCL)
@@ -92,6 +92,14 @@ rl2:immuneFrom a owl:ObjectProperty ;
     rdfs:domain rl2:Immunity ;
     rdfs:range rl2:Power ;
     rdfs:comment "The power from which this immunity protects." .
+
+rl2:priority a owl:DatatypeProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range xsd:integer ;
+    rdfs:label "Priority" ;
+    rdfs:comment """Numeric priority for conflict resolution; higher values override lower.
+    When multiple norms apply to the same request with conflicting effects,
+    the norm with higher priority prevails. Default priority is 0 if unspecified.""" .
 
 ############################################################
 # 2. Promise Theory Layer
@@ -236,6 +244,38 @@ rl2:expectsEvent a owl:ObjectProperty ;
     rdfs:domain rl2:EventConstraint ;
     rdfs:range rl2:Event ;
     rdfs:comment "The event that must occur for this constraint to be satisfied." .
+
+# Norm-Targeted Constraints (for querying duty/norm state)
+rl2:targetNorm a owl:ObjectProperty ;
+    rdfs:domain rl2:AtomicConstraint ;
+    rdfs:range rl2:Norm ;
+    rdfs:label "Target Norm" ;
+    rdfs:comment """Specifies the norm whose state is being queried.
+    Used with rl2:obligationStateOperand or rl2:dutyPerformerOperand left operands.
+    When present, resolve(leftOperand) queries state for this specific norm.""" .
+
+# Left operands for norm state queries
+rl2:obligationStateOperand a rl2:LeftOperand ;
+    rdfs:label "Obligation State Operand" ;
+    rdfs:comment """Queries the ObligationState of the target norm from Σ.
+    Returns Pending, Active, Fulfilled, or Violated.
+    Requires rl2:targetNorm to specify which norm to query.
+    Distinct from rl2:obligationState property (which stores state on a Duty).""" .
+
+rl2:dutyPerformerOperand a rl2:LeftOperand ;
+    rdfs:label "Duty Performer Operand" ;
+    rdfs:comment """Queries the agent who fulfilled the target duty from Σ.
+    Returns an Agent IRI or ⊥ if not yet fulfilled.
+    Requires rl2:targetNorm to specify which duty to query.
+    Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
+
+# Dynamic reference for current agent
+rl2:currentAgent a rl2:DynamicOperandReference ;
+    rdfs:label "Current Agent" ;
+    rdfs:comment """Resolves to Env.Agent (the agent making the current request) at evaluation time.
+    Used in rightOperandRef to compare against dutyPerformerOperand for identity binding:
+    - dutyPerformer eq currentAgent → Tun-sollen (same subject must fulfill)
+    - dutyPerformer neq currentAgent → Separation of Duty (different subject must fulfill)""" .
 
 rl2:action a owl:ObjectProperty ;
     rdfs:domain rl2:Norm ;

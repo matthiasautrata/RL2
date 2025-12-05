@@ -1,9 +1,9 @@
 ---
 title: "RL2 Formal Semantics"
 subtitle: "A Unified Normative, Operational, and Semantic Framework for Rights and Data Policies"
-version: "0.3"
+version: "0.4"
 status: "Draft"
-date: 2025-01-01
+date: 2025-01-05
 abstract: |
   RL2 is a normative and operational policy language designed as a rigorous successor to legacy rights languages, integrating deontic logic, promise theory, constraint algebra, and small-step operational semantics into a single, unified, formally grounded framework.
 ---
@@ -237,10 +237,16 @@ Formally:
      Performed : A × X × S → Boolean,
      Metadata : S → Map,
      PromiseState : Promise → {Pending, Fulfilled, Violated},
-     ObligationState : Duty → {Pending, Active, Fulfilled, Violated})
+     ObligationState : Duty → {Pending, Active, Fulfilled, Violated},
+     DutyPerformer : Duty → Agent ∪ {⊥})
 ```
 
-Note: `ObligationState` is the canonical name (matching `rl2:ObligationState` in the ontology).
+Notes:
+- `ObligationState` is the canonical name (matching `rl2:ObligationState` in the ontology).
+- `DutyPerformer` tracks which agent fulfilled a duty. Returns `⊥` if the duty has not been fulfilled. This enables identity binding patterns:
+  - *Tun-sollen* (ought-to-do): `DutyPerformer(d) = currentAgent` — the same agent must fulfill
+  - *Sein-sollen* (ought-to-be): Check only `ObligationState(d) = Fulfilled` — anyone may fulfill
+  - *Separation of Duty*: `DutyPerformer(d) ≠ currentAgent` — a different agent must fulfill
 
 **Scope of Σ**: In practice, Σ represents the *evidence log* or *relevant history* for a given evaluation context—not a theoretically omniscient record of all actions ever performed. Implementations scope Σ to the Case being evaluated (see RL2_Protocol.md), tracking only events and actions relevant to that access request's lifecycle.
 
@@ -269,10 +275,15 @@ We write:
 Atomic constraints:
 
 ```
-⟦ Atom(op, operator, value) ⟧(Env) =
-     true  if apply(operator, resolve(op, Env), value)
-     false otherwise
+⟦ Atom(op, operator, value, targetNorm?) ⟧(Env) =
+     let leftVal = resolve(op, Env, targetNorm)
+     let rightVal = case value of
+         DynamicRef(r) → resolveDynamic(r, Env)
+         Literal(v)    → v
+     in apply(operator, leftVal, rightVal)
 ```
+
+The optional `targetNorm` parameter specifies which norm's state to query when using `obligationStateOperand` or `dutyPerformerOperand`. The right operand may be a literal value or a dynamic reference (e.g., `currentAgent`).
 
 Logical conditions:
 
@@ -328,15 +339,21 @@ Composite conditions model transitive requirements where one condition depends o
 
 The condition semantics rely on several helper functions. For a verified kernel, these must be precisely specified.
 
-#### resolve : LeftOperand × Env → Value
+#### resolve : LeftOperand × Env × Norm? → Value
 
-The function `resolve(leftOperand, Env)` maps a left operand to a value:
+The function `resolve(leftOperand, Env, targetNorm?)` maps a left operand to a value. The optional `targetNorm` parameter is required for norm state operands.
 
 ```
-resolve : LeftOperand × Env → Value ∪ {⊥}
+resolve : LeftOperand × Env × Norm? → Value ∪ {⊥}
 
-resolve(op, Env) =
+resolve(op, Env, targetNorm) =
     case op of
+        obligationStateOperand →
+            if targetNorm ≠ ⊥ then Env.Σ.ObligationState(targetNorm)
+            else ⊥
+        dutyPerformerOperand →
+            if targetNorm ≠ ⊥ then Env.Σ.DutyPerformer(targetNorm)
+            else ⊥
         dateTime    → Env.Σ.Clock
         agent       → Env.Agent
         asset       → Env.Asset
@@ -345,17 +362,36 @@ resolve(op, Env) =
 ```
 
 Where:
+* `obligationStateOperand` queries `Σ.ObligationState(targetNorm)` — returns Pending, Active, Fulfilled, or Violated
+* `dutyPerformerOperand` queries `Σ.DutyPerformer(targetNorm)` — returns the Agent who fulfilled the duty, or ⊥
 * `lookupProfile(p, op, Env)` resolves operands defined by profile `p`
 * `lookupExternal(op, Ctx)` resolves operands from external context (HR systems, directories, etc.)
 * `⊥` indicates undefined (evaluation fails if encountered)
 
-RL2 Core does not define specific left operands; these are provided by profiles. The resolution mechanism is intentionally delegated to implementations.
+RL2 Core defines the following left operand instances:
+* `obligationStateOperand` → queries duty state from Σ (requires `targetNorm`)
+* `dutyPerformerOperand` → queries who fulfilled a duty from Σ (requires `targetNorm`)
 
-Profiles may define left operands such as:
+Profiles may define additional left operands such as:
 * `purpose` → resolved from request context
 * `dateTime` → resolved from Env.Σ.Clock
 * `recipient` → resolved from agent metadata
 * `department` → resolved via external lookup (e.g., HR system)
+
+#### Dynamic References
+
+Dynamic references resolve to values at evaluation time:
+
+```
+resolveDynamic : DynamicOperandReference × Env → Value ∪ {⊥}
+
+resolveDynamic(ref, Env) =
+    case ref of
+        currentAgent → Env.Agent
+        _            → deref(ref.dynamicOperand, Env)
+```
+
+The `currentAgent` reference resolves to `Env.Agent` — the agent making the current request. This is used in `rightOperandRef` to compare against `dutyPerformerOperand` for identity binding.
 
 #### deref : Path × Env → Value
 
@@ -744,14 +780,23 @@ Env = mkEnv(R, Σ, Ctx)
 
 ### Duty Fulfillment
 
-An active duty is fulfilled when the required action is performed:
+An active duty is fulfilled when the required action is performed. The performing agent is recorded in `DutyPerformer`:
 
 ```
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 Σ.Performed(a,x,s) = true
+performer = R.agent  -- Agent who performed the action
 ──────────────────────────────────────────────────────────────────
-(Σ, R, Ctx, DutyActive(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Fulfilled], DutyFulfilled(a,x,s,c))
+(Σ, R, Ctx, DutyActive(a,x,s,c)) →
+    (Σ[ObligationState(Duty(a,x,s,c)) ↦ Fulfilled,
+       DutyPerformer(Duty(a,x,s,c)) ↦ performer],
+     DutyFulfilled(a,x,s,c))
 ```
+
+Recording the performer enables identity binding patterns:
+- **Tun-sollen check**: `DutyPerformer(d) = currentAgent` (same agent must benefit)
+- **Sein-sollen check**: Only check `ObligationState(d) = Fulfilled` (anyone may fulfill)
+- **Separation of Duty**: `DutyPerformer(d) ≠ currentAgent` (different agent must benefit)
 
 ### Duty Violation
 

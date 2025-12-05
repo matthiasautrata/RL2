@@ -1,8 +1,8 @@
 ---
 title: "RL2: A Verified, Operational Rights Language"
-version: "0.3"
+version: "0.4"
 status: "Draft"
-date: 2025-01-01
+date: 2025-01-05
 ---
 
 ## Introduction

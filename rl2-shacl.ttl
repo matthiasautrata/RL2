@@ -162,10 +162,38 @@ rl2:AtomicConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:AtomicConstraint ;
     sh:property [ sh:path rl2:leftOperand ; sh:minCount 1 ] ;
     sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:ComparisonOperator ] ;
+    sh:property [
+        sh:path rl2:targetNorm ;
+        sh:maxCount 1 ;
+        sh:class rl2:Norm ;
+        sh:message "targetNorm must reference a Norm."
+    ] ;
     sh:or (
         [ sh:property [ sh:path rl2:rightOperand ; sh:minCount 1 ] ]
         [ sh:property [ sh:path rl2:rightOperandRef ; sh:minCount 1 ] ]
     ) .
+
+# Conditional requirement: targetNorm REQUIRED for norm state operands.
+# When leftOperand is obligationStateOperand or dutyPerformerOperand,
+# the constraint must specify which norm's state to query.
+rl2:NormStateConstraintShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this a rl2:AtomicConstraint ;
+                      rl2:leftOperand ?op .
+                FILTER(?op IN (rl2:obligationStateOperand, rl2:dutyPerformerOperand))
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2:targetNorm ;
+        sh:minCount 1 ;
+        sh:class rl2:Norm ;
+        sh:message "AtomicConstraint with obligationStateOperand or dutyPerformerOperand must specify targetNorm."
+    ] .
 
 # Logical constraints combine sub-conditions via logical operators.
 # Note: The 'not' operator requires exactly one operand; 'and', 'or', 'xone' require
@@ -292,4 +320,14 @@ rl2:PromiseStateShape a sh:NodeShape ;
         sh:maxCount 1 ;
         sh:in (rl2:PromisePending rl2:PromiseFulfilled rl2:PromiseViolated) ;
         sh:message "Promise promiseState must be one of: PromisePending, PromiseFulfilled, PromiseViolated."
+    ] .
+
+# Norm priority validation - ensure valid integer
+rl2:NormPriorityShape a sh:NodeShape ;
+    sh:targetClass rl2:Norm ;
+    sh:property [
+        sh:path rl2:priority ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:message "Norm priority must be an integer."
     ] .

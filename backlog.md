@@ -1,6 +1,6 @@
 # RL2 Critical Fixes
 
-**Date:** 2025-01-04
+**Date:** 2025-01-05
 **Target:** RL2 Core Ontology and Semantics
 
 ---
@@ -33,223 +33,263 @@ ODRL duties can have actions different from the permitted action (e.g., permit `
 Expected: `PermitWithObligations` with payment duty
 Actual (RL2): `Permit` (duty not surfaced because `pay ≠ display`)
 
-### Approved Solution: Two-Class Model with Preconditions
+### Approved Solution: Unified State Approach (Alternative 1)
 
 **Rationale:**
-* ODRL duties nested in permissions are semantically different from standalone duties
-* Standalone duties are Norms (activate via action matching)
-* Permission-bound duties are preconditions (activate when parent privilege matches)
-* Context-dependent semantics (single class, dual behavior) lead to ODRL-style complexity
-* Separate classes provide semantic clarity at authoring layer
-* Both compile to flat I/O rules at execution layer (zero runtime complexity)
 
-**Architecture:**
+Rather than introducing a new `DutyConstraint` class with a "magic" `SubjectScope` enum, we leverage RL2's existing `AtomicConstraint` machinery. Duty state becomes just another queryable property of the world, like `dateTime` or `fileSize`.
+
+**Key Insight:** Identity binding should be an **explicit logical proposition** (`performer = currentAgent`), not a configuration flag hidden in an enum.
+
+**Architectural Principle:**
 ```
-DDL Authoring Layer (RL2 TTL)
-  - rl2:Duty (standalone norm, becomes top-level I/O rule)
-  - rl2:Precondition (privilege-bound, compiled into privilege output)
-  - Numeric priorities for defeat resolution
-      ↓ COMPILE
-I/O Execution Layer
-  - Flat rules: (Condition) → (Permit + Obligation)
-  - No class hierarchy, no context-dependence
-  - Pure functional evaluation
+ObligationState and DutyPerformer are properties of Σ (world state)
+    ↓
+AtomicConstraint can query any property of Σ via LeftOperands
+    ↓
+Therefore: Duty state checks are just AtomicConstraints with norm-targeted operands
 ```
+
+**What We Add:**
+
+| Addition | Type | Purpose |
+|----------|------|---------|
+| `rl2:targetNorm` | Property | Specifies which norm to query in a constraint |
+| `rl2:obligationState` | LeftOperand | Queries `Σ.ObligationState(n)` |
+| `rl2:dutyPerformer` | LeftOperand | Queries `Σ.DutyPerformer(n)` |
+| `rl2:currentAgent` | DynamicReference | Resolves to `Env.Agent` at evaluation time |
+| `DutyPerformer` | Σ Component | Tracks who fulfilled each duty |
+
+**What We Do NOT Add:**
+- ~~`rl2:DutyConstraint` class~~
+- ~~`rl2:SubjectScope` enumeration~~
+- ~~`rl2:SameSubject`, `rl2:AnySubject`, `rl2:DifferentSubject`~~
+- ~~`rl2:subjectScope` property~~
+- ~~`rl2:requiresDuty`, `rl2:requiredState` properties~~
+
+**Benefits of This Approach:**
+
+1. **De-Magicing:** Identity binding is an explicit `eq`/`neq` constraint, not hidden enum interpretation
+2. **Regularity:** Norm state is just another queryable property of the world
+3. **Parsimony:** No new classes or enumerations
+4. **Expressiveness:** Supports patterns impossible with SubjectScope:
+   - SameSubject → `dutyPerformer = currentAgent`
+   - AnySubject → (no performer check)
+   - DifferentSubject → `dutyPerformer ≠ currentAgent`
+   - SpecificAgent → `dutyPerformer = ex:Bob`
+5. **Decidability:** All logic is explicit in the policy graph, enabling static analysis
+
+### Deontic Logic Foundation
+
+This approach operationalizes the classical distinction from normative philosophy:
+
+| German | English | RL2 Implementation |
+|--------|---------|-------------------|
+| *Tun-sollen* | Ought-to-do (personal) | `obligationState = Fulfilled` AND `dutyPerformer = currentAgent` |
+| *Sein-sollen* | Ought-to-be (impersonal) | `obligationState = Fulfilled` (only) |
+
+### Semantic Patterns
+
+#### Pattern 1: Sein-sollen (Team License / AnySubject equivalent)
+
+"The duty must be fulfilled, by anyone."
+
+```turtle
+[ a rl2:AtomicConstraint ;
+  rl2:targetNorm ex:paymentDuty ;
+  rl2:leftOperand rl2:obligationState ;
+  rl2:constraintOperator rl2:eq ;
+  rl2:rightOperand rl2:Fulfilled ] .
+```
+
+#### Pattern 2: Tun-sollen (Pay-to-Play / SameSubject equivalent)
+
+"The duty must be fulfilled, by me."
+
+```turtle
+[ a rl2:LogicalConstraint ;
+  rl2:constraintOperator rl2:and ;
+  rl2:operand [
+      a rl2:AtomicConstraint ;
+      rl2:targetNorm ex:paymentDuty ;
+      rl2:leftOperand rl2:obligationState ;
+      rl2:constraintOperator rl2:eq ;
+      rl2:rightOperand rl2:Fulfilled
+  ] ;
+  rl2:operand [
+      a rl2:AtomicConstraint ;
+      rl2:targetNorm ex:paymentDuty ;
+      rl2:leftOperand rl2:dutyPerformer ;
+      rl2:constraintOperator rl2:eq ;
+      rl2:rightOperandRef rl2:currentAgent
+  ] ] .
+```
+
+#### Pattern 3: Separation of Duty (Two-Man Rule / DifferentSubject equivalent)
+
+"The duty must be fulfilled, by someone other than me."
+
+```turtle
+[ a rl2:LogicalConstraint ;
+  rl2:constraintOperator rl2:and ;
+  rl2:operand [
+      a rl2:AtomicConstraint ;
+      rl2:targetNorm ex:preparationDuty ;
+      rl2:leftOperand rl2:obligationState ;
+      rl2:constraintOperator rl2:eq ;
+      rl2:rightOperand rl2:Fulfilled
+  ] ;
+  rl2:operand [
+      a rl2:AtomicConstraint ;
+      rl2:targetNorm ex:preparationDuty ;
+      rl2:leftOperand rl2:dutyPerformer ;
+      rl2:constraintOperator rl2:neq ;          # NOT EQUAL
+      rl2:rightOperandRef rl2:currentAgent
+  ] ] .
+```
+
+#### Pattern 4: Specific Agent
+
+"The duty must be fulfilled by Bob specifically."
+
+```turtle
+[ a rl2:LogicalConstraint ;
+  rl2:constraintOperator rl2:and ;
+  rl2:operand [
+      a rl2:AtomicConstraint ;
+      rl2:targetNorm ex:approvalDuty ;
+      rl2:leftOperand rl2:obligationState ;
+      rl2:constraintOperator rl2:eq ;
+      rl2:rightOperand rl2:Fulfilled
+  ] ;
+  rl2:operand [
+      a rl2:AtomicConstraint ;
+      rl2:targetNorm ex:approvalDuty ;
+      rl2:leftOperand rl2:dutyPerformer ;
+      rl2:constraintOperator rl2:eq ;
+      rl2:rightOperandRef ex:Bob               # Specific agent
+  ] ] .
+```
+
+### The Verbosity Trade-off
+
+The explicit approach is more verbose (3 objects vs. 1 hypothetical DutyConstraint), but:
+
+- Every piece of logic is explicit in the graph
+- No hidden evaluator semantics interpreting "what SameSubject means"
+- Formally decidable by static analysis
+- This is the correct trade-off for a rigorous normative language
 
 ### Required Changes
 
 #### 1. Ontology (rl2.ttl)
 
+Add to Section 4 (Conditions):
+
 ```turtle
-rl2:Precondition a owl:Class ;
-    rdfs:comment "Obligation that must be fulfilled to exercise a privilege, power, or other norm. Not a standalone duty. Lifecycle is coupled to parent norm (defeated when parent defeated)." .
+# Norm-targeting for state queries
+rl2:targetNorm a owl:ObjectProperty ;
+    rdfs:domain rl2:AtomicConstraint ;
+    rdfs:range rl2:Norm ;
+    rdfs:label "Target Norm" ;
+    rdfs:comment "Specifies the norm whose state is being queried. Used with obligationState or dutyPerformer left operands." .
 
-rl2:obligatedAction a owl:ObjectProperty ;
-    rdfs:domain rl2:Precondition ;
-    rdfs:range rl2:Action ;
-    rdfs:comment "The action that must be performed to fulfill this precondition." .
+# Left operands for norm state queries
+rl2:obligationState a rl2:LeftOperand ;
+    rdfs:label "Obligation State" ;
+    rdfs:comment "Queries the ObligationState of the target norm from Σ. Returns Pending, Active, Fulfilled, or Violated." .
 
-rl2:requires a owl:ObjectProperty ;
-    rdfs:domain rl2:Norm ;  # Can apply to Privilege, Power, etc.
-    rdfs:range rl2:Precondition ;
-    rdfs:comment "Precondition that must be fulfilled to exercise this norm." .
+rl2:dutyPerformer a rl2:LeftOperand ;
+    rdfs:label "Duty Performer" ;
+    rdfs:comment "Queries the agent who fulfilled the target duty from Σ. Returns an Agent or ⊥ if not fulfilled." .
 
+# Dynamic reference for current agent
+rl2:currentAgent a rl2:DynamicOperandReference ;
+    rdfs:label "Current Agent" ;
+    rdfs:comment "Resolves to Env.Agent (the agent making the current request) at evaluation time." .
+
+# Priority for conflict resolution
 rl2:priority a owl:DatatypeProperty ;
     rdfs:domain rl2:Norm ;
     rdfs:range xsd:integer ;
     rdfs:comment "Numeric priority for conflict resolution; higher values override lower values." .
 ```
 
-#### 2. Semantics (RL2_Semantics.md:540-542)
+#### 2. Semantic Domain (RL2_Semantics.md)
 
-Add Precondition denotation after Duty denotation:
+Update Σ definition to track duty performers:
 
-```
-Precondition activation:
-
-⟦Precondition(action, constraint)⟧(Env) =
-    Obligation(action)  if ⟦constraint⟧(Env) = true
-    Inactive            otherwise
-```
-
-#### 3. Semantics (RL2_Semantics.md:888-896)
-
-Update evaluation algorithm:
-
-```
--- Step 1: Find matching norms (add priority ordering)
-let matchingPrivileges = { p ∈ P.clauses | P ∈ applicablePolicies ∧ p : Privilege ∧ matches(p, R) }
-let matchingProhibitions = { p ∈ P.clauses | ... }
-
--- Clause-level duties (standalone, action-matched)
-let standaloneDuties = { d ∈ P.clauses | d : Duty ∧ matches(d, R) }
-
--- Preconditions (from matching privileges, no action matching)
-let preconditions = { pc | ∃p ∈ matchingPrivileges : (p, rl2:requires, pc) }
-
--- Union all obligations
-let allObligations = standaloneDuties ∪ preconditions
-
--- Step 2: Resolve priorities (NEW)
-let activePrivileges = resolvePriorities(matchingPrivileges, ⟦_.condition⟧(Env))
-let activeProhibitions = resolvePriorities(matchingProhibitions, ⟦_.condition⟧(Env))
-
--- Step 3: Update obligation states
-let Σ' = updateDutyStates(allObligations, Env, Σ)
+```text
+Σ = (Clock : T,
+     Events : E*,
+     Performed : A × X × S → Boolean,
+     Metadata : S → Map,
+     PromiseState : Promise → {Pending, Fulfilled, Violated},
+     ObligationState : Duty → {Pending, Active, Fulfilled, Violated},
+     DutyPerformer : Duty → Agent ∪ {⊥})  -- NEW
 ```
 
-Add priority resolution function:
+#### 3. resolve() Function (RL2_Semantics.md)
 
-```
-resolvePriorities(norms, conditionEval) =
-    let active = { n ∈ norms | conditionEval(n) = true }
-    let grouped = groupBy(active, n → (n.subject, n.action, n.object))
-    for each group G:
-        yield maxBy(G, n → n.priority)
-```
+Extend to handle norm-targeted operands:
 
-#### 4. Semantics: Add Compilation Section
+```text
+resolve : LeftOperand × Env × Norm? → Value ∪ {⊥}
 
-After line 1102 (## Relationship to RL2 Protocol), add new section:
-
-```markdown
-## Compilation from DDL to I/O Rules
-
-RL2 policies are authored in DDL (with priorities, exceptions, defeat relations) and compiled to flat I/O rules for execution.
-
-### Compilation Algorithm
-
-For each privilege P in priority-resolved order:
-    if P.condition holds and P not defeated:
-        preconditions = { pc | (P, rl2:requires, pc) }
-        emit_rule: (P.matchConditions ∧ P.condition) → (Permit + preconditions)
-
-For each duty D:
-    emit_rule: (D.matchConditions ∧ D.condition) → Obligation(D.action)
-
-### Priority Resolution
-
-When multiple norms match the same (subject, action, object), the norm with highest rl2:priority value wins. Defeated norms do not emit rules.
-
-### Example
-
-DDL Authoring:
-```turtle
-ex:basePrivilege a rl2:Privilege ;
-    rl2:priority 100 ;
-    rl2:action ex:display ;
-    rl2:requires [ a rl2:Precondition ; rl2:obligatedAction ex:pay ] .
-
-ex:staffException a rl2:Privilege ;
-    rl2:priority 200 ;
-    rl2:action ex:display ;
-    rl2:condition [ rl2:leftOperand ex:role ; rl2:operator rl2:eq ; rl2:rightOperand "staff" ] .
+resolve(op, Env, targetNorm) =
+    case op of
+        obligationState →
+            if targetNorm ≠ ⊥ then Env.Σ.ObligationState(targetNorm)
+            else ⊥
+        dutyPerformer →
+            if targetNorm ≠ ⊥ then Env.Σ.DutyPerformer(targetNorm)
+            else ⊥
+        dateTime → Env.Σ.Clock
+        agent → Env.Agent
+        ...
 ```
 
-Compiled I/O Rules:
-```
-Rule_staff: (action=display ∧ role=staff) → Permit
-Rule_base:  (action=display ∧ role≠staff) → Permit + Obligation(pay)
-```
+#### 4. AtomicConstraint Semantics (RL2_Semantics.md)
+
+Update to pass targetNorm:
+
+```text
+⟦ Atom(op, operator, value, targetNorm?) ⟧(Env) =
+    let leftVal = resolve(op, Env, targetNorm)
+    in apply(operator, leftVal, value)
 ```
 
-#### 5. ODRL Coverage (RL2_ODRL_Coverage.md:105)
+#### 5. Duty Fulfillment Transition (RL2_Semantics.md)
 
-```markdown
-| odrl:duty | rl2:Precondition (nested in permission) OR rl2:Duty (standalone) | Context-dependent mapping |
+Record performer on fulfillment:
+
+```text
+(Σ, R, Ctx, DutyActive(a,x,s,c)) →
+    (Σ[ObligationState(d) ↦ Fulfilled, DutyPerformer(d) ↦ R.agent], DutyFulfilled(...))
 ```
 
-Add mapping rule:
+#### 6. Protocol (rl2p.ttl)
 
-```
-ODRL Transformation:
-- IF duty is nested in odrl:permission THEN map to rl2:Precondition via rl2:requires
-- ELSE IF duty is top-level policy element THEN map to rl2:Duty via rl2:clause
-```
-
-#### 6. SHACL Validation
+Add performer tracking to ContextAssertion:
 
 ```turtle
-rl2:PreconditionShape a sh:NodeShape ;
-    sh:targetClass rl2:Precondition ;
-    sh:property [
-        sh:path [ sh:inversePath rl2:clause ] ;
-        sh:maxCount 0 ;
-        sh:message "Preconditions cannot be policy clauses (use rl2:Duty for standalone obligations)" .
-    ] .
-
-rl2:DutyNotPreconditionShape a sh:NodeShape ;
-    sh:targetClass rl2:Duty ;
-    sh:property [
-        sh:path [ sh:inversePath rl2:requires ] ;
-        sh:maxCount 0 ;
-        sh:message "Duties cannot be preconditions (use rl2:Precondition for privilege-bound obligations)" .
-    ] .
+rl2p:performer a owl:ObjectProperty ;
+    rdfs:domain rl2p:ContextAssertion ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment """The agent who performed the action that this assertion records.
+    Distinct from rl2p:assertedBy (the system reporting it).
+    Used to populate Σ.DutyPerformer for identity checks.""" .
 ```
 
-#### 7. Priority Guidelines (Documentation)
+#### 7. ODRL Transformation Rules
 
-```markdown
-Priority Ranges:
-- 0-99: System defaults and base policies
-- 100-199: Standard organizational policies
-- 200-299: Departmental/role-based exceptions
-- 300-399: Team-level policies
-- 400-499: Individual grants and overrides
-- 500+: Emergency/break-glass procedures
-```
-
-### Example Usage
-
-```turtle
-# Standalone duty (not privilege-bound)
-ex:deletionDuty a rl2:Duty ;
-    rl2:subject ex:Researcher ;
-    rl2:action ex:delete ;
-    rl2:object ex:Dataset ;
-    rl2:condition [ rl2:interval [ rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime ] ] .
-
-# Privilege with precondition (ODRL-style permission/duty)
-ex:displayPrivilege a rl2:Privilege ;
-    rl2:priority 100 ;
-    rl2:subject ex:User ;
-    rl2:action ex:display ;
-    rl2:object ex:Photo ;
-    rl2:requires [
-        a rl2:Precondition ;
-        rl2:obligatedAction ex:pay ;
-        rl2:constraint [ rl2:leftOperand ex:payAmount ; rl2:operator rl2:eq ; rl2:rightOperand 5.00 ]
-    ] .
-
-# Power with precondition (break-glass example)
-ex:updateProdDataPower a rl2:Power ;
-    rl2:priority 500 ;
-    rl2:affectsNorm ex:prodDataOwnership ;
-    rl2:requires [
-        a rl2:Precondition ;
-        rl2:obligatedAction ex:invokeBreakGlass ;
-        rl2:constraint [ rl2:leftOperand ex:procedure ; rl2:operator rl2:eq ; rl2:rightOperand "emergency-override" ]
-    ] .
+```text
+IF duty is nested in odrl:permission:
+    1. Create rl2:Duty as standalone clause (with URI for referenceability)
+    2. Add LogicalConstraint to permission's rl2:condition:
+       - AtomicConstraint checking obligationState = Fulfilled
+       - AtomicConstraint checking dutyPerformer = currentAgent (ODRL implies SameSubject)
+    3. Combine with rl2:and
 ```
 
 ---
@@ -286,8 +326,9 @@ The claim in `RL2_ODRL_Coverage.md` that "RL2 is a strict superset of ODRL" shou
 
 After implementing the ontology and semantics changes above, the following documentation must be updated:
 
-* **RL2_Vocabulary.md** - Add `rl2:Precondition`, `rl2:obligatedAction`, `rl2:requires`, `rl2:priority` with full descriptions and examples
-* **RL2_Core.md** - Update examples to show Precondition usage; add priority examples
-* **RL2_ODRL_Coverage.md** - Update duty mapping table (line 105); add ODRL→RL2 transformation rules for nested duties
-* **RL2_White_Paper.md** - Update architecture description to include DDL→I/O compilation layer
-* **RL2_DiscussionTopics.md** - Remove or mark resolved any discussion of duty-binding approaches
+* **RL2_Vocabulary.md** - Add `rl2:targetNorm`, `rl2:obligationState`, `rl2:dutyPerformer`, `rl2:currentAgent`, `rl2:priority` with full descriptions and examples
+* **RL2_Core.md** - Update examples to show duty state constraints
+* **RL2_ODRL_Coverage.md** - Update duty mapping table; add ODRL→RL2 transformation rules for nested duties
+* **RL2_Primer.md** - Add section on duty state preconditions with patterns
+* **RL2_Protocol.md** - Document `rl2p:performer` semantics
+* **usecases/*.md** - Update all examples to use explicit constraint patterns
