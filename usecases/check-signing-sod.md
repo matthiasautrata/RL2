@@ -19,6 +19,30 @@ A check can only be signed by someone who did not prepare it. Unlike static SoD 
 - Runtime enforcement required
 - More flexible than static SoD
 
+## RL2 Core Operands
+
+This use case uses operands declared in RL2 Core for querying norm state. Unlike profile-declared operands (see break-glass.md), these are part of the RL2 ontology itself:
+
+```turtle
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Query the obligation state (Pending, Active, Fulfilled, Violated) of a target norm
+rl2:obligationStateOperand a rl2:LeftOperand ;
+    rdfs:label "Obligation State Operand" ;
+    rdfs:comment """Queries the ObligationState of the target norm from Σ.
+    Returns Pending, Active, Fulfilled, or Violated.
+    Requires rl2:targetNorm to specify which norm to query.""" .
+
+# Query the agent who fulfilled a target duty
+rl2:dutyPerformerOperand a rl2:LeftOperand ;
+    rdfs:label "Duty Performer Operand" ;
+    rdfs:comment """Queries the agent who fulfilled the target duty from Σ.
+    Returns an Agent IRI or ⊥ if not yet fulfilled.
+    Requires rl2:targetNorm to specify which duty to query.
+    Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle

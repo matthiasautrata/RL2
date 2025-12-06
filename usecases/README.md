@@ -107,4 +107,4 @@ ex:accessPrivilege a rl2:Privilege ;
 
 ## Note on Use Case Files
 
-The individual use case files (pay-to-play.md, etc.) currently use the older `SubjectScope` notation for illustration. They will be updated to the explicit constraint pattern as part of the v0.4 implementation.
+The individual use case files (pay-to-play.md, etc.) have been updated to use the **Unified State Approach** (explicit constraint pattern) as defined in the v0.4 implementation. They demonstrate the rigorous, explicit modeling of identity binding and state preconditions.

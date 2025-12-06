@@ -166,6 +166,19 @@
 
 ## Deontic Logic and Normative Reasoning
 
+**[von Wright 1963]** von Wright, Georg Henrik. *Norm and Action: A Logical Enquiry*. Routledge & Kegan Paul, 1963.
+- Foundational work in deontic logic distinguishing norms governing actions from norms governing states of affairs
+- Introduces the distinction between:
+  - **Action norms** (obligation to *do* A) → maps to RL2's **Tun-Sollen**
+  - **State norms** (obligation that *p be the case*) → maps to RL2's **Sein-Sollen**
+- **RL2 relevance**: Primary conceptual foundation for RL2's separation of action-directed norms (Promises, permissions, prohibitions evaluated at request/event time) from state-directed norms (invariants, compliance conditions, boundary sets evaluated continuously). This distinction resolves ODRL's conflation of procedural constraints with declarative state requirements.
+
+**[Brown 2013]** Brown, Mark A. "The Structure of Deontic Logic." In Gabbay, Dov, et al. (eds.), *Handbook of Deontic Logic and Normative Systems*, vol. 1, College Publications, 2013.
+- Modern survey explicitly separating action-based and state-based deontic logics
+- Demonstrates why O(p) (state obligation) and O(do A) (action obligation) require different formal treatments
+- Analyzes how violations behave differently in each logic: action violations are events, state violations are conditions
+- **RL2 relevance**: Provides formal justification for RL2's two-layer architecture. Action-based logic governs runtime authorization decisions (Tun-Sollen); state-based logic governs compliance monitoring and invariant checking (Sein-Sollen). The differing violation semantics explain why RL2 separates entitlement engines from audit engines.
+
 **[UCON_ABC]** Park, Jaehong, and Ravi Sandhu. "The UCON_ABC Usage Control Model." *ACM Transactions on Information and System Security (TISSEC)* 7(1), February 2004.
 - https://profsandhu.com/journals/tissec/ucon-abc.pdf
 - Foundational usage control model integrating Authorizations, oBligations, and Conditions
@@ -257,6 +270,12 @@
 
 **Promise**
 : A voluntary commitment from a promisor to a promisee (Promise Theory).
+
+**Sein-Sollen** (State-Directed Ought)
+: A norm specifying that a state of affairs *ought to be the case*. From German legal philosophy (Kant → Kelsen → von Wright). In RL2, Sein-Sollen norms govern world states rather than agent actions: invariants, compliance conditions, boundary set definitions, and regulatory safety requirements. Evaluated continuously or via monitoring (SHACL, SPARQL, TLA+). Violations represent illegal states rather than behavioral infractions. Contrasts with Tun-Sollen. See [von Wright 1963].
+
+**Tun-Sollen** (Action-Directed Ought)
+: A norm specifying that an agent *ought to do* (or refrain from doing) an action. From German legal philosophy (Kant → Kelsen → von Wright). In RL2, Tun-Sollen norms govern agent behavior: Promises, permissions, prohibitions, and event-triggered duties. Evaluated at request time or upon event occurrence. Violations are behavioral—an agent failed to act as required. Maps to ODRL duties and RL2's ConsumerPromise/ProviderPromise. Contrasts with Sein-Sollen. See [von Wright 1963].
 
 ## Policy Terms
 
