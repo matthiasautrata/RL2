@@ -839,7 +839,8 @@ ex:recertRequest1 a rl2p:Request ;
 See **RL2_References.md** for complete citations and glossary.
 
 RL2 Specifications:
-* RL2_Core.md — Core ontology and SHACL shapes
+* rl2.ttl — Core ontology (OWL)
+* rl2-shacl.ttl — SHACL validation shapes
 * RL2_Semantics.md — Formal evaluation semantics
 
 Key external sources:

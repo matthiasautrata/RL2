@@ -490,7 +490,6 @@ ex:delete a rl2:Action .
 
 **Properties**:
 - `rl2:member` — Static member assets
-- `rl2:dynamicQuery` — DEPRECATED in Core; profiles must define their own dynamic materialization mechanism if needed
 
 **SHACL Shape**: `rl2:AssetCollectionShape`
 
@@ -1109,7 +1108,6 @@ ex:complianceAssertion a rl2:Assertion ;
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
 | `rl2:member` | AssetCollection | Asset | Static member |
-| `rl2:dynamicQuery` | AssetCollection | xsd:string | DEPRECATED in Core; dynamic materialization belongs in profiles |
 
 ---
 
@@ -1225,7 +1223,7 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 |-------|--------|-----------|
 | `rl2:EventShape` | rl2:Event | At most one operationalAgent |
 | `rl2:StateTransitionShape` | rl2:StateTransition | Requires triggeredBy, fromState, toState |
-| `rl2:AssetCollectionShape` | rl2:AssetCollection | Members are Assets; at most one dynamicQuery |
+| `rl2:AssetCollectionShape` | rl2:AssetCollection | Members are Assets |
 | `rl2:NormPriorityShape` | rl2:Norm | Priority must be an integer |
 
 ---

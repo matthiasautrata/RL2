@@ -46,7 +46,7 @@ This mapping assumes the following baseline semantics for ODRL:
 
 The following ODRL features require transformation or clarification:
 
-* **`odrl:inheritFrom`** — No direct RL2 equivalent. Inheritance requires flattening to atomic policies before evaluation. See **RL2_DiscussionTopics.md** for discussion.
+* **`odrl:inheritFrom`** — No direct RL2 equivalent. Inheritance requires flattening to atomic policies before evaluation. See **backlog.md** §Policy Inheritance.
 * **`odrl:Request` (policy type)** — RL2 does not model requests as policies. The `odrl:Request` policy type was never standardized or widely adopted. RL2 handles request semantics via `rl2p:Request` in the Protocol ontology—a runtime evaluation artifact, not a policy container.
 * **Implementation-specific conflict resolution** — RL2 supports priority-based conflict resolution via `rl2:priority`. W3C-style conflict strategies (prohibit-overrides, permit-overrides) are defined in evaluation semantics but not as ontology vocabulary.
 
@@ -345,7 +345,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 
 | ODRL 3.0 Requirement       | RL2 Construct(s)                              | Coverage | Semantics Reference |
 | -------------------------- | --------------------------------------------- | -------- | ------------------- |
-| Dynamic asset collections  | rl2:AssetCollection (dynamic materialization profile-specific) | Partial  | Profile semantics (Core deprecates rl2:dynamicQuery) |
+| Dynamic asset collections  | rl2:AssetCollection (static members; dynamic materialization profile-specific) | Partial  | Profile semantics |
 | Dynamic operand references | rl2:RuntimeReference (e.g., rl2:currentAgent) | Full     | RL2_Semantics §resolveRuntime |
 | Path expressions           | rl2:LeftOperand + rl2:resolutionPath          | Full     | RL2_Semantics §deref |
 | Temporal validity          | rl2:TemporalConstraint, rl2:EffectiveInterval | Full     | RL2_Semantics §timeout, §TemporalInterval |
@@ -356,7 +356,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | Event-triggered activation | rl2:Event + rl2:triggeredBy                   | Full     | RL2_Semantics §Event Processing |
 | Sanctions/remedies         | rl2:Power, rl2:Liability, rl2:Claim           | Full     | RL2_Semantics §Hohfeldian, §Sanctions |
 | Context-dependent rules    | rl2:AtomicConstraint with inline LeftOperand  | Full     | RL2_Semantics §Atom, §resolve |
-| Policy composition         | Under discussion                              | —        | See RL2_DiscussionTopics.md |
+| Policy composition         | Under discussion                              | —        | See backlog.md |
 | Cross-policy influence     | Conditions referencing other policies         | Full     | RL2_Semantics §Composite |
 
 **Coverage Legend:**
@@ -445,9 +445,7 @@ ex:EthicsBoard a rl2:Agent .
 # =============================================================
 
 # Dynamic asset collection
-# Note: rl2:dynamicQuery is deprecated in RL2 Core.
-# Production implementations should use profile-specific resolution mechanisms.
-# This example shows the pattern for ODRL mapping; actual materialization is profile-defined.
+# RL2 Core provides static membership; dynamic materialization is profile-specific.
 ex:RestrictedDatasets a rl2:AssetCollection ;
     rl2:member ex:Dataset1 ;  # Static members for Core
     rl2:member ex:Dataset2 .

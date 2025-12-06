@@ -168,9 +168,19 @@ rl2:AtomicConstraintShape a sh:NodeShape ;
         sh:class rl2:Norm ;
         sh:message "targetNorm must reference a Norm."
     ] ;
-    sh:or (
-        [ sh:property [ sh:path rl2:rightOperand ; sh:minCount 1 ] ]
-        [ sh:property [ sh:path rl2:rightOperandRef ; sh:minCount 1 ] ]
+    sh:xone (
+        [ sh:property [
+            sh:path rl2:rightOperand ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:message "rightOperand must be a literal value."
+        ] ]
+        [ sh:property [
+            sh:path rl2:rightOperandRef ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:message "rightOperandRef must be an IRI reference."
+        ] ]
     ) .
 
 # Conditional requirement: targetNorm REQUIRED for norm state operands.
@@ -246,11 +256,6 @@ rl2:AssetCollectionShape a sh:NodeShape ;
     sh:property [
         sh:path rl2:member ;
         sh:class rl2:Asset
-    ] ;
-    sh:property [
-        sh:path rl2:dynamicQuery ;
-        sh:maxCount 1 ;
-        sh:datatype xsd:string
     ] .
 
 ############################################################

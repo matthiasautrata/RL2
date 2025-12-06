@@ -1323,10 +1323,6 @@ If the researcher attempted to distribute:
 
 - **RL2_Protocol.md** — Interchange of evaluation requests and results between systems
 
-### Background and Motivation
-
-- **RL2_White_Paper.md** — Rationale, architectural overview, comparison to related systems
-
 ### Implementation
 
 - **RL2_ResearchPlan.md** — Roadmap for formal verification and mechanization

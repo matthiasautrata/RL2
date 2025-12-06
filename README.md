@@ -25,10 +25,8 @@ RL2 provides a semantic superset of ODRL 2.2 capabilities (see [ODRL Coverage](R
 
 | Document | Description |
 |----------|-------------|
-| [RL2_Core.md](RL2_Core.md) | Overview and documentation hub |
 | [RL2_Primer.md](RL2_Primer.md) | Progressive tutorial for learning RL2 |
 | [RL2_Vocabulary.md](RL2_Vocabulary.md) | Complete class and property reference |
-| [RL2_White_Paper.md](RL2_White_Paper.md) | Motivation and design overview |
 
 ### Technical Specifications
 

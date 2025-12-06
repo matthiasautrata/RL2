@@ -386,8 +386,9 @@
 
 | Document | Description |
 |----------|-------------|
-| RL2_Core.md | Core ontology (OWL) and SHACL shapes |
+| rl2.ttl | Core ontology (OWL) |
+| rl2-shacl.ttl | SHACL validation shapes |
 | RL2_Semantics.md | Formal evaluation semantics |
 | RL2_Protocol.md | Request/response protocol for interoperability |
 | RL2_ODRL_Coverage.md | Mapping from ODRL 2.2/3.0 to RL2 |
-| RL2_White_Paper.md | Introduction and motivation |
+| RL2_Primer.md | Tutorial introduction |

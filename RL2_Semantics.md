@@ -105,7 +105,7 @@ where `PromiseContent ∈ {Action, Duty, Condition}` (matching the `rl2:PromiseC
 
 ```
 Condition ::=
-      Atom(leftOperand, operator, rightOperand)
+      AtomicConstraint(leftOperand, operator, rightOperand)
     | And(Condition+)
     | Or(Condition+)
     | Xone(Condition+)
@@ -128,7 +128,7 @@ Notes:
 ```
 Event ::= event(eventType, payload)
 
-Transition ::=
+StateTransition ::=
     Activate(Norm)
   | Fulfill(Duty)
   | Violate(Duty)
@@ -304,7 +304,7 @@ We write:
 Atomic constraints:
 
 ```
-⟦ Atom(op, operator, value, targetNorm?) ⟧(Env) =
+⟦ AtomicConstraint(op, operator, value, targetNorm?) ⟧(Env) =
      let leftVal = resolve(op, Env, targetNorm)
      let rightVal = case value of
          RuntimeRef(r) → resolveRuntime(r, Env)
@@ -1246,7 +1246,7 @@ Conflict resolution reduces to condition calculus:
 - If two norms conflict, policy-level or clause-level precedence applies
 - RL2 supports ODRL conflict semantics via the `resolveDecision` function
 
-**Note on Inheritance**: ODRL's `inheritFrom` mechanism is intentionally not supported in RL2. Policy inheritance introduces complexity (flattening, override semantics, auditability issues) without clear benefit over explicit composition. See **RL2_DiscussionTopics.md** for discussion.
+**Note on Inheritance**: ODRL's `inheritFrom` mechanism is intentionally not supported in RL2. Policy inheritance introduces complexity (flattening, override semantics, auditability issues) without clear benefit over explicit composition. See **backlog.md** §Policy Inheritance.
 
 ---
 
@@ -1363,7 +1363,7 @@ type action
 type asset
 
 type condition =
-  | Atom operand operator value
+  | AtomicConstraint operand operator value
   | And condition condition
   | Or  condition condition
   | Not condition
@@ -1423,7 +1423,7 @@ The following patterns are not directly expressible in current RL2:
 * **Quorum approvals** ("any 2 of 5 committee members")
 * **Nested temporal modalities** ("eventually always X")
 
-These may be addressed in future extensions. See **RL2_DiscussionTopics.md** for ongoing discussion.
+These may be addressed in future extensions. See **backlog.md** for ongoing discussion.
 
 ## Comparison with Other Formalisms
 
@@ -1450,5 +1450,6 @@ This document provides the first complete formal semantics for RL2, defining abs
 See **RL2_References.md** for complete citations and glossary.
 
 Related RL2 specifications:
-- RL2_Core.md — Ontology and SHACL shapes
+- rl2.ttl — Core ontology (OWL)
+- rl2-shacl.ttl — SHACL validation shapes
 - RL2_Protocol.md — Runtime evaluation protocol

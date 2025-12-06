@@ -408,10 +408,9 @@ See: [check-signing-sod.md](usecases/check-signing-sod.md), [break-glass.md](use
 
 ### How do I get started with RL2?
 
-1. Read the [White Paper](RL2_White_Paper.md) for motivation and design rationale
-2. Work through the [Primer](RL2_Primer.md) for a tutorial introduction
-3. Study the [use cases](usecases/README.md) for concrete examples
-4. Reference [RL2_Core.md](RL2_Core.md) for the ontology specification
+1. Work through the [Primer](RL2_Primer.md) for a tutorial introduction
+2. Study the [use cases](usecases/README.md) for concrete examples
+3. Reference [rl2.ttl](rl2.ttl) and [RL2_Vocabulary.md](RL2_Vocabulary.md) for the ontology specification
 
 ### Where can I find example policies?
 
@@ -431,8 +430,8 @@ Each use case shows the policy intent, RL2 model, and evaluation semantics.
 
 | Document | Description |
 |----------|-------------|
-| [RL2_White_Paper.md](RL2_White_Paper.md) | Introduction and motivation |
 | [RL2_Primer.md](RL2_Primer.md) | Tutorial introduction |
-| [RL2_Core.md](RL2_Core.md) | Core ontology and SHACL shapes |
+| [rl2.ttl](rl2.ttl) | Core ontology (OWL) |
+| [rl2-shacl.ttl](rl2-shacl.ttl) | SHACL validation shapes |
 | [RL2_Semantics.md](RL2_Semantics.md) | Formal evaluation semantics |
 | [RL2_References.md](RL2_References.md) | Bibliography and glossary |

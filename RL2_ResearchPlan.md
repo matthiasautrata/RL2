@@ -107,7 +107,7 @@ The RL2 specification suite provides a near-executable semantics:
 | Component | Document | Mechanization Fit |
 |-----------|----------|-------------------|
 | Abstract syntax (algebraic grammar) | RL2_Semantics.md | Maps directly to inductive datatypes |
-| Typed ontology with SHACL shapes | RL2_Core.md | Well-formedness preconditions |
+| Typed ontology with SHACL shapes | rl2.ttl, rl2-shacl.ttl | Well-formedness preconditions |
 | Denotational semantics | RL2_Semantics.md | Pure functions `⟦e⟧ : Env → Value` |
 | Operational semantics | RL2_Semantics.md | Small-step transitions, inductive predicates |
 | Runtime protocol | RL2_Protocol.md | State Σ, request/response lifecycle |
@@ -245,7 +245,7 @@ Every ODRL concept has an RL2 representation; RL2 is a semantic superset (see RL
 1. **Extract OCaml code** from verified Why3 modules
 2. **Build reference evaluator CLI** that takes RL2 policies and requests
 3. **Create test suite** covering all RL2 constructs
-4. **Validate** against hand-worked examples from RL2_White_Paper.md
+4. **Validate** against hand-worked examples from usecases/
 
 ### Phase 3: Metatheory Completion (Weeks 6-8)
 
@@ -345,7 +345,7 @@ These decisions can be revisited based on actual needs, but the default is pragm
 
 1. **Concurrency**: Semantics is single-threaded; real deployments may need concurrent duty tracking
 
-2. **Asset Collection Materialization**: Dynamic collection semantics are profile-specific (Core deprecates `dynamicQuery`); termination/finiteness must be proved per profile resolver
+2. **Asset Collection Materialization**: Dynamic collection semantics are profile-specific; termination/finiteness must be proved per profile resolver
 
 3. **External Context**: `lookupExternal` is parameterized; each deployment must instantiate and verify
 

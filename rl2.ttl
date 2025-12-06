@@ -126,7 +126,14 @@ rl2:PromiseContent a owl:Class ;
     Note: A promise references one of these types to describe what is promised.
     The promisor commits to performing an Action, fulfilling a Duty, or ensuring
     a Condition holds. This is a pragmatic modeling choice; the promise is
-    'about' the content, not identical to it.""" .
+    'about' the content, not identical to it.
+
+    IMPORTANT: When promise content references a Duty, the promisor does NOT
+    automatically become the dutyHolder of that Duty. The promise merely
+    expresses intent regarding the Duty; legal assignment of duty holders
+    requires explicit rl2:dutyHolder assertions on the Duty itself. A promise
+    is a voluntary commitment (Promise Theory) distinct from legal obligation
+    (Hohfeldian Duty).""" .
 
 rl2:promiseContent a owl:ObjectProperty ;
     rdfs:domain rl2:Promise ;
@@ -395,12 +402,6 @@ rl2:requires a owl:ObjectProperty ;
     rdfs:range rl2:ConditionOrEvent ;
     rdfs:comment "Composite condition requirement; may require another condition or a specific event." .
 
-
-rl2:dynamicQuery a owl:DatatypeProperty ;
-    rdfs:domain rl2:AssetCollection ;
-    rdfs:range xsd:string ;
-    owl:deprecated "true"^^xsd:boolean ;
-    rdfs:comment """DEPRECATED in RL2 Core. Materialization of dynamic collections is profile-specific and must define its own semantics and validation. Core AssetCollection remains for static membership; profiles MAY define their own dynamic resolvers.""" .
 
 rl2:interval a owl:ObjectProperty ;
     rdfs:domain rl2:TemporalConstraint ;
