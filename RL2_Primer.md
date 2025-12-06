@@ -555,13 +555,12 @@ Most norms do not apply unconditionally. Constraints—time windows, purpose res
                     Condition
                         |
      +------------------+------------------+
-     |          |       |        |         |
-  Atomic    Logical  Temporal Context   Event
-Constraint Constraint Constraint Constraint Constraint
-                                           |
-                                      Dynamic
-                                    OperandRef
+     |          |            |             |
+  Atomic    Logical      Temporal       Event
+Constraint Constraint   Constraint    Constraint
 ```
+
+Note: Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`. Dynamic value resolution on the right side (e.g., comparing to the current agent) uses `RuntimeReference`.
 
 ### Atomic Constraints
 
@@ -656,17 +655,6 @@ ex:approvalRequired a rl2:EventConstraint ;
 ```
 
 This requires: "An approval event from the DataOwner must have occurred."
-
-### Dynamic Operand References
-
-Values not known until evaluation time may be specified dynamically:
-
-```turtle
-ex:dynamicDeadline a rl2:DynamicOperandReference ;
-    rl2:dynamicOperand "event.AccessEvent.timestamp + P30D" .
-```
-
-This evaluates to "30 days after the access event occurred."
 
 ### Composite Conditions
 

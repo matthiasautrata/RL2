@@ -197,7 +197,8 @@ rl2p:forRequest a owl:ObjectProperty ;
 
 rl2p:contextSubject a owl:ObjectProperty ;
     rdfs:domain rl2p:ContextAssertion ;
-    rdfs:comment "The subject of the assertion (typically an agent or asset)." .
+    rdfs:range rdfs:Resource ;
+    rdfs:comment "The subject of the assertion (an agent, asset, or duty requirement). Must be a resource IRI, not a literal." .
 
 rl2p:contextProperty a owl:ObjectProperty ;
     rdfs:domain rl2p:ContextAssertion ;

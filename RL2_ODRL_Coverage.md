@@ -346,8 +346,8 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | ODRL 3.0 Requirement       | RL2 Construct(s)                              | Coverage | Semantics Reference |
 | -------------------------- | --------------------------------------------- | -------- | ------------------- |
 | Dynamic asset collections  | rl2:AssetCollection (dynamic materialization profile-specific) | Partial  | Profile semantics (Core deprecates rl2:dynamicQuery) |
-| Dynamic operand references | rl2:DynamicOperandReference, rl2:currentAgent | Full     | RL2_Semantics §resolve, §deref |
-| Path expressions           | rl2:resolutionPath, rl2:dynamicOperand        | Full     | RL2_Semantics §deref |
+| Dynamic operand references | rl2:RuntimeReference (e.g., rl2:currentAgent) | Full     | RL2_Semantics §resolveRuntime |
+| Path expressions           | rl2:LeftOperand + rl2:resolutionPath          | Full     | RL2_Semantics §deref |
 | Temporal validity          | rl2:TemporalConstraint, rl2:EffectiveInterval | Full     | RL2_Semantics §timeout, §TemporalInterval |
 | Duty sequencing            | Operational semantics, rl2:StateTransition    | Full     | RL2_Semantics §Operational Semantics |
 | Duty state preconditions   | rl2:obligationStateOperand, rl2:targetNorm    | Full     | RL2_Semantics §resolve |
@@ -404,7 +404,7 @@ This example demonstrates a comprehensive RL2 policy incorporating:
 * DPCL primitives (Privilege/Duty/Prohibition)
 * Policy typing via subclass
 * Temporal constraints
-* Dynamic asset collections
+* Asset collections
 * Multi-party approval via EventConstraint
 * Promise-based conditions
 * Domain-specific actions and left operands (defined in-policy)
@@ -445,12 +445,13 @@ ex:EthicsBoard a rl2:Agent .
 # =============================================================
 
 # Dynamic asset collection
+# Note: rl2:dynamicQuery is deprecated in RL2 Core.
+# Production implementations should use profile-specific resolution mechanisms.
+# This example shows the pattern for ODRL mapping; actual materialization is profile-defined.
 ex:RestrictedDatasets a rl2:AssetCollection ;
-    rl2:dynamicQuery """
-        SELECT ?asset WHERE {
-            ?asset ex:classification ex:RestrictedResearch .
-        }
-    """ .
+    rl2:member ex:Dataset1 ;  # Static members for Core
+    rl2:member ex:Dataset2 .
+    # Profile-specific dynamic resolution would replace static members
 
 # =============================================================
 # Promise content
@@ -528,7 +529,7 @@ ex:DistributionBan a rl2:Prohibition ;
 
 This policy:
 
-1. Grants usage privilege over a dynamic collection of restricted datasets
+1. Grants usage privilege over a collection of restricted datasets
 2. Requires the current date to be within the semester window
 3. Requires prior approval from the ethics board (modeled as EventConstraint)
 4. Requires the researcher to have fulfilled a stewardship promise

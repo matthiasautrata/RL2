@@ -111,7 +111,7 @@ Alphabetical listing of all RL2 classes with brief descriptions.
 | `rl2:ComparisonOperator` | Operator | Operators for comparing values |
 | `rl2:Condition` | Condition | Base class for constraints |
 | `rl2:Duty` | Normative | An obligation imposed on an agent |
-| `rl2:DynamicOperandReference` | Condition | Reference resolved at evaluation time |
+| `rl2:RuntimeReference` | Value | Value reference resolved at evaluation time (e.g., `currentAgent`) |
 | `rl2:EffectiveInterval` | Temporal | A time interval with start and end |
 | `rl2:Event` | Operational | Observable event triggering transitions |
 | `rl2:EventConstraint` | Condition | Constraint requiring an event to occur |
@@ -511,11 +511,13 @@ ex:sensitiveAssets a rl2:AssetCollection ;
 
 **Type**: `owl:Class`
 
-**Subclasses**: AtomicConstraint, LogicalConstraint, TemporalConstraint, EventConstraint, DynamicOperandReference
+**Subclasses**: AtomicConstraint, LogicalConstraint, TemporalConstraint, EventConstraint
 
 **Common Properties**:
 - `rl2:constraintOperator` — Operator for evaluation
 - `rl2:requires` — Composite requirements
+
+**Notes**: Dynamic value resolution uses `LeftOperand` with `resolutionPath` (for left-side values) or `RuntimeReference` (for right-side values like `currentAgent`).
 
 ---
 
@@ -643,42 +645,29 @@ ex:approvalRequired a rl2:EventConstraint ;
 
 ---
 
-### rl2:DynamicOperandReference
+### rl2:RuntimeReference
 
-**Definition**: A reference resolved at evaluation time, enabling computed values.
+**Definition**: A value reference resolved at evaluation time. Used in `rightOperandRef` for dynamic comparisons.
 
 **Type**: `owl:Class`
 
-**Superclass**: `rl2:Condition`
-
-**Required Properties** (for custom references):
-- `rl2:dynamicOperand` — Path expression to resolve
-
-**SHACL Shape**: `rl2:DynamicOperandReferenceShape`
-
 **Core Instances**:
+- `rl2:currentAgent` — Resolves to `Env.Agent` (the requesting agent)
 
-| Instance | Resolves To | Description |
-|----------|-------------|-------------|
-| `rl2:currentAgent` | `Env.Agent` | The agent making the current request |
+**Notes**:
+- `RuntimeReference` represents comparison *values*, not conditions
+- Used with `dutyPerformerOperand` for identity binding patterns
+- SHACL warns when `dutyPerformerOperand` is compared against non-RuntimeReference IRIs (security concern)
 
-**Example (path expression)**:
+**Example**:
 ```turtle
-ex:deadlineRef a rl2:DynamicOperandReference ;
-    rl2:dynamicOperand "event.AccessEvent.timestamp + P30D" .
-```
-
-**Example (using currentAgent for identity binding)**:
-```turtle
-# Check if the current agent fulfilled the duty (Separation of Duty)
-ex:sodCheck a rl2:AtomicConstraint ;
-    rl2:targetNorm ex:preparationDuty ;
+# Tun-sollen: current agent must have fulfilled the duty
+ex:identityCheck a rl2:AtomicConstraint ;
+    rl2:targetNorm ex:paymentDuty ;
     rl2:leftOperand rl2:dutyPerformerOperand ;
-    rl2:constraintOperator rl2:neq ;       # NOT equal
-    rl2:rightOperandRef rl2:currentAgent . # Must be a DIFFERENT agent
+    rl2:constraintOperator rl2:eq ;
+    rl2:rightOperandRef rl2:currentAgent .  # RuntimeReference
 ```
-
-**Security Note**: Implementations must sanitize path expressions to prevent injection attacks.
 
 ---
 
@@ -1095,7 +1084,6 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
 | `rl2:requires` | Condition | ConditionOrEvent | Composite requirement |
 | `rl2:interval` | TemporalConstraint | EffectiveInterval | Time interval |
-| `rl2:dynamicOperand` | DynamicOperandReference | xsd:string | Path expression |
 | `rl2:expectsEvent` | EventConstraint | Event | Required event |
 
 ### Temporal Properties
@@ -1175,11 +1163,11 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:obligationStateOperand` | LeftOperand | Queries Σ.ObligationState(targetNorm) |
 | `rl2:dutyPerformerOperand` | LeftOperand | Queries Σ.DutyPerformer(targetNorm) |
 
-### Dynamic Reference Instances
+### Runtime Reference Instances
 
 | Individual | Type | Description |
 |------------|------|-------------|
-| `rl2:currentAgent` | DynamicOperandReference | Resolves to Env.Agent at evaluation time |
+| `rl2:currentAgent` | RuntimeReference | Resolves to Env.Agent at evaluation time |
 
 ---
 
@@ -1222,8 +1210,8 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires targetNorm |
 | `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires LogicalOperator, at least one operand |
 | `rl2:TemporalConstraintShape` | rl2:TemporalConstraint | Requires interval |
-| `rl2:DynamicOperandReferenceShape` | rl2:DynamicOperandReference | Requires dynamicOperand |
 | `rl2:EventConstraintShape` | rl2:EventConstraint | Requires expectsEvent |
+| `rl2:DynamicOperandPairingShape` | AtomicConstraint with dutyPerformerOperand | Warns if rightOperandRef is not a RuntimeReference |
 
 ### Temporal Shapes
 

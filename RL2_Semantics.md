@@ -111,7 +111,6 @@ Condition ::=
     | Xone(Condition+)
     | Not(Condition)
     | TemporalInterval(t_start, t_end)
-    | DynamicOperand(path)
     | EventConstraint(expectsEvent: Event)
     | Composite(requires: Condition+)
 ```
@@ -121,6 +120,8 @@ Notes:
 - `Composite` models conditions that require other conditions to hold (using `rl2:requires` property chains)
 - `EventConstraint` models approval requirements; holds when the expected event is present in Σ.Events
 - `leftOperand` is drawn from profile-defined operands (RL2 Core defines the class `rl2:LeftOperand` but not instances)
+- Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`
+- Dynamic value resolution on the right side uses `RuntimeReference` (e.g., `currentAgent`)
 
 #### Events and Transitions
 
@@ -306,12 +307,12 @@ Atomic constraints:
 ⟦ Atom(op, operator, value, targetNorm?) ⟧(Env) =
      let leftVal = resolve(op, Env, targetNorm)
      let rightVal = case value of
-         DynamicRef(r) → resolveDynamic(r, Env)
+         RuntimeRef(r) → resolveRuntime(r, Env)
          Literal(v)    → v
      in apply(operator, leftVal, rightVal)
 ```
 
-The optional `targetNorm` parameter specifies which norm's state to query when using `obligationStateOperand` or `dutyPerformerOperand`. The right operand may be a literal value or a dynamic reference (e.g., `currentAgent`).
+The optional `targetNorm` parameter specifies which norm's state to query when using `obligationStateOperand` or `dutyPerformerOperand`. The right operand may be a literal value or a runtime reference (e.g., `currentAgent`).
 
 Logical conditions:
 
@@ -329,18 +330,6 @@ Temporal:
 ⟦ TemporalInterval(start,end) ⟧(Env) =
     true if start ≤ Env.Σ.Clock ≤ end
 ```
-
-Dynamic operand:
-
-```
-⟦ DynamicOperand(path) ⟧(Env) = deref(path, Env)
-```
-
-**Usage Note**: `DynamicOperand` is primarily used internally for:
-- `rl2:currentAgent` (resolves to `Env.Agent`)
-- Dynamic deadline computation (e.g., `"event.AccessEvent.timestamp + P30D"`)
-
-Policy authors SHOULD NOT use raw `DynamicOperandReference` for context access. Instead, use profile-declared `LeftOperand` instances with `resolutionPath`. This ensures type safety and enables SHACL validation.
 
 Event constraint (approval requirement):
 
@@ -426,24 +415,46 @@ Profiles define domain-specific left operands with resolution paths, such as:
 * `eventPerformer` → `rl2:resolutionPath "state.Events.*.operationalAgent"`
 * `department` → `rl2:resolutionFunction "lookupDepartment"`
 
-#### Dynamic References
+#### Runtime References
 
-Dynamic references resolve to values at evaluation time:
+Runtime references resolve to values at evaluation time. These are used in `rightOperandRef` for dynamic comparisons.
 
 ```
-resolveDynamic : DynamicOperandReference × Env → Value ∪ {⊥}
+resolveRuntime : RuntimeReference × Env → Value ∪ {⊥}
 
-resolveDynamic(ref, Env) =
+resolveRuntime(ref, Env) =
     case ref of
         currentAgent → Env.Agent
-        _            → deref(ref.dynamicOperand, Env)
+        _            → ⊥  -- Unknown runtime reference
 ```
 
 The `currentAgent` reference resolves to `Env.Agent` — the agent making the current request. This is used in `rightOperandRef` to compare against `dutyPerformerOperand` for identity binding.
 
+**Security Note**: When `leftOperand` is a dynamic operand like `dutyPerformerOperand`, `rightOperandRef` SHOULD be a `RuntimeReference` (e.g., `currentAgent`), not a static IRI. Hardcoded comparisons like `dutyPerformerOperand eq ex:Bob` bypass dynamic binding semantics and create security vulnerabilities. SHACL validation flags such patterns as warnings.
+
 #### deref : Path × Env → Value
 
 The function `deref(path, Env)` traverses a path expression to retrieve a value. This is the **primary mechanism for resolving profile-declared operands** via `rl2:resolutionPath`.
+
+**Path Grammar** (normative):
+
+All path expressions MUST conform to the following grammar:
+
+```
+Path       ::= Root ('.' Segment)*
+Root       ::= 'agent' | 'asset' | 'context' | 'state' | 'request'
+Segment    ::= Identifier | Wildcard
+Identifier ::= [a-zA-Z_][a-zA-Z0-9_]*
+Wildcard   ::= '*'
+```
+
+Constraints:
+- Paths MUST begin with a valid Root
+- The Wildcard `*` is ONLY valid immediately after `Events` (i.e., `state.Events.*`)
+- Identifiers MUST NOT contain `.`, `/`, `..`, or URL-encoded characters
+- Maximum path depth: 10 segments (implementation MAY enforce)
+
+Paths not conforming to this grammar MUST be rejected at parse time, not at evaluation time. This ensures that malformed paths cannot be used to probe for valid segments.
 
 **Canonical Path Roots** (normatively defined):
 
@@ -485,32 +496,46 @@ navigate(obj, segment) =
 
 **Wildcard Selection Rules** (normative):
 
-When a path segment is `*`, the following selection rules apply:
+The wildcard `*` is permitted ONLY in the pattern `state.Events.*` and MUST be accompanied by an `EventConstraint` in the same `LogicalConstraint`. This ensures deterministic, auditable event selection.
 
-1. **Within `state.Events.*`**: Returns the **most recent event** that matches the EventConstraint in the same LogicalConstraint (if any). If no EventConstraint is present, returns the most recent event of any type.
+When a path contains `state.Events.*`, the following selection rules apply:
+
+1. **EventConstraint requirement**: The `LogicalConstraint` containing the wildcard path MUST include an `EventConstraint` specifying the expected event type. Wildcards without a sibling `EventConstraint` SHOULD be flagged as a validation warning (implementations MAY treat as error).
 
 2. **Selection is singular**: Wildcards always resolve to a single value, not a set. This ensures `deref` remains a total function over allowed paths.
 
-3. **Precedence**: If multiple events could match:
-   - Events matching an explicit EventConstraint take precedence
-   - Among matching events, the most recent (by `rl2:eventTime`) is selected
+3. **Precedence**: Among events matching the `EventConstraint`:
+   - The most recent (by `rl2:eventTime`) is selected
    - If no events match, returns ⊥
 
 Formally:
 ```
-navigate(Events, "*") =
-    let candidates = { e ∈ Events | matchesConstraintInScope(e) }
+navigate(Events, "*", constraintInScope) =
+    require constraintInScope ≠ ⊥  -- EventConstraint must be present
+    let candidates = { e ∈ Events | matches(e, constraintInScope.expectsEvent) }
     in if candidates = ∅ then ⊥
        else maxBy(eventTime, candidates)
 ```
+
+**Rationale**: Requiring an `EventConstraint` sibling eliminates ambiguity about which event the wildcard selects. Without this constraint, `state.Events.*.operationalAgent` could return the performer of *any* recent event, creating security vulnerabilities in identity-binding patterns.
 
 This rule ensures that identity binding patterns like:
 ```turtle
 rl2:leftOperand emergency:eventPerformerOperand ;  # resolutionPath "state.Events.*.operationalAgent"
 ```
-correctly resolve to the performer of the **triggering event** when used alongside an EventConstraint.
+correctly resolve to the performer of the **triggering event** specified by the accompanying `EventConstraint`.
 
-**Security Note**: Implementations MUST validate path roots against the canonical set above. Arbitrary paths could enable unauthorized data access.
+**Security Requirements** (normative):
+
+Implementations MUST enforce the following security constraints:
+
+1. **Root validation**: Reject paths not starting with a canonical root (`agent`, `asset`, `context`, `state`, `request`)
+2. **Grammar validation**: Reject paths containing `..`, `/`, `%`, or other traversal/encoding patterns
+3. **Wildcard restriction**: Reject `*` in any position other than immediately after `state.Events`
+4. **Depth limiting**: MAY reject paths exceeding implementation-defined maximum depth
+5. **Fail-closed**: Return `⊥` (not an error message) for invalid paths to prevent information leakage
+
+These constraints prevent path traversal attacks and unauthorized data access via malformed resolution paths.
 
 Example paths:
 * `agent.department` → the agent's department

@@ -226,10 +226,14 @@ rl2:TemporalConstraint a owl:Class ;
     rdfs:comment "A condition based on time intervals or temporal relations." .
 
 
-rl2:DynamicOperandReference a owl:Class ;
-    rdfs:subClassOf rl2:Condition ;
-    rdfs:label "Dynamic Operand Reference" ;
-    rdfs:comment "Reference resolved at evaluation time." .
+rl2:RuntimeReference a owl:Class ;
+    rdfs:label "Runtime Reference" ;
+    rdfs:comment """A value reference resolved at evaluation time.
+    Used in rightOperandRef of AtomicConstraints for dynamic comparisons.
+    
+    Core instance: rl2:currentAgent (resolves to Env.Agent).
+    
+    For left-side dynamic values, use LeftOperand with resolutionPath instead.""" .
 
 rl2:EventConstraint a owl:Class ;
     rdfs:subClassOf rl2:Condition ;
@@ -266,12 +270,16 @@ rl2:dutyPerformerOperand a rl2:LeftOperand ;
     Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
 
 # Dynamic reference for current agent
-rl2:currentAgent a rl2:DynamicOperandReference ;
+rl2:currentAgent a rl2:RuntimeReference ;
     rdfs:label "Current Agent" ;
     rdfs:comment """Resolves to Env.Agent (the agent making the current request) at evaluation time.
     Used in rightOperandRef to compare against dutyPerformerOperand for identity binding:
     - dutyPerformer eq currentAgent → Tun-sollen (same subject must fulfill)
-    - dutyPerformer neq currentAgent → Separation of Duty (different subject must fulfill)""" .
+    - dutyPerformer neq currentAgent → Separation of Duty (different subject must fulfill)
+    
+    Security: When leftOperand is dutyPerformerOperand (or similar dynamic operand),
+    rightOperandRef SHOULD be a RuntimeReference like currentAgent, not a static IRI.
+    This prevents hardcoded identity checks that bypass dynamic binding.""" .
 
 rl2:action a owl:ObjectProperty ;
     rdfs:domain rl2:Norm ;
@@ -386,13 +394,6 @@ rl2:requires a owl:ObjectProperty ;
     rdfs:domain rl2:Condition ;
     rdfs:range rl2:ConditionOrEvent ;
     rdfs:comment "Composite condition requirement; may require another condition or a specific event." .
-
-rl2:dynamicOperand a owl:DatatypeProperty ;
-    rdfs:domain rl2:DynamicOperandReference ;
-    rdfs:range xsd:string ;
-    rdfs:comment """Path expression resolved at evaluation time.
-    SECURITY: Implementations must sanitize or validate path expressions
-    to prevent injection attacks. Use allowlisted paths where possible.""" .
 
 
 rl2:dynamicQuery a owl:DatatypeProperty ;

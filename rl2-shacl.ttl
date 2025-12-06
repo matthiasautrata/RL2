@@ -205,11 +205,6 @@ rl2:LogicalConstraintShape a sh:NodeShape ;
     sh:property [ sh:path rl2:operand ; sh:minCount 1 ; sh:class rl2:Condition ] .
 
 
-# Dynamic operand references require a dynamic operand path
-rl2:DynamicOperandReferenceShape a sh:NodeShape ;
-    sh:targetClass rl2:DynamicOperandReference ;
-    sh:property [ sh:path rl2:dynamicOperand ; sh:minCount 1 ; sh:datatype xsd:string ] .
-
 # Event constraints require an expected event
 rl2:EventConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:EventConstraint ;
@@ -484,4 +479,90 @@ rl2:AtomicConstraintLeftOperandShape a sh:NodeShape ;
         sh:path rl2:leftOperand ;
         sh:class rl2:LeftOperand ;
         sh:message "leftOperand must be an instance of rl2:LeftOperand."
+    ] .
+
+############################################################
+# Identity Binding Security Shapes
+############################################################
+#
+# These shapes enforce secure patterns for identity binding
+# comparisons. When comparing dynamic operands (like dutyPerformerOperand)
+# the right side should also be a runtime reference (like currentAgent),
+# not a hardcoded IRI that would bypass dynamic binding semantics.
+#
+
+# Dynamic operand pairing - rightOperandRef must be RuntimeReference
+# when leftOperand is dutyPerformerOperand
+#
+# This prevents patterns like:
+#   rl2:leftOperand rl2:dutyPerformerOperand ;
+#   rl2:rightOperandRef ex:Bob .  # INSECURE: hardcoded identity
+#
+# Correct pattern:
+#   rl2:leftOperand rl2:dutyPerformerOperand ;
+#   rl2:rightOperandRef rl2:currentAgent .  # SECURE: dynamic binding
+#
+rl2:DynamicOperandPairingShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this a rl2:AtomicConstraint ;
+                      rl2:leftOperand rl2:dutyPerformerOperand ;
+                      rl2:rightOperandRef ?ref .
+            }
+        """
+    ] ;
+    sh:severity sh:Warning ;
+    sh:property [
+        sh:path rl2:rightOperandRef ;
+        sh:class rl2:RuntimeReference ;
+        sh:message """Security warning: When leftOperand is dutyPerformerOperand, 
+rightOperandRef should be a RuntimeReference (e.g., rl2:currentAgent) 
+rather than a static IRI. Hardcoded identity comparisons bypass dynamic 
+binding semantics and may create security vulnerabilities."""
+    ] .
+
+# Wildcard path requires EventConstraint sibling
+# When using state.Events.* wildcard paths, the containing LogicalConstraint
+# should include an EventConstraint to specify which event type to select.
+rl2:WildcardEventConstraintShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this rl2:resolutionPath ?path .
+                FILTER(CONTAINS(?path, "state.Events.*"))
+            }
+        """
+    ] ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message """Wildcard path state.Events.* should be accompanied by an EventConstraint 
+in the same LogicalConstraint to specify which event type to select. 
+Without an EventConstraint, the wildcard may match unintended events.""" ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this WHERE {
+                $this rl2:resolutionPath ?path .
+                FILTER(CONTAINS(?path, "state.Events.*"))
+                # Find the constraint using this operand
+                ?constraint rl2:leftOperand $this .
+                # Check if there's a sibling EventConstraint in same LogicalConstraint
+                FILTER NOT EXISTS {
+                    ?logical rl2:operand ?constraint ;
+                             rl2:operand ?eventConstraint .
+                    ?eventConstraint a rl2:EventConstraint .
+                }
+                # Also check if constraint itself is in a LogicalConstraint with EventConstraint
+                FILTER NOT EXISTS {
+                    ?logical2 rl2:operand $this ;
+                              rl2:operand ?ec2 .
+                    ?ec2 a rl2:EventConstraint .
+                }
+            }
+        """
     ] .

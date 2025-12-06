@@ -211,7 +211,8 @@ rl2p:ContextAssertionShape a sh:NodeShape ;
         sh:path rl2p:contextSubject ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-        sh:message "A ContextAssertion must have exactly one subject."
+        sh:nodeKind sh:IRI ;
+        sh:message "A ContextAssertion must have exactly one subject (an IRI, not a literal)."
     ] ;
     sh:property [
         sh:path rl2p:contextProperty ;

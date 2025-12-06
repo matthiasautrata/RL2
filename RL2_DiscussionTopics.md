@@ -351,7 +351,7 @@ The following sections contain full detail from the original discussion topics. 
 1. **RL2-Minimal**: Privilege, Prohibition, Duty, Policy, Condition (atomic + temporal)
    - Sufficient for: ODRL-equivalent policies, basic access control
 
-2. **RL2-Standard**: Minimal + Promise, EventConstraint, DynamicOperandReference
+2. **RL2-Standard**: Minimal + Promise, EventConstraint
    - Sufficient for: Approval workflows, data contracts
 
 3. **RL2-Full**: Standard + Power, Liability, Immunity, Claim

@@ -87,30 +87,30 @@ ex:usePrivilege a rl2:Privilege ;
     rl2:action ex:use ;
     rl2:object ex:Dataset .
 
-# Profile-declared operands for temporal constraints
-ex:clockOperand a rl2:LeftOperand ;
-    rdfs:label "System Clock" ;
-    rdfs:comment "Current system time from state." ;
-    rl2:resolutionPath "state.Clock" .
-
-ex:deadlineOperand a rl2:DynamicOperandReference ;
+# Profile-declared operand for computed deadlines
+# Note: Temporal arithmetic like "timestamp + P30D" is evaluator-specific.
+# This operand declares the semantic intent; the evaluator implements the computation.
+ex:deletionDeadlineOperand a rl2:LeftOperand ;
     rdfs:label "Deletion Deadline" ;
     rdfs:comment "Computed as 30 days after access event timestamp." ;
-    rl2:dynamicOperand "state.Events.AccessEvent.timestamp + P30D" .
+    rl2:resolutionPath "state.Events.AccessEvent.timestamp" ;
+    # The +P30D computation is handled by the evaluator based on this operand's semantics
+    .
 
 ex:deleteDuty a rl2:Duty ;
     rl2:subject ex:Researcher ;
     rl2:action ex:delete ;
     rl2:object ex:Dataset ;
     rl2:obligationState rl2:Pending ;
-    # Explicit Operational Semantics
     # Deadline: must be fulfilled within 30 days of access
-    # Modeled as: current time must be before deadline for duty to remain active
+    # Modeled as a temporal constraint with computed end time
     rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand ex:clockOperand ;
-        rl2:constraintOperator rl2:lte ;
-        rl2:rightOperandRef ex:deadlineOperand
+        a rl2:TemporalConstraint ;
+        rl2:interval [
+            a rl2:EffectiveInterval ;
+            # End time is computed by evaluator as AccessEvent.timestamp + P30D
+            # The evaluator binds this to the access event
+        ]
     ] .
 ```
 
