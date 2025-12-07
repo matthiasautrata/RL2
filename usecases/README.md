@@ -4,6 +4,8 @@ This folder contains use cases demonstrating RL2's capabilities, particularly du
 
 ## Use Case Index
 
+### Core Patterns (1-10)
+
 | # | Name | Pattern | Identity Check | File |
 |---|------|---------|----------------|------|
 | 1 | Pay-to-Play | Tun-sollen | `dutyPerformer = currentAgent` | [pay-to-play.md](pay-to-play.md) |
@@ -16,6 +18,28 @@ This folder contains use cases demonstrating RL2's capabilities, particularly du
 | 8 | Data Stewardship Promise | Promise fulfillment | `promisor = currentAgent` | [data-stewardship.md](data-stewardship.md) |
 | 9 | GDPR Right to Erasure | Data subject rights | attribute matching | [gdpr-erasure.md](gdpr-erasure.md) |
 | 10 | Audit Trail Requirement | Compliance | (none) | [audit-trail.md](audit-trail.md) |
+
+### Data Contracts & SLAs (11-13)
+
+| # | Name | Pattern | Domain | File |
+|---|------|---------|--------|------|
+| 11 | Data Freshness Promise | Promise + violation | Data Contracts | [data-freshness-promise.md](data-freshness-promise.md) |
+| 12 | Schema Evolution Lock | Event + temporal duty | Data Contracts | [schema-evolution.md](schema-evolution.md) |
+| 13 | Quality Circuit Breaker | State transition | Data Contracts | [quality-circuit-breaker.md](quality-circuit-breaker.md) |
+
+### Financial Entitlements (14-15)
+
+| # | Name | Pattern | Domain | File |
+|---|------|---------|--------|------|
+| 14 | Step-Up Authentication | Condition + obligation | Access Control | [step-up-auth.md](step-up-auth.md) |
+| 15 | Chinese Wall (Embargo) | Event-based expiry | Conflict of Interest | [chinese-wall.md](chinese-wall.md) |
+
+### Software Licensing (16-17)
+
+| # | Name | Pattern | Domain | File |
+|---|------|---------|--------|------|
+| 16 | Concurrent Seat Licensing | Global state | Licensing | [concurrent-seats.md](concurrent-seats.md) |
+| 17 | Trial Period Expiration | Temporal state transition | Licensing | [trial-period.md](trial-period.md) |
 
 ## Design Approach: Unified State
 
@@ -104,6 +128,23 @@ ex:accessPrivilege a rl2:Privilege ;
         ]
     ] .
 ```
+
+## RL2 vs ODRL: When Each Applies
+
+| Capability | ODRL 2.2 | RL2 |
+|------------|----------|-----|
+| Static permissions | Excellent | Supported |
+| Static prohibitions | Excellent | Supported |
+| Purpose constraints | Native (`odrl:purpose`) | Profile operand |
+| Spatial constraints | Native | Profile operand |
+| **Provider obligations** | Awkward | Native (Promise) |
+| **Event-based conditions** | Not supported | EventConstraint |
+| **State transitions** | Not supported | NormState machine |
+| **Identity binding** | Implied (SameSubject) | Explicit constraints |
+| **Temporal monitoring** | Limited | EffectiveInterval |
+| **Violation detection** | Not supported | State tracking |
+
+**Guidance:** Use cases 11-17 demonstrate patterns that require RL2's operational semantics. Static access control (purpose, geofencing) can be modeled in either, but RL2 provides a unified approach.
 
 ## Note on Use Case Files
 

@@ -1,6 +1,6 @@
 # RL2 → PNF Execution Model
 
-## Proposal & Rationale (Draft v0.8)
+## Proposal & Rationale (Draft v0.9)
 
 **Status:** Discussion Draft
 **Scope:** Execution semantics only
@@ -115,7 +115,40 @@ The RL2 → PNF compiler:
 * Bundles relevant hierarchy data (see §5)
 * Produces a closed PNF artifact
 
-### 3.2 Alignment with rl2p
+### 3.2 What Gets Bundled vs. Resolved at Runtime
+
+A critical distinction: PNF bundles **reference data**, not **operational state**.
+
+| Category | Examples | Bundled? | Why |
+|----------|----------|----------|-----|
+| **Reference data** | Purpose hierarchy, org tree, action taxonomy, type definitions | Yes | Static, versionable, required for hierarchy-aware evaluation |
+| **Operational state** | Asset status, event log, session counts, duty performer | No | Dynamic, changes continuously, unbounded |
+| **Request context** | Agent attributes, action, target asset | No | Provided per-request by rl2p |
+
+**The execution model:**
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    PNF Artifact                         │
+├─────────────────────────────────────────────────────────┤
+│  Compiled policy logic (closed grammar)                 │
+│  + Bundled reference data (hierarchies, taxonomies)     │
+│  + Version identifiers (policy, hierarchy, compiler)    │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          │ evaluate(Env, Σ)
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│                  Runtime Environment                    │
+├─────────────────────────────────────────────────────────┤
+│  Env: agent, action, asset (from rl2p request)          │
+│  Σ: event log, norm states, counters (from runtime)     │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Clarification:** When §3.1 says "bundles relevant hierarchy data," this means reference data for transitive closure (e.g., `skos:broader*`). It does *not* mean bundling the entire world state. Operational state (`Σ`) and request context (`Env`) are always resolved at evaluation time.
+
+### 3.3 Alignment with rl2p
 
 The RL2 Protocol already defines `rl2p:policyGeneration` as an opaque identifier for the policy snapshot under evaluation. PNF formalizes what that snapshot *is*.
 
@@ -380,3 +413,4 @@ Wasm solves political, technical, and operational constraints simultaneously:
 * **v0.6** — Added runtime architecture decision: Wasm as distribution format with OCaml implementation
 * **v0.7** — Explicit semantic class (propositional + bounded transitive closure); versioning now normative; tiering reconciled as optimization strategy; tightened political language
 * **v0.8** — Structural reorganization: front matter (what/why), proposal (§1-5), summary (§6-8), implementation details moved to appendices
+* **v0.9** — Clarified bundled vs. runtime state: reference data (hierarchies) bundled, operational state (Σ) and request context (Env) resolved at runtime
