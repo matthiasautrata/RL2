@@ -143,7 +143,7 @@ rl2:PromiseShape a sh:NodeShape ;
     sh:property [
         sh:path rl2:promiseContent ;
         sh:minCount 1 ;
-        sh:or (
+        sh:xone (
             [ sh:class rl2:Action ]
             [ sh:class rl2:Duty ]
             [ sh:class rl2:Condition ]

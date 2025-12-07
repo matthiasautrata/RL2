@@ -78,6 +78,17 @@ ex:deletionDuty a rl2:Duty ;
 
 See [RL2_Primer.md](RL2_Primer.md) for a complete walkthrough.
 
+## High-Trust Deployment Prerequisites
+
+RL2 defines policy semantics and evaluation protocols. For deployments requiring full audit trails and non-repudiation, the following infrastructure is assumed:
+
+- **Temporal/versioned data stores** — Reconstruct collection membership and attribute values at any historical point. Required for auditing decisions that reference dynamic data (e.g., "High Risk Client" lists).
+- **Immutable audit logs** — Append-only storage for EvaluationResults, ContextAssertions, and state transitions.
+- **Cryptographic attestation** — Signed decisions and evidence chains for non-repudiation.
+- **Policy version control** — Use `rl2:policyGeneration` to bind cases to specific policy versions.
+
+The spec provides hooks (`evaluationTime`, `policyGeneration`, `ContextAssertion`) — implementations wire these to appropriate infrastructure.
+
 ## Status
 
 Draft v0.4 — Under active development.

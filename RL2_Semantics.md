@@ -456,6 +456,17 @@ Constraints:
 
 Paths not conforming to this grammar MUST be rejected at parse time, not at evaluation time. This ensures that malformed paths cannot be used to probe for valid segments.
 
+**Security Requirement: Path Sandboxing**
+
+Implementations MUST enforce a strict sandbox for `deref` operations. The evaluator MUST reject any path that:
+
+1. Contains directory traversal sequences (e.g., `..`, `/`, `\`)
+2. References roots other than the canonical set (`agent`, `asset`, `context`, `state`, `request`)
+3. Contains URL-encoded characters or escape sequences
+4. Attempts to access host system variables or environment settings not explicitly mapped to the `Env` object
+
+Rationale: Without these constraints, a malicious path like `state.Events.../../private/key` could escape the policy evaluation sandbox and access host system resources. Path validation MUST occur at parse time to prevent timing-based probing attacks.
+
 **Canonical Path Roots** (normatively defined):
 
 | Root | Meaning | Example Paths |
