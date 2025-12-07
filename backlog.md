@@ -1,10 +1,13 @@
 # RL2 Backlog
 
-**Updated:** 2025-01-06
+**Updated:** 2025-12-07
 
 ---
 
 ## Design Decisions (Open)
+
+### PNF Semantic Boundary
+The PNF proposal (v0.7) commits to "propositional + bounded transitive closure" as the execution semantic class. This excludes general rule evaluation, open quantification, arbitrary joins, and open-world inference. **Action:** Verify this boundary is acceptable by hand-compiling representative use cases (break-glass, separation of duty, GDPR erasure, high-volume entitlements) to PNF and confirming no essential expressiveness is lost.
 
 ### Alignment Modules
 Optional `owl:equivalentClass` mappings to standard vocabularies (PROV-O for Case/Event, OWL-Time for EffectiveInterval, FOAF for Agent). Enables interoperability while keeping core standalone.

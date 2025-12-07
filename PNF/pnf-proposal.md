@@ -1,6 +1,6 @@
 # RL2 → PNF Execution Model
 
-## Proposal & Rationale (Draft v0.4)
+## Proposal & Rationale (Draft v0.8)
 
 **Status:** Discussion Draft
 **Scope:** Execution semantics only
@@ -41,6 +41,8 @@ We propose:
 > **PNF — Policy Normal Form**
 > A closed, unambiguous, compiled execution format for RL2.
 
+**Foundational guarantee:** PNF is a **specification, not a library**. Because PNF is defined by a rigorous schema, the ecosystem is inherently open — alternative implementations in any language are valid as long as they respect the schema. We are defining the execution format, not mandating a single runtime.
+
 ### 2.1 What PNF *Is*
 
 PNF is:
@@ -65,6 +67,21 @@ PNF is **not**:
 > **If it parses, it evaluates. If it doesn't parse, it's rejected.**
 
 No "unknown predicate" handling. No "ignore what you don't understand." No interpretation.
+
+### 2.4 The Semantic Class
+
+PNF is a **propositional kernel with bounded transitive closure**.
+
+Formally: PNF admits propositional logic over ground terms, plus fixed-point evaluation over a declared set of transitive relations. It explicitly excludes:
+
+* General rule evaluation
+* Open quantification
+* Arbitrary joins
+* Open-world inference
+
+This places PNF in the same computational class as Cedar and Rego's safe subset — decidable, tractable, and amenable to formal verification — while preserving the hierarchy-aware semantics that RL2 requires.
+
+> **Working hypothesis:** Propositional + bounded transitive closure is the correct semantic boundary until proven otherwise by concrete use cases.
 
 ---
 
@@ -182,8 +199,7 @@ The following are explicitly deferred pending real-world validation:
 1. **Compilation strategy** — full materialization vs bundled hierarchies vs embedded engine
 2. **Grammar specification** — concrete syntax and serialization format
 3. **Hierarchy bundling format** — how to package subgraphs efficiently
-4. **Versioning model** — how to handle underlying data changes
-5. **Wildcard semantics** — enumeration vs bounded runtime checks
+4. **Wildcard semantics** — enumeration vs bounded runtime checks
 
 These questions require working through representative use cases:
 
@@ -201,17 +217,22 @@ The execution model should emerge from these scenarios, not be designed in advan
 This proposal establishes:
 
 1. **PNF as a concept** — a closed execution format for RL2
-2. **Compilation as the boundary** — RL2 semantics resolved before execution
-3. **Grammar-first design** — parseability and verifiability as primary constraints
-4. **Explicit capabilities** — closed set of declared features, not open to extension
-5. **Minimal reasoning** — transitive closure only, over declared properties
+2. **Semantic class** — propositional kernel with bounded transitive closure (§2.4)
+3. **Compilation as the boundary** — RL2 semantics resolved before execution
+4. **Grammar-first design** — parseability and verifiability as primary constraints
+5. **Explicit capabilities** — closed set of declared features, not open to extension
+6. **Minimal reasoning** — transitive closure only, over declared properties
+7. **Versioning requirement** — every PNF artifact MUST carry stable identifiers for policy version, hierarchy version, and compilation environment
+
+**On tiering:** Earlier drafts distinguished a Tier-1 propositional fast path and Tier-2 full RL2 evaluation. This proposal treats that distinction as an **optimization strategy** rather than a semantic boundary: PNF defines the maximum executable subset of RL2 under closed-world assumptions, while implementations may route trivial cases through propositional specializations.
+
+**On implementation:** See Appendix A (unified OCaml architecture) and Appendix B (runtime distribution via Wasm) for reference implementation recommendations.
 
 It does **not** establish:
 
 * A concrete grammar
-* A compilation strategy
-* An execution architecture
-* Serialization formats
+* Serialization format details (beyond `bin_prot` direction)
+* Specific compilation strategies for hierarchy bundling
 
 ---
 
@@ -225,9 +246,137 @@ It does **not** establish:
 
 ---
 
-## Appendix: Document History
+## Appendix A: Implementation Architecture
+
+This appendix presents the case for a unified OCaml implementation stack.
+
+### A.1 Why Not BEAM?
+
+A tempting architectural pattern is to use a distributed runtime like BEAM (Erlang/Elixir) for PNF execution. This approach is **architecturally misaligned** with a CPU-bound, formally verified execution core.
+
+**Workload Mismatch:** The BEAM VM excels at I/O-bound concurrency — millions of open connections, waiting for database responses. Policy evaluation is CPU-bound: tree-walking, set intersection, transitive closure. For CPU-bound graph traversal, OCaml compiles to native code that is exceptionally efficient at recursive data structure manipulation.
+
+**The Polyglot Tax:** If the compiler is OCaml and runtime is BEAM, you must maintain two schema definitions. Every RL2 feature update requires changes to both. With a unified stack, types are defined once in `types.ml` and shared.
+
+**The Federation Fallacy:** In zero-trust environments, you do not open Erlang distribution ports across firewalls. Real federation means nodes pulling policy generations from a secure, immutable source (CDN/S3). Kubernetes handles restarts; OTP supervision is redundant.
+
+**Verified Correctness:** Verified code extracts from Coq or Why3 directly to OCaml. The path from math to binary is unbroken. With BEAM, you verify the algorithm, then hand-translate — introducing human error.
+
+### A.2 The Unified OCaml Architecture
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    Unified OCaml Stack                  │
+├─────────────────────────────────────────────────────────┤
+│  rl2c (Compiler)                                        │
+│  ├─ Reads Turtle/RL2, validates SHACL                   │
+│  ├─ Outputs PNF (bin_prot)                              │
+│  └─ Shares types.ml with interpreter                    │
+│                                                         │
+│  rl2d (Interpreter/Daemon)                              │
+│  ├─ mmap's PNF file, executes requests                  │
+│  └─ Shares types.ml with compiler                       │
+│                                                         │
+│  libpolicy.so (Optional)                                │
+│  └─ C-callable, embeds in NGINX/Envoy/Python            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Properties:** Single codebase, single type system. Native compilation, CPU-optimal. Verifiable via Coq/Why3 extraction. Minimal deployment footprint. Zero serialization overhead.
+
+---
+
+## Appendix B: Runtime Distribution Decision
+
+### B.1 PNF is an Open Specification
+
+Before selecting a reference implementation, we state the architectural guarantee: **PNF is a specification, not a library.**
+
+Because PNF is defined by a rigorous schema (available as `bin_prot` binary or S-expression text), the ecosystem is inherently open:
+
+* A scientist can use a **Python** binding in a Jupyter notebook
+* A legacy application can use a **Java** wrapper via JNI
+* Alternative implementations can treat policies as data
+
+As long as they respect the PNF schema, *how* they interpret it is an implementation detail. We are choosing the **reference runtime** for the enterprise control plane, not the only runtime allowed.
+
+### B.2 The Contenders
+
+| Feature | **OCaml** | **Go** | **Wasm** |
+|---------|-----------|--------|----------|
+| **Primary Value** | Consistency — compiler and runtime share code | Acceptance — easy hiring, SRE comfort | Portability — run inside Envoy, Browser, Edge |
+| **Performance** | Native, unbeatable for recursive logic | Good, but GC pauses and weak ADTs | Near-native, sandboxed execution |
+| **Risk** | "Bus factor" — OCaml hiring in 5 years? | "Logic gap" — type system too simple for RL2 | "Bleeding edge" — WASI still maturing |
+
+### B.3 Reference Implementation: WebAssembly Distribution
+
+**Recommendation:** Adopt WebAssembly as the primary distribution format for the reference implementation.
+
+Wasm solves political, technical, and operational constraints simultaneously:
+
+1. **The "Trojan Horse" Strategy (Political)**
+   * Write core logic in OCaml for correctness
+   * Compile to Wasm
+   * Hand Ops a "standard Wasm module" — they see a standard artifact fitting Envoy filters, OPA plugins, or cloud-native gateways
+
+2. **Hot Reloading (Operational)**
+   * Go binaries require recompile/redeploy of the entire microservice
+   * Wasm enables pushing new policy logic to 10,000 sidecars without restarting the host process
+   * For environments that cannot accept downtime, this is decisive
+
+3. **Future-Proofing (Technical)**
+   * Wasm is converging as the universal runtime — Cloud, Edge, Browser, Device
+   * The security sandbox prevents policy bugs from crashing host processes or leaking memory
+
+**Implementation Path:**
+
+```text
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  OCaml Source   │────▶│   Wasm Module   │────▶│   Everywhere    │
+│  (Correctness)  │     │  (Distribution) │     │   (Envoy, OPA,  │
+│                 │     │                 │     │    Edge, JVM)   │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### B.4 Preference Ordering
+
+**C → A → B**
+
+| Rank | Option | Rationale |
+|------|--------|-----------|
+| **1st** | **Wasm** | Write OCaml, ship Wasm. Correctness *and* political cover. Hot reloading is the operational trump card. Toolchain risk is bounded — pure-compute workloads don't stress WASI maturity. |
+| **2nd** | **Pure OCaml** | If Wasm tooling disappoints, take the "exotic" hit. The runtime is simple enough for a small team to own. Hire two good OCaml devs, train two more. Bus factor is manageable if you're honest about it. |
+| **3rd** | **Go** | Only under executive mandate. Ship faster, hire easier, debug harder. Type system gap means bugs hide in translation — not in visible logic, but in ceremony around it. Trading correctness for comfort. |
+
+> **The one-liner:** "Write OCaml. Ship Wasm. Defend the boundary."
+
+### B.5 Alternatives Considered
+
+| Alternative | Assessment |
+|-------------|------------|
+| **Pure OCaml binary** | Optimal performance and consistency; "exotic" for Ops but viable with operational investment |
+| **Scala interpreter** | Strong type system (ADTs, pattern matching); JVM-native; viable fallback if Wasm path proves immature |
+| **Go runtime** | Maximum hiring pool and SRE comfort; type system too weak for RL2 ADTs; correctness risk during translation |
+
+**Fallback hierarchy:**
+1. If OCaml→Wasm tooling (`wasm_of_ocaml`) proves insufficient: **Scala** on JVM preserves type safety with familiar runtime
+2. If JVM overhead is unacceptable: **Pure OCaml binary** with dedicated operational support
+
+### B.6 Open Questions
+
+* OCaml-to-Wasm toolchain maturity assessment
+* Debugging workflow (native OCaml in dev, Wasm in prod)
+* WASI evolution for any I/O requirements beyond pure computation
+
+---
+
+## Appendix C: Document History
 
 * **v0.1** — Initial draft with eager materialization model
 * **v0.2** — Added tiered execution model (Tier 1/Tier 2)
 * **v0.3** — Simplified to core concept; execution model deferred
 * **v0.4** — Added reasoning analysis from Themis experience; emphasis on explicit capability declaration
+* **v0.5** — Added unified OCaml architecture recommendation; argued against BEAM for CPU-bound policy evaluation
+* **v0.6** — Added runtime architecture decision: Wasm as distribution format with OCaml implementation
+* **v0.7** — Explicit semantic class (propositional + bounded transitive closure); versioning now normative; tiering reconciled as optimization strategy; tightened political language
+* **v0.8** — Structural reorganization: front matter (what/why), proposal (§1-5), summary (§6-8), implementation details moved to appendices
