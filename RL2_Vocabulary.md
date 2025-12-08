@@ -1,10 +1,10 @@
 ---
 title: "RL2 Vocabulary Reference"
 subtitle: "Complete Class and Property Definitions"
-version: "0.5"
+version: "0.6"
 status: "Draft"
-date: 2025-01-05
-purpose: "Reference documentation for all RL2 ontology terms"
+date: 2025-12-08
+purpose: "Reference documentation for all RL2 ontology and protocol terms"
 ---
 
 ## About This Document
@@ -45,6 +45,7 @@ The canonical definitions are in **rl2.ttl** (OWL ontology) and **rl2-shacl.ttl*
 11. [Property Reference](#11-property-reference)
 12. [Named Individuals](#12-named-individuals)
 13. [SHACL Validation Summary](#13-shacl-validation-summary)
+14. [RL2 Protocol Vocabulary (rl2p:)](#14-rl2-protocol-vocabulary-rl2p)
 
 ---
 
@@ -1155,6 +1156,89 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 
 ---
 
+## 14. RL2 Protocol Vocabulary (rl2p:)
+
+The RL2 Protocol namespace (`https://rl2.example/protocol#`, prefix `rl2p:`) defines runtime artifacts for policy evaluation. See **rl2p.ttl** for the normative definitions.
+
+### rl2p:Requirement (Universal Runtime Obligation)
+
+**Definition**: A runtime obligation that must be fulfilled. Universal structure tracking Duties, Promises, and Claims at runtime.
+
+**Type**: `owl:Class`
+
+**Required Properties**:
+- `rl2p:sourceNorm` — The norm or promise that created this requirement
+- `rl2p:sourcePolicy` — The policy containing the source norm
+- `rl2p:requirementStatus` — Current lifecycle status (uses `rl2:ObligationState`)
+- `rl2p:imposedTime` — When the requirement was created
+
+**Optional Properties**:
+- `rl2p:counterparty` — The agent who holds the correlative position (for Claims)
+- `rl2p:fulfilledByAction` — Action that fulfilled the requirement
+- `rl2p:fulfilledByEvent` — Event evidencing fulfillment
+- `rl2p:fulfillmentEvidence` — Reference to supporting evidence
+- `rl2p:requirementLabel` — Human-readable label
+- `rl2p:requirementDescription` — Human-readable description
+
+**SHACL Shape**: `rl2p:RequirementShape`, `rl2p:RequirementFulfillmentAuditShape`
+
+**Design Rationale (Sein-Sollen vs Tun-Sollen)**:
+- **Promise = Sein-Sollen (Ought-to-Be)**: Required state of the world (invariant)
+- **Duty = Tun-Sollen (Ought-to-Do)**: Action to achieve/restore that state
+
+When the world deviates from a Promise's invariant, the evaluator generates a Requirement (remedial Duty) to fix it. This unified structure enables tracking of all runtime obligations regardless of their source.
+
+**Example (Duty-sourced Requirement)**:
+```turtle
+ex:paymentReq a rl2p:Requirement ;
+    rl2p:sourceNorm ex:paymentDuty ;
+    rl2p:sourcePolicy ex:licenseAgreement ;
+    rl2p:requirementStatus rl2:Active ;
+    rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
+```
+
+**Example (Promise-sourced Requirement with Counterparty)**:
+```turtle
+ex:dataQualityReq a rl2p:Requirement ;
+    rl2p:sourceNorm ex:dataQualityPromise ;
+    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:counterparty ex:DataConsumer ;  # The promisee/Claim holder
+    rl2p:requirementStatus rl2:Pending ;
+    rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
+```
+
+**Hohfeldian Mapping**:
+
+| Hohfeldian Norm | Protocol Artifact |
+|-----------------|-------------------|
+| Duty | `rl2p:Requirement` (sourceNorm → Duty) |
+| Promise | `rl2p:Requirement` (sourceNorm → Promise) |
+| Claim | `rl2p:Requirement` (with counterparty) |
+| Privilege | `rl2p:Decision` (Permit) |
+| Power | `rl2p:Decision` (Permit State Change) |
+| Immunity | `rl2p:Decision` (Deny State Change) |
+
+---
+
+### Protocol Property Reference
+
+| Property | Domain | Range | Description |
+|----------|--------|-------|-------------|
+| `rl2p:sourceNorm` | Requirement | Norm \| Promise | The norm or promise that created this requirement |
+| `rl2p:sourcePolicy` | Requirement | Policy | Policy containing the source norm |
+| `rl2p:counterparty` | Requirement | Agent | Agent holding correlative position (Claim holder) |
+| `rl2p:requirementStatus` | Requirement | ObligationState | Current lifecycle status |
+| `rl2p:imposedTime` | Requirement | xsd:dateTime | When requirement was created |
+| `rl2p:fulfilledByAction` | Requirement | Action | Action that fulfilled the requirement |
+| `rl2p:fulfilledByEvent` | Requirement | Event | Event evidencing fulfillment |
+| `rl2p:fulfillmentEvidence` | Requirement | (any) | Reference to supporting evidence |
+| `rl2p:requirementLabel` | Requirement | xsd:string | Human-readable label |
+| `rl2p:requirementDescription` | Requirement | xsd:string | Human-readable description |
+| `rl2p:activeRequirements` | EvaluationResult | Requirement | Requirements that must be fulfilled |
+| `rl2p:requirementFulfilled` | (LeftOperand) | — | Left operand for requirement fulfillment status |
+
+---
+
 ## Appendix: Design Notes
 
 ### Why No-Claim and Disability Are Not Classes
@@ -1199,4 +1283,4 @@ For complete bibliography and glossary, see **RL2_References.md**.
 
 ---
 
-*This vocabulary reference covers RL2 version 0.5. The normative definitions are in rl2.ttl and rl2-shacl.ttl.*
+*This vocabulary reference covers RL2 version 0.5 (Core) and rl2p version 0.5 (Protocol). The normative definitions are in rl2.ttl, rl2-shacl.ttl, rl2p.ttl, and rl2p-shacl.ttl.*

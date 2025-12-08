@@ -13,8 +13,8 @@
   dc:description """A companion specification for interoperable policy evaluation.
   Defines request/response formats, duty lifecycle tracking, case management,
   and context assertions for RL2 policy evaluation.""" ;
-  owl:versionInfo "0.4" ;
-  owl:versionIRI <https://rl2.example/protocol/0.4> ;
+  owl:versionInfo "0.5" ;
+  owl:versionIRI <https://rl2.example/protocol/0.5> ;
   owl:imports <https://rl2.example/ontology> .
 
 ############################################################
@@ -70,10 +70,10 @@ rl2p:evaluatedRequest a owl:ObjectProperty ;
     rdfs:range rl2p:Request ;
     rdfs:comment "The request that was evaluated." .
 
-rl2p:activeDuties a owl:ObjectProperty ;
+rl2p:activeRequirements a owl:ObjectProperty ;
     rdfs:domain rl2p:EvaluationResult ;
-    rdfs:range rl2p:DutyRequirement ;
-    rdfs:comment "Duties that must be fulfilled for access to proceed or continue." .
+    rdfs:range rl2p:Requirement ;
+    rdfs:comment "Requirements (from Duties, Promises, or Claims) that must be fulfilled." .
 
 rl2p:matchedPolicies a owl:ObjectProperty ;
     rdfs:domain rl2p:EvaluationResult ;
@@ -125,59 +125,76 @@ rl2p:NotApplicable a rl2p:Decision ;
     rdfs:comment "No policies apply to this request." .
 
 ############################################################
-# 4. Duty Requirement
+# 4. Requirement (Universal Runtime Obligation)
 ############################################################
 
-rl2p:DutyRequirement a owl:Class ;
-    rdfs:label "Duty Requirement" ;
-    rdfs:comment """A duty that must be fulfilled as a condition of access.
-    Captures the duty definition at the time of evaluation for audit purposes.""" .
+rl2p:Requirement a owl:Class ;
+    rdfs:label "Requirement" ;
+    rdfs:comment """A runtime obligation that must be fulfilled.
+    Universal structure tracking Duties, Promises, and Claims at runtime.
 
-rl2p:requiresDuty a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
-    rdfs:range rl2:Duty ;
-    rdfs:comment "Reference to the duty definition in the policy." .
+    Design rationale (Sein-Sollen vs Tun-Sollen):
+    - Promise = Sein-Sollen (Ought-to-Be): Required state of the world (invariant)
+    - Duty = Tun-Sollen (Ought-to-Do): Action to achieve/restore that state
+
+    When the world deviates from a Promise's invariant, the evaluator generates
+    a Requirement (remedial Duty) to fix it. This unified structure enables
+    tracking of all runtime obligations regardless of their source.""" .
+
+rl2p:sourceNorm a owl:ObjectProperty ;
+    rdfs:domain rl2p:Requirement ;
+    rdfs:comment """Reference to the norm or promise that created this requirement.
+    Range: rl2:Norm | rl2:Promise. Enables tracing requirements back to their
+    source for audit and explanation purposes.""" .
 
 rl2p:sourcePolicy a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:Policy ;
-    rdfs:comment "The policy that imposed this duty." .
+    rdfs:comment "The policy containing the norm that created this requirement." .
 
-rl2p:dutyStatus a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+rl2p:counterparty a owl:ObjectProperty ;
+    rdfs:domain rl2p:Requirement ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment """The agent who holds the correlative position (for Claims).
+    When sourceNorm is a Duty, counterparty is the Claim holder.
+    When sourceNorm is a Promise, counterparty is the promisee.""" .
+
+rl2p:requirementStatus a owl:ObjectProperty ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:ObligationState ;
-    rdfs:comment """Current lifecycle status of this duty requirement.
+    rdfs:comment """Current lifecycle status of this requirement.
     Uses rl2:ObligationState from RL2 Core (Pending, Active, Fulfilled, Violated)
-    to ensure semantic alignment between the ontology and protocol.""" .
+    to ensure semantic alignment between the ontology and protocol.
+    The Promise vs Duty distinction lives in sourceNorm, not in status.""" .
 
 rl2p:imposedTime a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range xsd:dateTime ;
-    rdfs:comment "When this duty requirement was imposed." .
+    rdfs:comment "When this requirement was created/imposed." .
 
 rl2p:fulfilledByAction a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:Action ;
-    rdfs:comment "The action that fulfilled this duty requirement (if fulfilled)." .
+    rdfs:comment "The action that fulfilled this requirement (if fulfilled)." .
 
 rl2p:fulfilledByEvent a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:Event ;
-    rdfs:comment "The event/log entry evidencing fulfillment of this duty requirement." .
+    rdfs:comment "The event/log entry evidencing fulfillment of this requirement." .
 
 rl2p:fulfillmentEvidence a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment." .
 
-rl2p:dutyLabel a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+rl2p:requirementLabel a owl:DatatypeProperty ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range xsd:string ;
-    rdfs:comment "Human-readable label for the duty requirement." .
+    rdfs:comment "Human-readable label for this requirement." .
 
-rl2p:dutyDescription a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+rl2p:requirementDescription a owl:DatatypeProperty ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range xsd:string ;
-    rdfs:comment "Human-readable description of what the duty requires." .
+    rdfs:comment "Human-readable description of what must be done." .
 
 ############################################################
 # 5. Context Assertions
@@ -237,13 +254,12 @@ rl2p:performer a owl:ObjectProperty ;
 # 6. Fulfillment Vocabulary
 ############################################################
 
-rl2p:dutyFulfilled a rl2:LeftOperand ;
-    rdfs:label "Duty Fulfilled" ;
-    rdfs:comment "Left operand indicating duty fulfillment status." .
+rl2p:requirementFulfilled a rl2:LeftOperand ;
+    rdfs:label "Requirement Fulfilled" ;
+    rdfs:comment "Left operand indicating requirement fulfillment status." .
 
-rl2p:fulfillmentEvidence a owl:ObjectProperty ;
-    rdfs:domain rl2p:ContextAssertion ;
-    rdfs:comment "Reference to evidence (document, signature, log entry, approval record)." .
+# Note: rl2p:fulfillmentEvidence is defined in Section 4 with domain rl2p:Requirement.
+# It may also be used on ContextAssertion to provide fulfillment evidence.
 
 ############################################################
 # 7. Case Lifecycle

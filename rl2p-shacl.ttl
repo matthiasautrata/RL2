@@ -27,7 +27,7 @@
 #
 # 4. STATE ENUMERATION VALIDATION
 #    CaseStatus and Decision are constrained to their valid values.
-#    DutyRequirement uses rl2:ObligationState from Core.
+#    Requirement uses rl2:ObligationState from Core uniformly for all sources.
 #
 ############################################################
 
@@ -100,9 +100,9 @@ rl2p:EvaluationResultShape a sh:NodeShape ;
         sh:message "An EvaluationResult must have exactly one evaluation time."
     ] ;
     sh:property [
-        sh:path rl2p:activeDuties ;
-        sh:class rl2p:DutyRequirement ;
-        sh:message "Active duties must be DutyRequirement instances."
+        sh:path rl2p:activeRequirements ;
+        sh:class rl2p:Requirement ;
+        sh:message "Active requirements must be Requirement instances."
     ] ;
     sh:property [
         sh:path rl2p:matchedPolicies ;
@@ -121,77 +121,82 @@ rl2p:EvaluationResultShape a sh:NodeShape ;
     ] .
 
 ############################################################
-# Duty Requirement Shapes
+# Requirement Shapes (Universal Runtime Obligation)
 ############################################################
 
-rl2p:DutyRequirementShape a sh:NodeShape ;
-    sh:targetClass rl2p:DutyRequirement ;
+rl2p:RequirementShape a sh:NodeShape ;
+    sh:targetClass rl2p:Requirement ;
     sh:property [
-        sh:path rl2p:requiresDuty ;
+        sh:path rl2p:sourceNorm ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-        sh:class rl2:Duty ;
-        sh:message "A DutyRequirement must reference exactly one Duty."
+        sh:message "A Requirement must reference exactly one source norm or promise."
     ] ;
     sh:property [
         sh:path rl2p:sourcePolicy ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:class rl2:Policy ;
-        sh:message "A DutyRequirement must reference exactly one source Policy."
+        sh:message "A Requirement must reference exactly one source Policy."
     ] ;
     sh:property [
-        sh:path rl2p:dutyStatus ;
+        sh:path rl2p:requirementStatus ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:in (rl2:Pending rl2:Active rl2:Fulfilled rl2:Violated) ;
-        sh:message "Duty status must be one of: Pending, Active, Fulfilled, Violated."
+        sh:message "Requirement status must be one of: Pending, Active, Fulfilled, Violated."
     ] ;
     sh:property [
         sh:path rl2p:imposedTime ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:dateTime ;
-        sh:message "A DutyRequirement must have exactly one imposed time."
+        sh:message "A Requirement must have exactly one imposed time."
     ] ;
     sh:property [
-        sh:path rl2p:dutyLabel ;
+        sh:path rl2p:counterparty ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "If specified, counterparty must be an Agent."
+    ] ;
+    sh:property [
+        sh:path rl2p:requirementLabel ;
         sh:maxCount 1 ;
         sh:datatype xsd:string
     ] ;
     sh:property [
-        sh:path rl2p:dutyDescription ;
+        sh:path rl2p:requirementDescription ;
         sh:maxCount 1 ;
         sh:datatype xsd:string
     ] .
 
-# Fulfillment links: if a duty is fulfilled, require evidence hooks
-rl2p:DutyFulfillmentAuditShape a sh:NodeShape ;
+# Fulfillment links: if a requirement is fulfilled, require evidence hooks
+rl2p:RequirementFulfillmentAuditShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """
             PREFIX rl2: <https://rl2.example/ontology#>
             PREFIX rl2p: <https://rl2.example/protocol#>
             SELECT ?this WHERE {
-                ?this a rl2p:DutyRequirement ;
-                      rl2p:dutyStatus rl2:Fulfilled .
+                ?this a rl2p:Requirement ;
+                      rl2p:requirementStatus rl2:Fulfilled .
             }
         """
     ] ;
     sh:property [
         sh:path rl2p:fulfilledByAction ;
         sh:minCount 1 ;
-        sh:message "Fulfilled DutyRequirement should indicate the action that fulfilled it."
+        sh:message "Fulfilled Requirement should indicate the action that fulfilled it."
     ] ;
     sh:property [
         sh:path rl2p:fulfilledByEvent ;
         sh:minCount 1 ;
-        sh:message "Fulfilled DutyRequirement should reference the event evidencing fulfillment."
+        sh:message "Fulfilled Requirement should reference the event evidencing fulfillment."
     ] ;
     sh:property [
         sh:path rl2p:fulfillmentEvidence ;
         sh:minCount 1 ;
-        sh:message "Fulfilled DutyRequirement should reference fulfillment evidence."
+        sh:message "Fulfilled Requirement should reference fulfillment evidence."
     ] .
 
 ############################################################
@@ -251,7 +256,7 @@ rl2p:ContextAssertionShape a sh:NodeShape ;
     ] .
 
 # Fulfillment assertions should include performer for identity binding
-# When contextProperty is dutyFulfilled, performer should be present
+# When contextProperty is requirementFulfilled, performer should be present
 rl2p:FulfillmentAssertionPerformerShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
@@ -259,7 +264,7 @@ rl2p:FulfillmentAssertionPerformerShape a sh:NodeShape ;
             PREFIX rl2p: <https://rl2.example/protocol#>
             SELECT ?this WHERE {
                 ?this a rl2p:ContextAssertion ;
-                      rl2p:contextProperty rl2p:dutyFulfilled .
+                      rl2p:contextProperty rl2p:requirementFulfilled .
             }
         """
     ] ;
@@ -267,7 +272,7 @@ rl2p:FulfillmentAssertionPerformerShape a sh:NodeShape ;
         sh:path rl2p:performer ;
         sh:minCount 1 ;
         sh:class rl2:Agent ;
-        sh:message "A dutyFulfilled assertion must specify the performer (the agent who fulfilled the duty)."
+        sh:message "A requirementFulfilled assertion must specify the performer (the agent who fulfilled the requirement)."
     ] .
 
 ############################################################

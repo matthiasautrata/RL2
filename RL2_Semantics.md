@@ -1,9 +1,9 @@
 ---
 title: "RL2 Formal Semantics"
 subtitle: "A Unified Normative, Operational, and Semantic Framework for Rights and Data Policies"
-version: "0.4"
+version: "0.5"
 status: "Draft"
-date: 2025-01-05
+date: 2025-12-08
 abstract: |
   RL2 is a normative and operational policy language designed as a rigorous successor to legacy rights languages, integrating deontic logic, promise theory, constraint algebra, and small-step operational semantics into a single, unified, formally grounded framework.
 ---
@@ -970,6 +970,52 @@ deadline(content, Σ) = true
 
 Where `deadline(content, Σ)` extracts and checks temporal bounds from the promise content.
 
+### Promise→Duty Generation (Remedial Generation Rule)
+
+**Conceptual Foundation (Sein-Sollen vs Tun-Sollen)**:
+
+- **Promise = Sein-Sollen (Ought-to-Be)**: A required state of the world (invariant)
+- **Duty = Tun-Sollen (Ought-to-Do)**: An action to achieve or restore that state
+
+When the world deviates from a Promise's invariant, the evaluator generates a remedial Duty (tracked as a `rl2p:Requirement`) to restore compliance.
+
+**Generation Rule**:
+
+When a Promise enters the `PromiseViolated` state, a remedial Requirement is generated:
+
+```
+Σ.PromiseState(Promise(p, q, content)) = Violated
+d = RemedialDuty(p, restoreAction(content), content.object)
+──────────────────────────────────────────────────────────────────
+(Σ, R, Ctx, PromiseViolated(p, q, content)) →
+    (Σ[ObligationState(d) ↦ Active,
+       Requirements ↦ Σ.Requirements ∪ {Requirement(d, Promise(p,q,content), q)}],
+     RemedialDutyGenerated(d))
+```
+
+Where:
+- `restoreAction(content)` derives the remedial action from the promise content
+- The generated `Requirement` tracks `sourceNorm = Promise(p,q,content)` and `counterparty = q` (the promisee)
+- The promisee `q` holds the correlative Claim
+
+**Runtime Representation**:
+
+The Protocol's `rl2p:Requirement` structure captures this:
+
+```turtle
+ex:remedialReq a rl2p:Requirement ;
+    rl2p:sourceNorm ex:dataQualityPromise ;  # The violated Promise
+    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:counterparty ex:DataConsumer ;       # The promisee/Claim holder
+    rl2p:requirementStatus rl2:Active ;
+    rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
+```
+
+This unified structure enables:
+- Audit trails linking requirements to their normative source
+- Uniform lifecycle tracking regardless of whether source is Duty or Promise
+- Claim holder identification for multi-party obligations
+
 ### Event Processing
 
 Events update state and may trigger norm transitions:
@@ -1152,7 +1198,7 @@ When `Eval` returns `PermitWithObligations`:
 * Access is conditionally granted
 * The returned `DutySet` contains duties that must be fulfilled
 * Duties may be in `Pending` (activation condition not yet met) or `Active` (must be performed)
-* The Protocol's DutyRequirement captures these for tracking
+* The Protocol's Requirement class captures these for tracking
 
 This allows pre-access duties (must fulfill before action) and post-access duties (must fulfill after action) to be distinguished by their conditions.
 
@@ -1308,7 +1354,7 @@ The RL2 Protocol (RL2_Protocol.md) defines runtime artifacts for policy evaluati
 - **Request** → corresponds to initiating evaluation with a specific action, asset, and agent
 - **ContextAssertion** → provides values for left operand resolution during evaluation
 - **EvaluationResult** → the output of `Eval(Policy, Σ, E)`
-- **DutyRequirement** → duties in `Active` or `Pending` state after evaluation
+- **Requirement** → universal runtime obligations from Duties, Promises, or Claims
 - **Case** → tracks the evolution of Σ over multiple evaluation cycles
 
 The formal semantics define *what* evaluation means; the Protocol defines *how* to exchange evaluation inputs and outputs between systems.
@@ -1320,12 +1366,26 @@ Key correspondence:
 | Request R = (a, x, s) | rl2p:Request (requestingAgent, requestedAction, requestedAsset) |
 | Env (environment) | Request + ContextAssertions |
 | Σ (state) | Case history |
-| Σ.ObligationState | rl2p:DutyStatus (Pending, Active, Fulfilled, Violated) |
-| Σ.PromiseState | (Future: rl2p:PromiseStatus) |
+| Σ.ObligationState | rl2p:requirementStatus (Pending, Active, Fulfilled, Violated) |
+| Σ.PromiseState | rl2p:Requirement with sourceNorm → Promise |
 | Decision | EvaluationResult.decision |
-| Active duties | EvaluationResult.activeDuties |
+| Active requirements | EvaluationResult.activeRequirements |
 | Events | ContextAssertions (including fulfillment) |
 | mkEnv(R, Σ, Ctx) | Evaluator constructs from Request + Context |
+
+**Hohfeldian Mapping to Protocol** (normative):
+
+| Hohfeldian Norm | Runtime Meaning | Protocol Artifact |
+|-----------------|-----------------|-------------------|
+| Duty | "Must Do" | `rl2p:Requirement` (sourceNorm → Duty) |
+| Promise | "Must Do" (Voluntary) | `rl2p:Requirement` (sourceNorm → Promise) |
+| Claim | "Owed To" | `rl2p:Requirement` (with counterparty) |
+| Privilege | "Can Do" | `rl2p:Decision` (Permit) |
+| Power | "Can Change" | `rl2p:Decision` (Permit State Change) |
+| Immunity | "Cannot Be Changed" | `rl2p:Decision` (Deny State Change) |
+| Liability | "Can Be Changed" | Implicit (side effect of Power) |
+
+This unified `Requirement` structure simplifies the protocol while preserving semantic distinctions through `sourceNorm`.
 
 ---
 

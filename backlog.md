@@ -1,6 +1,6 @@
 # RL2 Backlog
 
-**Updated:** 2025-12-08
+**Updated:** 2025-12-08 (Protocol Completeness implemented)
 
 ---
 
@@ -31,7 +31,7 @@ Does fulfilled duty enable one action, unlimited actions, or until expiration? O
 
 ### Protocol Completeness (Promise and Power Tracking)
 
-**Status:** Design complete, implementation pending
+**Status:** Implemented (v0.5)
 
 #### Problem Statement
 
@@ -88,14 +88,14 @@ Action: We will draft this rule during the implementation phase to ensure the "P
 
 2. **Rejection Semantics:** Active disapproval vs absence of approval. Options: separate RejectionEvent type, outcome property on ApprovalEvent, or rejection as Prohibition activation.
 
-#### Files to Modify (When Implementing)
+#### Files Modified (v0.5)
 
-| File | Change |
-|------|--------|
-| `rl2p.ttl` | Rename DutyRequirement→Requirement, add sourceNorm, counterparty |
-| `rl2p-shacl.ttl` | Update shapes for new Requirement structure |
-| `RL2_Semantics.md` | Clarify Promise→Duty generation rule |
-| `RL2_Vocabulary.md` | Document new rl2p classes/properties |
+| File | Change | Status |
+|------|--------|--------|
+| `rl2p.ttl` | Renamed DutyRequirement→Requirement, added sourceNorm, counterparty | ✓ |
+| `rl2p-shacl.ttl` | Updated shapes for new Requirement structure | ✓ |
+| `RL2_Semantics.md` | Added Promise→Duty generation rule (Remedial Generation Rule) | ✓ |
+| `RL2_Vocabulary.md` | Documented new rl2p classes/properties (Section 14) | ✓ |
 
 ---
 
