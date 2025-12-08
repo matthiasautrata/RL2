@@ -18,6 +18,7 @@ Documentation for RL2-Core (Privilege/Prohibition/Duty), RL2-Standard (+Promise/
 
 ### Policy Inheritance
 Current position: skeptical. Inheritance requires flattening, has ambiguous override semantics, and hinders auditability. Recommendation: use explicit policy composition instead.
+Decision: Will not implement. we will consider an ODRL->RL2 translator that could create RL2 classes but will not natively support this otherwise.
 
 ### Context Subject Typing
 `rl2p:contextSubject` is untyped. Options: split into IRI/Literal properties, require resource-only, or use SHACL `sh:or` validation. **(Status: Verify if already addressed)**
@@ -79,7 +80,11 @@ When the world deviates from the Promise's invariant, the evaluator generates a 
 
 #### Open Questions
 
-1. **Promise→Duty Generation Mechanism:** The `contentHolds` function evaluates Promise conditions, but the explicit mechanism for *creating* Requirements when Promises are violated needs clarification in RL2_Semantics.md.
+1. **Promise→Duty Generation Mechanism:** The `contentHolds` function evaluates Promise conditions, but the explicit mechanism for *creating* Requirements when Promises are violated needs clarification in RL2_Semantics.md. Open Question Resolution (Promise Generation)
+You identified a gap in Open Question 1: "The explicit mechanism for creating Requirements when Promises are violated needs clarification."
+The Mathematician recommends adding a specific "Remedial Generation Rule" to RL2_Semantics.md.
+Concept: When a Sein-Sollen Promise (Invariant) enters the PromiseViolated state, it triggers a StateTransition that instantiates a remedial Duty.
+Action: We will draft this rule during the implementation phase to ensure the "Promise as Generator" logic is formally specified.
 
 2. **Rejection Semantics:** Active disapproval vs absence of approval. Options: separate RejectionEvent type, outcome property on ApprovalEvent, or rejection as Prohibition activation.
 
