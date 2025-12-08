@@ -1,6 +1,6 @@
 # RL2 Backlog
 
-**Updated:** 2025-12-07
+**Updated:** 2025-12-08
 
 ---
 
@@ -10,28 +10,87 @@
 The PNF proposal (v0.7) commits to "propositional + bounded transitive closure" as the execution semantic class. This excludes general rule evaluation, open quantification, arbitrary joins, and open-world inference. **Action:** Verify this boundary is acceptable by hand-compiling representative use cases (break-glass, separation of duty, GDPR erasure, high-volume entitlements) to PNF and confirming no essential expressiveness is lost.
 
 ### Alignment Modules
-Optional `owl:equivalentClass` mappings to standard vocabularies (PROV-O for Case/Event, FOAF for Agent). Enables interoperability while keeping core standalone.
+Optional `owl:equivalentClass` mappings to standard vocabularies (PROV-O for Case/Event, FOAF for Agent). Enables interoperability while keeping core standalone. Or just swap and use the standards?
 
 ### Common Profile
-Baseline actions (`use`, `read`, `modify`, `delete`, `transfer`) and operands (`dateTime`, `purpose`, `recipient`, `spatial`) for cross-implementation interoperability. Enables ODRL compilation without profile-specific mappings.
-
-### Rejection Semantics
-Active disapproval vs absence of approval. Options: separate RejectionEvent type, outcome property on ApprovalEvent, or rejection as Prohibition activation. Affects Case lifecycle and audit trails.
+Baseline actions (`use`, `read`, `modify`, `delete`, `transfer`) and operands (`dateTime`, `purpose`, `recipient`, `spatial`) for cross-implementation interoperability. Make an ODRL profile and a core profile.
+Documentation for RL2-Core (Privilege/Prohibition/Duty), RL2-Standard (+Promise/EventConstraint), RL2-Full (+Power/Liability/Immunity/Claim). This is documentation work, not spec change.
 
 ### Policy Inheritance
 Current position: skeptical. Inheritance requires flattening, has ambiguous override semantics, and hinders auditability. Recommendation: use explicit policy composition instead.
 
 ### Context Subject Typing
-`rl2p:contextSubject` is untyped. Options: split into IRI/Literal properties, require resource-only, or use SHACL `sh:or` validation.
+`rl2p:contextSubject` is untyped. Options: split into IRI/Literal properties, require resource-only, or use SHACL `sh:or` validation. **(Status: Verify if already addressed)**
 
 ### Recurrent Duties
-No native periodic recurrence (`FREQ=QUARTERLY`). Options: RecurrentDuty subclass, iCal-style rules, or profile-level. Complexity: each instance needs own obligation state. May be addressable via Power exercise creating new duties.
+No native periodic recurrence (`FREQ=QUARTERLY`). Options: RecurrentDuty subclass, iCal-style rules, or profile-level. Complexity: each instance needs own obligation state. Can this be solved with adopting owl:time or schema:schedule? in the duty language? Does it need a profile and new operators, really? See also the note about capturing things in rl2p below.
 
 ### Duty Consumption Modes
-Does fulfilled duty enable one action, unlimited actions, or until expiration? Options: consumption mode property, explicit conditions with counters, or protocol-level tracking. May be addressable via existing mechanisms.
+Does fulfilled duty enable one action, unlimited actions, or until expiration? Options: consumption mode property, explicit conditions with counters, or protocol-level tracking. May be addressable via existing mechanisms. As designed, duties are tracked back to the policy & duty that created them. I think they should apply wherever that duty applied.
 
-### Profile Guidance
-Documentation for RL2-Minimal (Privilege/Prohibition/Duty), RL2-Standard (+Promise/EventConstraint), RL2-Full (+Power/Liability/Immunity/Claim). This is documentation work, not spec change.
+### Protocol Completeness (Promise and Power Tracking)
+
+**Status:** Design complete, implementation pending
+
+#### Problem Statement
+
+`rl2p` tracked only `DutyRequirement`, but RL2 Core defines richer constructs:
+- `Promise` has its own lifecycle (`PromiseState`) but couldn't be tracked
+- `Claim` (the correlative of Duty) had no explicit representation
+- Power exercise was implicit — no audit link for "show all Emergency Override uses"
+
+#### Resolution: Universal Requirement
+
+**Core Insight — Promise as Generator (Sein-Sollen vs Tun-Sollen):**
+- **Promise = Sein-Sollen (Ought-to-Be):** Required state of the world (invariant)
+- **Duty = Tun-Sollen (Ought-to-Do):** Action to achieve/restore that state (remedy)
+
+When the world deviates from the Promise's invariant, the evaluator generates a Duty/Requirement to fix it.
+
+**Protocol Changes:**
+
+| Change | From | To |
+|--------|------|-----|
+| Rename class | `DutyRequirement` | `rl2p:Requirement` |
+| Genericize source | `requiresDuty` (range: `rl2:Duty`) | `rl2p:sourceNorm` (range: `rl2:Norm \| rl2:Promise`) |
+| Add beneficiary | — | `rl2p:counterparty` (for Claims) |
+
+**Impact:**
+- **RL2 Core:** No change. Retains semantic distinctions.
+- **RL2 Protocol:** Simplified. One structure tracks all runtime obligations.
+
+**Hohfeldian Mapping:**
+
+| Hohfeldian Norm | Runtime Meaning | Protocol Artifact |
+|-----------------|-----------------|-------------------|
+| Duty | "Must Do" | `rl2p:Requirement` |
+| Promise | "Must Do" (Voluntary) | `rl2p:Requirement` (sourceNorm → Promise) |
+| Claim | "Owed To" | `rl2p:Requirement` (with counterparty) |
+| Privilege | "Can Do" | `rl2p:Decision` (Permit) |
+| Power | "Can Change" | `rl2p:Decision` (Permit State Change) |
+| Immunity | "Cannot Be Changed" | `rl2p:Decision` (Deny State Change) |
+| Liability | "Can Be Changed" | Implicit (side effect of Power) |
+
+#### Design Decisions (Resolved)
+
+1. **State Machine:** Use `rl2:ObligationState` uniformly for all Requirements. The Promise vs Duty distinction lives in `sourceNorm`, not in status.
+
+2. **Power Exercise Audit:** `rl2p:Decision` is sufficient. Power exercise can be inferred from Decision + matched norms. No explicit `exercisedPower` property needed.
+
+#### Open Questions
+
+1. **Promise→Duty Generation Mechanism:** The `contentHolds` function evaluates Promise conditions, but the explicit mechanism for *creating* Requirements when Promises are violated needs clarification in RL2_Semantics.md.
+
+2. **Rejection Semantics:** Active disapproval vs absence of approval. Options: separate RejectionEvent type, outcome property on ApprovalEvent, or rejection as Prohibition activation.
+
+#### Files to Modify (When Implementing)
+
+| File | Change |
+|------|--------|
+| `rl2p.ttl` | Rename DutyRequirement→Requirement, add sourceNorm, counterparty |
+| `rl2p-shacl.ttl` | Update shapes for new Requirement structure |
+| `RL2_Semantics.md` | Clarify Promise→Duty generation rule |
+| `RL2_Vocabulary.md` | Document new rl2p classes/properties |
 
 ---
 
@@ -49,13 +108,10 @@ Finalize persistent URI (e.g., `https://w3id.org/rl2/core#`) — pending organiz
 - Financial services entitlement profile — out of scope for core
 - GDPR/DPV guidance for `rl2:Privacy` — profile-specific
 
-### Implementation-Time
-- JSON-LD context file (`rl2-context.jsonld`)
-- Comprehensive test suite (positive/negative cases)
-- Master specification index — revisit when spec stabilizes
-
 ### Cross-Cutting
+
 - Provenance links — use W3C PROV layering when needed
+- See also vocabulary alignment modules (above)
 
 ---
 
