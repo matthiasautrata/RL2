@@ -24,7 +24,7 @@ A data provider promises that a dataset will be refreshed every 6 hours. If the 
 ODRL struggles to model obligations *on the Provider*. Its permission/prohibition model assumes a unilateral grant from licensor to licensee. Data contracts are bilateral: the provider has obligations too.
 
 RL2 explicitly models:
-- `Promise` states (`Pending` → `Fulfilled` / `Violated`)
+- `Promise` states (`PromisePending` → `PromiseFulfilled` / `PromiseViolated`)
 - `PromiseContent` with temporal bounds
 - State transitions on deadline expiry
 - Triggered duties on violation
@@ -48,6 +48,12 @@ datacontract:refreshIntervalOperand a rl2:LeftOperand ;
     rdfs:comment "Maximum allowed time between refreshes." ;
     rl2:resolutionPath "contract.sla.refreshInterval" ;
     rdfs:range xsd:duration .
+
+datacontract:promiseStateOperand a rl2:LeftOperand ;
+    rdfs:label "Promise State Operand" ;
+    rdfs:comment "Queries the PromiseState of the target promise." ;
+    rl2:resolutionPath "state.Promises.<target>.state" ;
+    rdfs:range rl2:PromiseState .
 
 # Actions
 datacontract:refreshData a rl2:Action ;
@@ -86,9 +92,9 @@ ex:escalationDuty a rl2:Duty ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:freshnessPromise ;
-        rl2:leftOperand rl2:promiseStateOperand ;
+        rl2:leftOperand datacontract:promiseStateOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand rl2:Violated
+        rl2:rightOperand rl2:PromiseViolated
     ] .
 ```
 
@@ -97,24 +103,24 @@ ex:escalationDuty a rl2:Duty ;
 ```
 Promise State Machine:
 
-  ┌─────────┐   refresh event    ┌───────────┐
-  │ Pending │──────────────────▶│ Fulfilled │
-  └────┬────┘                    └─────┬─────┘
-       │                               │
-       │ deadline expires              │ next interval starts
-       ▼                               ▼
-  ┌──────────┐                    ┌─────────┐
-  │ Violated │◀───────────────────│ Pending │
-  └──────────┘   deadline expires └─────────┘
+  ┌────────────────┐   refresh event    ┌──────────────────┐
+  │ PromisePending │──────────────────▶│ PromiseFulfilled │
+  └───────┬────────┘                    └────────┬─────────┘
+          │                                      │
+          │ deadline expires                     │ next interval starts
+          ▼                                      ▼
+  ┌─────────────────┐                   ┌────────────────┐
+  │ PromiseViolated │◀──────────────────│ PromisePending │
+  └─────────────────┘  deadline expires └────────────────┘
 ```
 
 ## Evaluation
 
 | Scenario | Last Refresh | Current Time | Promise State | Result |
 |----------|--------------|--------------|---------------|--------|
-| On time | 2h ago | now | Fulfilled | OK |
-| Due soon | 5h ago | now | Pending | Warning |
-| Overdue | 7h ago | now | Violated | Ticket created |
+| On time | 2h ago | now | PromiseFulfilled | OK |
+| Due soon | 5h ago | now | PromisePending | Warning |
+| Overdue | 7h ago | now | PromiseViolated | Ticket created |
 
 ## Comparison with ODRL
 
@@ -122,7 +128,7 @@ Promise State Machine:
 |--------|------|-----|
 | Provider obligations | Awkward (permission with duty?) | Native Promise type |
 | Temporal monitoring | Not built-in | `currentDateTime` constraints + state machine |
-| Violation detection | No standard mechanism | `promiseStateOperand = Violated` |
+| Violation detection | No standard mechanism | `promiseStateOperand = PromiseViolated` |
 | Escalation triggers | Not expressible | Duty conditioned on Promise state |
 
 ## PNF Considerations

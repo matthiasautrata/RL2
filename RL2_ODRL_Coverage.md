@@ -1,241 +1,120 @@
-# RL2 Coverage of ODRL (Draft v0.4)
+# RL2 Coverage of ODRL (v0.5)
 
-*A unified mapping of ODRL 2.2 and ODRL 3.0 use cases to RL2*
-
----
-
-## Table of Contents
-
-- Introduction
-- Part I: ODRL 2.2 Core Mapping
-  - Overview of ODRL 2.2
-  - Full Mapping Table (ODRL → RL2)
-  - Transformation Rules
-  - Semantic Preservation
-- Part II: ODRL 3.0 Use-Case Deltas
-  - Summary of ODRL 3.0 Extensions
-  - Use Case Coverage Matrix
-  - Detailed Coverage
-- Part III: Canonical Worked Example
-- Completeness and Soundness
-- References
+*A Migration, Transpilation, and Coverage Guide*
 
 ---
 
-## Introduction
+## Executive Summary
 
-This document provides a comprehensive mapping showing that:
+**Can existing ODRL policies be translated to RL2?**
+**Yes.** RL2 is designed as a **semantic superset** of ODRL 2.2. Any valid ODRL expression can be compiled into an RL2 representation that preserves its intent while making its operational semantics explicit.
 
-> **Every ODRL 2.2 expression can be represented in RL2 without loss of meaning, and RL2 covers all ODRL 3.0 use cases identified in W3C Community Group notes.**
+**Why translate?**
+ODRL is a descriptive language—it describes permissions and duties but lacks a rigorous execution model. It does not define *when* a duty is violated, *how* a state transition occurs, or *what* implies the satisfaction of a constraint. RL2 provides these missing operational semantics (Event Loop, State Machine, Promise Theory), transforming static policy documents into executable logic.
 
-RL2 is a **semantic superset** of ODRL—it can express every ODRL concept, though some constructs require compilation/transformation rather than direct vocabulary mapping:
-
-* All ODRL 2.2 concepts have RL2 representations (some via direct equivalents, others via compilation).
-* RL2 resolves ODRL ambiguities and fills gaps.
-* RL2 adds normative, operational, temporal, and role semantics missing in ODRL.
-* RL2 covers all emerging ODRL 3.0 use cases (dynamic collections, event-driven activation, multi-party workflows).
-* The mapping is semantics-preserving; see "Assumptions and Clarifications" below for constructs requiring transformation.
-
-### Assumptions and Clarifications
-
-This mapping assumes the following baseline semantics for ODRL:
-
-* **[Pucella-Weissman 2006]** — Static semantics for permissions and obligations
-* **[Steyskal-Polleres 2015]** — Action dependencies and rule-based reasoning
-* **[W3C ODRL Formal Semantics]** — Draft evaluator behavior specification
-
-The following ODRL features require transformation or clarification:
-
-* **`odrl:inheritFrom`** — No direct RL2 equivalent. Inheritance requires flattening to atomic policies before evaluation. See **backlog.md** §Policy Inheritance.
-* **`odrl:Request` (policy type)** — RL2 does not model requests as policies. The `odrl:Request` policy type was never standardized or widely adopted. RL2 handles request semantics via `rl2p:Request` in the Protocol ontology—a runtime evaluation artifact, not a policy container.
-* **Implementation-specific conflict resolution** — RL2 supports priority-based conflict resolution via `rl2:priority`. W3C-style conflict strategies (prohibit-overrides, permit-overrides) are defined in evaluation semantics but not as ontology vocabulary.
+**The Transpilation Strategy**
+We define a transformation function `T(M)` that maps ODRL models to RL2. This document defines that mapping, identifies necessary transformations (e.g., flattening inheritance), and justifies the semantic equivalence.
 
 ---
 
-## ODRL 2.2 Core Mapping
+## Part I: ODRL 2.2 Core Mapping
 
-### Overview of ODRL 2.2
+### 1.1 Structural Mapping
 
-ODRL 2.2 consists of:
+RL2 mirrors ODRL's core "Policy contains Rules" structure but refines the vocabulary to be deontically precise.
 
-1. **Policy types**: Set, Offer, Agreement, Request, Privacy, Assertion
-2. **Rules**: Permission, Prohibition, Duty
-3. **Assets**
-4. **Parties and Roles**
-5. **Actions**
-6. **Constraints**
-7. **Conflict Handling**
+| ODRL Concept | RL2 Equivalent | Rationale |
+| :--- | :--- | :--- |
+| **Policy** | `rl2:Policy` | Direct mapping. |
+| **Rule** | `rl2:Norm` | "Rule" is syntactic; "Norm" is semantic (Deontic Logic). |
+| **Permission** | `rl2:Privilege` | A "privilege" is the correct Hohfeldian term for "permission." |
+| **Prohibition** | `rl2:Prohibition` | Direct mapping. |
+| **Duty** | `rl2:Duty` | Direct mapping. |
+| **Asset** | `rl2:Asset` | Direct mapping. |
+| **Party** | `rl2:Agent` | Direct mapping. |
+| **Action** | `rl2:Action` | Direct mapping. |
+| **Constraint** | `rl2:Condition` | RL2 distinguishes atomic comparisons (`AtomicConstraint`) from logical structures (`LogicalConstraint`) and event patterns (`EventConstraint`). |
 
-### RL2 Perspective
+### 1.2 Property Mapping
 
-RL2 mirrors this basic structure but expands normative meaning through:
+| ODRL Property | RL2 Property | Semantics |
+| :--- | :--- | :--- |
+| `assignee` | `rl2:subject` | The agent bearing the norm (Hohfeldian subject). |
+| `assigner` | `rl2:counterparty` | The agent to whom the duty is owed (Hohfeldian correlative). |
+| `target` | `rl2:object` | The asset acted upon. |
+| `action` | `rl2:action` | The operation being regulated. |
+| `constraint` | `rl2:condition` | Activation requirements. |
+| `refinement` | `rl2:condition` | Nested conditions on assets/actions. |
+| `consequence` | State-Triggered Duty | See Pattern 2.4 (Consequences). |
+| `remedy` | State-Triggered Duty | See Pattern 2.4 (Remedies). |
 
-* Hohfeldian normative primitives (Privilege, Duty, Claim, Power, Liability, Immunity)
-* Promise Theory layer for voluntary cooperation
-* Typed operator hierarchy for constraints
-* Operational semantics for duty and promise lifecycles
+### 1.3 Operator Mapping
 
----
+RL2 provides a strict superset of ODRL operators, typed for rigorous validation.
 
-### Full Mapping Table (ODRL → RL2)
-
-### Classes
-
-| ODRL Class       | RL2 Class      | Notes                     |
-| ---------------- | -------------- | ------------------------- |
-| odrl:Policy      | rl2:Policy     | Same container pattern    |
-| odrl:Rule        | rl2:Norm       | RL2 norm is superset      |
-| odrl:Permission  | rl2:Privilege  | Same deontic meaning      |
-| odrl:Prohibition | rl2:Prohibition | Direct deontic mapping    |
-| odrl:Duty        | rl2:Duty       | Direct                    |
-| odrl:Constraint  | rl2:AtomicConstraint | Simple ODRL constraints; RL2 also has LogicalConstraint, EventConstraint, etc. |
-| odrl:Asset       | rl2:Asset      | Direct                    |
-| odrl:Action      | rl2:Action     | Direct                    |
-| odrl:Party       | rl2:Agent      | Direct                    |
-
-### Properties
-
-| ODRL Property    | RL2 Equivalent                  | Comment                             |
-| ---------------- | ------------------------------- | ----------------------------------- |
-| odrl:target      | rl2:object                      | Asset-specific                      |
-| odrl:action      | rl2:action                      | Direct                              |
-| odrl:assignee    | rl2:subject                     | Semantically identical              |
-| odrl:assigner    | rl2:counterparty / rl2:grantor  | Depending on semantic or syntactic  |
-| odrl:constraint  | rl2:condition                   | Generalizes                         |
-| odrl:conflict    | rl2:priority + evaluator config | Policy priority; strategy is evaluator config |
-| odrl:duty        | rl2:Duty                        | Direct mapping                      |
-| odrl:permission  | rl2:Privilege                   | Direct mapping                      |
-| odrl:prohibition | rl2:Prohibition                 | Direct deontic mapping              |
-| odrl:inheritFrom | Flattening Strategy | See below |
-| odrl:refinement  | rl2:Condition refinement        | RL2 supports nested conditions      |
-
-### Constraint Operators
-
-| ODRL Operator | RL2 Operator        | Notes                  |
-| ------------- | ------------------- | ---------------------- |
-| eq, neq       | rl2:eq, rl2:neq     | ComparisonOperator     |
-| lt, lte       | rl2:lt, rl2:lte     | ComparisonOperator     |
-| gt, gte       | rl2:gt, rl2:gte     | ComparisonOperator     |
-| isA           | rl2:isA             | Type membership check  |
-| isAnyOf       | rl2:isAnyOf         | Set membership         |
-| isAllOf       | rl2:isAllOf         | All-of check           |
-| isNoneOf      | rl2:isNoneOf        | None-of check          |
-| and           | rl2:and             | LogicalOperator        |
-| or            | rl2:or              | LogicalOperator        |
-| xone          | rl2:xone            | LogicalOperator        |
-
-### Party Role Mapping
-
-| ODRL Role       | RL2 Normative Role | RL2 Functional Role |
-| --------------- | ------------------ | ------------------- |
-| assignee        | rl2:subject        | rl2:grantee         |
-| assigner        | rl2:counterparty   | rl2:grantor         |
-| informedParty   | —                  | rl2:participant     |
-| attributedParty | —                  | rl2:participant     |
-| consentingParty | —                  | rl2:approver        |
+| ODRL Operator | RL2 Operator | Type |
+| :--- | :--- | :--- |
+| `eq`, `neq` | `rl2:eq`, `rl2:neq` | Comparison |
+| `lt`, `lte`, `gt`, `gte` | `rl2:lt`, `rl2:lte`, ... | Comparison |
+| `isA` | `rl2:isA` | Semantic |
+| `isAnyOf`, `isAllOf` | `rl2:isAnyOf`, `rl2:isAllOf` | Set |
+| `and`, `or`, `xone` | `rl2:and`, `rl2:or`, `rl2:xone` | Logical |
 
 ---
 
-### Transformation Rules
+## Part II: The Transpilation Strategy `T(M)`
 
-### Permissions
+The mapping `T(M)` is designed to operate on the **Atomic Policy** form defined in the ODRL Information Model (Section 2.7). This standardizes the input by ensuring that complex ODRL constructs are expanded into simpler components before RL2 compilation begins.
 
-**ODRL:**
+### 2.0 Input: ODRL Atomic Form
+Before applying RL2-specific transformations, the ODRL policy is normalized to its Atomic Form:
+1.  **Inheritance Flattening:** Parent properties are merged into children.
+2.  **Collection Explosion:** Rules with multiple Actions, Targets, or Assignees are expanded into multiple rules (Cartesian product), such that each Atomic Policy contains exactly one Action, one Target, and one Assignee.
+3.  **Conflict Resolution:** Policy-level conflict strategies are applied to produce a consistent set of rules.
+
+This Atomic Form serves as the direct input for the RL2 compilation steps below.
+
+### 2.1 Pattern: Permission-Bound Duties
+
+**The ODRL Pattern:**
+ODRL allows embedding a `Duty` inside a `Permission` to imply a requirement: "You can do X if you do Y."
+
 ```turtle
+# ODRL (Implicit Logic)
 odrl:permission [
-  odrl:assignee A ;
-  odrl:action X ;
-  odrl:target S ;
-  odrl:constraint C
-] .
-```
-
-**RL2:**
-```turtle
-_:rule a rl2:Privilege ;
-    rl2:subject A ;
-    rl2:action X ;
-    rl2:object S ;
-    rl2:condition T(C) .
-```
-
-### Prohibitions
-
-**ODRL:**
-```turtle
-odrl:prohibition [
-  odrl:assignee A ;
-  odrl:action X ;
+    odrl:action odrl:play ;
+    odrl:duty [
+        odrl:action odrl:pay ;
+        odrl:constraint [ ... amount=5 ... ]
+    ]
 ]
 ```
 
-**RL2:**
+**The RL2 Transpilation:**
+RL2 decouples the duty from the privilege to track their lifecycles independently. The privilege then explicitly *depends* on the duty's state.
+
+1.  **Extract** the Duty as a standalone norm.
+2.  **Inject** a condition into the Privilege that checks the Duty's state.
+3.  **Bind** identities (ODRL implies SameSubject; RL2 makes it explicit).
+
 ```turtle
-_:rule a rl2:Prohibition ;
-    rl2:subject A ;
-    rl2:prohibitedAction X .
-```
-
-### Duties
-
-**ODRL:**
-```turtle
-odrl:duty [
-  odrl:assignee A ;
-  odrl:action X ;
-  odrl:target S ;
-]
-```
-
-**RL2:**
-```turtle
-_:d a rl2:Duty ;
-    rl2:subject A ;
-    rl2:action X ;
-    rl2:object S .
-```
-
-### Permission-Bound Duties (CRITICAL)
-
-ODRL allows duties with different actions from the permitted action. For example, permit `display` if duty `pay` is fulfilled. This requires special transformation.
-
-**ODRL:**
-```turtle
-:offer1 a odrl:Offer ;
-    odrl:permission [
-        odrl:action odrl:display ;
-        odrl:target :photo123 ;
-        odrl:duty [
-            odrl:action odrl:pay ;
-            odrl:constraint [ odrl:payAmount 5.00 ]
-        ]
-    ] .
-```
-
-**RL2 Transformation:**
-```turtle
-# Step 1: Create standalone duty with URI
+# RL2 (Explicit Logic)
+# 1. Standalone Duty
 ex:paymentDuty a rl2:Duty ;
     rl2:subject ex:User ;
     rl2:action ex:pay ;
-    rl2:object ex:Photo123 ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand ex:payAmount ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand 5.00
-    ] .
+    rl2:object ex:Asset .
 
-# Step 2: Add duty state precondition to privilege
-ex:displayPrivilege a rl2:Privilege ;
+# 2. Conditional Privilege
+ex:playPrivilege a rl2:Privilege ;
     rl2:subject ex:User ;
-    rl2:action ex:display ;
-    rl2:object ex:Photo123 ;
+    rl2:action ex:play ;
+    rl2:object ex:Asset ;
     rl2:condition [
         a rl2:LogicalConstraint ;
         rl2:constraintOperator rl2:and ;
         rl2:operand [
-            # Check duty is fulfilled
+            # State Check (Sein-sollen)
             a rl2:AtomicConstraint ;
             rl2:targetNorm ex:paymentDuty ;
             rl2:leftOperand rl2:obligationStateOperand ;
@@ -243,7 +122,7 @@ ex:displayPrivilege a rl2:Privilege ;
             rl2:rightOperand rl2:Fulfilled
         ] ;
         rl2:operand [
-            # Check same agent fulfilled (ODRL implies SameSubject)
+            # Identity Check (Tun-sollen / SameSubject)
             a rl2:AtomicConstraint ;
             rl2:targetNorm ex:paymentDuty ;
             rl2:leftOperand rl2:dutyPerformerOperand ;
@@ -253,323 +132,128 @@ ex:displayPrivilege a rl2:Privilege ;
     ] .
 ```
 
-**Transformation Rules:**
-1. Create `rl2:Duty` as standalone clause with URI for referenceability
-2. Add `LogicalConstraint` to permission's `rl2:condition` with:
-   - `AtomicConstraint` checking `obligationStateOperand = Fulfilled`
-   - `AtomicConstraint` checking `dutyPerformerOperand = currentAgent` (ODRL implies SameSubject)
-3. Combine with `rl2:and`
+**Justification:** This transformation preserves the "conditional permission" meaning but allows the payment duty to be tracked, audited, and potentially fulfilled *before* the access request (pre-payment) or *after* (post-payment), depending on the state machine.
 
-### Constraints
+### 2.2 Pattern: Inheritance (`inheritFrom`)
 
-**ODRL:**
+**The ODRL Pattern:**
+Policies can inherit properties from other policies. This creates a dependency graph that must be resolved at runtime (or fails if the parent is offline).
+
+**The RL2 Transpilation:**
+RL2 performs **Compile-Time Flattening**.
+
+`T(ChildPolicy)` = `Merge(Child, Resolve(Parent))`
+
+1.  Recursively resolve parent policies.
+2.  Union all clauses (norms).
+3.  Merge policy-level metadata (child overrides parent).
+4.  Output a self-contained `rl2:Policy` with no external dependencies.
+
+**Justification:** Runtime inheritance is an operational anti-pattern in distributed systems (latency, availability risks). Flattening ensures policies are immutable, self-contained artifacts ready for high-performance evaluation.
+
+### 2.3 Pattern: Abstract "Constraints"
+
+**The ODRL Pattern:**
+`odrl:constraint` mixes temporal checks, state checks, and attribute matches into one bucket.
+
+**The RL2 Transpilation:**
+The compiler analyzes the `leftOperand` to categorize the constraint:
+
+*   `dateTime` / `duration` → **Temporal Constraint** (mapped to `rl2:AtomicConstraint` with `rl2:currentDateTime`)
+*   `event` / `state` → **Event/State Constraint** (mapped to `rl2:EventConstraint` or `rl2:obligationStateOperand`)
+*   Other attributes → **Context Constraint** (mapped to `rl2:AtomicConstraint` with profile-defined operands)
+
+### 2.4 Pattern: Consequences and Remedies
+
+**The ODRL Pattern:**
+ODRL uses `consequence` (on Duty) and `remedy` (on Prohibition) to define obligations that arise upon violation.
+- `consequence`: "If Duty A fails, then Duty B must be done."
+- `remedy`: "If Prohibition P is violated, then Duty D must be done."
+
+**The RL2 Transpilation:**
+RL2 models these as **State-Triggered Duties**. The "remedial" duty is a standalone norm whose activation condition is the violation state of the original norm.
+
+**Example (Consequence):**
 ```turtle
-odrl:constraint [
-  odrl:leftOperand odrl:purpose ;
-  odrl:operator eq ;
-  odrl:rightOperand "research"
-]
-```
+# 1. Primary Duty (Active)
+ex:primaryDuty a rl2:Duty .
 
-**RL2:**
-```turtle
-# Note: Left operands like 'purpose' are defined by profiles, not RL2 Core.
-# A privacy or data governance profile would define:
-#   ex:purpose a rl2:LeftOperand .
-
-_:c a rl2:AtomicConstraint ;
-    rl2:leftOperand ex:purpose ;
-    rl2:constraintOperator rl2:eq ;
-    rl2:rightOperand "research" .
-```
-
-### Compilation Strategy: Inheritance Flattening
-
-ODRL allows policies to inherit from others via `odrl:inheritFrom`. RL2 supports this through a pre-processing "flattening" step during compilation, rather than as a runtime property.
-
-**Algorithm:**
-Given a policy `P` that inherits from `P_parent`:
-1. **Recursively resolve** `P_parent` until a base policy is found.
-2. **Merge Properties**:
-   - If `P` defines a property (e.g., `rl2:condition`), it overrides `P_parent`.
-   - If `P` does not define it, copy from `P_parent`.
-3. **Merge Clauses**:
-   - Union the set of clauses from `P` and `P_parent`.
-   - Conflict resolution is handled by the evaluator's conflict strategy.
-4. **Result**: A self-contained RL2 policy with no inheritance dependencies.
-
-This strategy ensures that RL2 evaluation remains simple and deterministic (no external fetching during evaluation) while supporting the organizational reuse patterns of `inheritFrom`.
-
----
-
-### Semantic Preservation
-
-For every ODRL rule R:
-
-```
-⟦R⟧_ODRL  ==  ⟦T(R)⟧_RL2
-```
-
-**Proof Sketch:**
-
-* Privilege semantics identical to Permission.
-* Duty semantics identical.
-* Prohibition semantics preserved directly through `rl2:Prohibition`.
-* Constraint semantics preserved via functional equivalence.
-* Role semantics preserved via mapping to normative or functional roles.
-* Conflict semantics preserved via RL2 condition calculus.
-* Asset semantics preserved exactly.
-
-Thus RL2 provides a **conservative semantic extension** of ODRL 2.2.
-
----
-
-## ODRL 3.0 Use-Case Deltas
-
-### Summary of ODRL 3.0 Extensions
-
-Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
-
-1. **Dynamic Asset Collections** — Asset collections defined via queries, materialized at runtime
-2. **Dynamic Operand Resolution** — Operand values resolved at evaluation time
-3. **Temporal Extensions** — Policy effective intervals, duty sequencing, event-triggered activation
-4. **Event-based Activation** — Policy activation triggered by events
-5. **Multi-Party Workflows** — Explicit approval steps, multi-party consent
-6. **Enhanced Duty Semantics** — Duty-chains, sanctions, remedies
-7. **Contextual Logic** — Environmental conditions, system state
-8. **Inter-policy Relationships** — Inheritance, refinement, conflicts
-
----
-
-### Use Case Coverage Matrix
-
-| ODRL 3.0 Requirement       | RL2 Construct(s)                              | Coverage | Semantics Reference |
-| -------------------------- | --------------------------------------------- | -------- | ------------------- |
-| Dynamic asset collections  | rl2:AssetCollection (static members; dynamic materialization profile-specific) | Partial  | Profile semantics |
-| Dynamic operand references | rl2:RuntimeReference (e.g., rl2:currentAgent) | Full     | RL2_Semantics §resolveRuntime |
-| Path expressions           | rl2:LeftOperand + rl2:resolutionPath          | Full     | RL2_Semantics §deref |
-| Temporal validity          | rl2:AtomicConstraint with rl2:currentDateTime | Full     | RL2_Semantics §timeout, §Condition Semantics |
-| Duty sequencing            | Operational semantics, rl2:StateTransition    | Full     | RL2_Semantics §Operational Semantics |
-| Duty state preconditions   | rl2:obligationStateOperand, rl2:targetNorm    | Full     | RL2_Semantics §resolve |
-| Identity binding (SoD)     | rl2:dutyPerformerOperand, rl2:currentAgent    | Full     | RL2_Semantics §resolve, §DutyPerformer |
-| Multi-party approval       | rl2:EventConstraint + rl2:approver            | Full     | RL2_Semantics §EventConstraint, §matches |
-| Event-triggered activation | rl2:Event + rl2:triggeredBy                   | Full     | RL2_Semantics §Event Processing |
-| Sanctions/remedies         | rl2:Power, rl2:Liability, rl2:Claim           | Full     | RL2_Semantics §Hohfeldian, §Sanctions |
-| Context-dependent rules    | rl2:AtomicConstraint with inline LeftOperand  | Full     | RL2_Semantics §Atom, §resolve |
-| Policy composition         | Under discussion                              | —        | See backlog.md |
-| Cross-policy influence     | Conditions referencing other policies         | Full     | RL2_Semantics §Composite |
-
-**Coverage Legend:**
-* **Full**: Ontology construct exists AND denotational/operational semantics are defined in RL2_Semantics.md
-* **Partial**: Ontology construct exists but semantics require profile-specific definitions
-* **Future**: Identified requirement, implementation deferred
-
-All ODRL 3.0 use cases listed above are covered with both ontology constructs and formal semantics.
-
----
-
-### Detailed Coverage
-
-### Dynamic Asset Collections
-
-RL2 Core supports AssetCollection with static members. Dynamic materialization (e.g., "all assets with classification RestrictedResearch") is profile-specific; Core no longer embeds query strings. Profiles may define resolvers or registry references to populate collections.
-
-### Multi-Party Approval Workflows
-
-RL2 models approval requirements via `rl2:EventConstraint`:
-
-```turtle
-ex:ApprovalRequired a rl2:EventConstraint ;
-    rl2:expectsEvent [
-        a rl2:Event ;
-        rl2:approver ex:EthicsBoard
-    ] .
-```
-
-### Event-Triggered Activation
-
-```turtle
-ex:transition a rl2:StateTransition ;
-    rl2:triggeredBy ex:ApprovalEvent ;
-    rl2:fromState rl2:Pending ;
-    rl2:toState rl2:Active .
-```
-
----
-
-## Canonical Worked Example
-
-This example demonstrates a comprehensive RL2 policy incorporating:
-
-* DPCL primitives (Privilege/Duty/Prohibition)
-* Policy typing via subclass
-* Temporal constraints
-* Asset collections
-* Multi-party approval via EventConstraint
-* Promise-based conditions
-* Domain-specific actions and left operands (defined in-policy)
-
-```turtle
-@prefix ex:   <https://example.org/> .
-@prefix rl2:  <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-
-# =============================================================
-# Domain vocabulary (actions, left operands) - defined by policy
-# =============================================================
-
-# Actions for this domain
-ex:use a rl2:Action ;
-    rdfs:label "use" ;
-    rdfs:comment "Exercise or consume an asset." .
-
-ex:distribute a rl2:Action ;
-    rdfs:label "distribute" ;
-    rdfs:comment "Make available to third parties." .
-
-ex:submitReport a rl2:Action ;
-    rdfs:label "submitReport" ;
-    rdfs:comment "Submit a usage report." .
-
-# =============================================================
-# Agents
-# =============================================================
-
-ex:DataOwner a rl2:Agent .
-ex:Researcher a rl2:Agent .
-ex:EthicsBoard a rl2:Agent .
-
-# =============================================================
-# Assets
-# =============================================================
-
-# Dynamic asset collection
-# RL2 Core provides static membership; dynamic materialization is profile-specific.
-ex:RestrictedDatasets a rl2:AssetCollection ;
-    rl2:member ex:Dataset1 ;  # Static members for Core
-    rl2:member ex:Dataset2 .
-    # Profile-specific dynamic resolution would replace static members
-
-# =============================================================
-# Promise content
-# =============================================================
-
-ex:DataStewardship rdfs:label "Data Stewardship Commitment" .
-
-# =============================================================
-# Policy
-# =============================================================
-
-ex:ResearchDataPolicy a rl2:Agreement ;
-    rl2:grantor ex:DataOwner ;
-    rl2:grantee ex:Researcher ;
-    rl2:clause ex:UsePrivilege , ex:ReportDuty , ex:DistributionBan .
-
-# Privilege with compound conditions
-ex:UsePrivilege a rl2:Privilege ;
-    rl2:subject ex:Researcher ;
-    rl2:action ex:use ;
-    rl2:object ex:RestrictedDatasets ;
-    rl2:condition ex:FullCondition .
-
-ex:FullCondition a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand ex:SemesterValid ;
-    rl2:operand ex:EthicsApproval ;
-    rl2:operand ex:StewardshipFulfilled .
-
-# Temporal constraint (using currentDateTime operand)
-ex:SemesterValid a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand rl2:currentDateTime ;
-        rl2:constraintOperator rl2:gte ;
-        rl2:rightOperand "2024-09-01T00:00:00Z"^^xsd:dateTime
-    ] ;
-    rl2:operand [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand rl2:currentDateTime ;
-        rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-01-31T23:59:59Z"^^xsd:dateTime
-    ] .
-
-# Event constraint for approval
-ex:EthicsApproval a rl2:EventConstraint ;
-    rl2:expectsEvent [
-        a rl2:Event ;
-        rl2:approver ex:EthicsBoard
-    ] .
-
-# Promise requirement
-ex:StewardshipFulfilled a rl2:Condition ;
-    rl2:requires ex:StewardshipPromise .
-
-ex:StewardshipPromise a rl2:Promise ;
-    rl2:promisor ex:Researcher ;
-    rl2:promisee ex:DataOwner ;
-    rl2:promiseContent ex:DataStewardship ;
-    rl2:promiseState rl2:PromiseFulfilled .
-
-# Duty with deadline (using currentDateTime operand)
-ex:ReportDuty a rl2:Duty ;
-    rl2:subject ex:Researcher ;
-    rl2:action ex:submitReport ;
-    rl2:object ex:RestrictedDatasets ;
+# 2. Consequence Duty (Pending)
+ex:fineDuty a rl2:Duty ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
         a rl2:AtomicConstraint ;
-        rl2:leftOperand rl2:currentDateTime ;
-        rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2024-12-15T23:59:59Z"^^xsd:dateTime
+        rl2:targetNorm ex:primaryDuty ;
+        rl2:leftOperand rl2:obligationStateOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand rl2:Violated
     ] .
-
-# Prohibition
-ex:DistributionBan a rl2:Prohibition ;
-    rl2:subject ex:Researcher ;
-    rl2:prohibitedAction ex:distribute ;
-    rl2:object ex:RestrictedDatasets .
 ```
 
-This policy:
+**Example (Remedy):**
+For a Prohibition, the violation is an event (the prohibited action occurred). The remedial duty is conditioned on that event.
+```turtle
+# Remedy Duty (Pending)
+ex:remedyDuty a rl2:Duty ;
+    rl2:obligationState rl2:Pending ;
+    rl2:condition [
+        a rl2:EventConstraint ;
+        rl2:expectsEvent [
+            a rl2:Event ;
+            rl2:action ex:prohibitedAction ; # The action that was banned
+            # Additional matching criteria...
+        ]
+    ] .
+```
 
-1. Grants usage privilege over a collection of restricted datasets
-2. Requires the current date to be within the semester window
-3. Requires prior approval from the ethics board (modeled as EventConstraint)
-4. Requires the researcher to have fulfilled a stewardship promise
-5. Imposes a reporting duty with a deadline
-6. Prohibits distribution of the datasets
+**Justification:** This approach unifies "normal" logic and "exception" logic. A consequence is simply a duty that activates when another duty fails. This removes the need for special properties like `consequence` and `remedy`, reducing the ontology surface area while increasing expressiveness (e.g., chains of consequences are naturally supported).
 
 ---
 
-## Completeness and Soundness
+## Part III: Addressing ODRL Ambiguities
 
-## Completeness Theorem
+RL2 fixes known ambiguities in ODRL 2.2 profiles.
 
-For every valid ODRL model M (2.2 or 3.0 requirements), there exists an RL2 model T(M) such that:
+### 3.1 The "Party" Ambiguity
+ODRL `assigner` and `assignee` are overloaded.
+*   **RL2 Fix:** We split roles into **Normative** (Subject/Counterparty) and **Functional** (Grantor/Grantee).
+    *   *Example:* In a "Break Glass" policy, the admin defines it (Grantor), but the user is the Subject. In ODRL, the "assigner" is often implicitly the system, which is confusing.
 
-* T(M) is valid under RL2 ontology and SHACL
-* No structure or constraint is lost
-* All semantics preserved
+### 3.2 The "Duty" Ambiguity
+ODRL `Duty` covers both "Must do X" (Obligation) and "If you do X, you get Y" (Condition).
+*   **RL2 Fix:** We distinguish **Duty** (a Norm that can be violated) from **Condition** (a logic gate).
+    *   If it's a condition for access, it's a `Constraint` on the Privilege.
+    *   If it's a requirement that persists (e.g., delete data in 30 days), it's a `Duty`.
 
-## Soundness Theorem
-
-For every ODRL interpretation function `⟦.⟧_ODRL`, RL2 interpretation respects:
-
-```
-⟦T(R)⟧_RL2 = ⟦R⟧_ODRL
-```
+### 3.3 The "Implicit Logic" Ambiguity
+ODRL assumes `SameSubject` (assignee of permission = assignee of duty) unless specified.
+*   **RL2 Fix:** Identity binding is always explicit via `dutyPerformerOperand`.
+    *   Allows modeling **Separation of Duty** (dutyPerformer != currentAgent) just as easily as SameSubject.
 
 ---
 
-## References
+## Part IV: ODRL 3.0 & Advanced Features
 
-See **RL2_References.md** for complete citations and glossary.
+RL2 is already aligned with emerging ODRL 3.0 requirements.
 
-Key sources:
-* [ODRL 2.2 Model], [ODRL 2.2 Vocab] — W3C Recommendations
-* [ODRL Best Practices] — W3C Working Group Note
-* [ODRL Formal Semantics] — Draft semantics
-* [ODRL 3.0] — Community Group work in progress
-* [DPCL], [Promise Theory], [ODRE] — RL2 foundations
+| ODRL 3.0 Need | RL2 Solution |
+| :--- | :--- |
+| **Promises** | First-class `rl2:Promise` class with `PromisePending`, `PromiseFulfilled`, `PromiseViolated` states. |
+| **Event Triggers** | `rl2:Event` and `rl2:StateTransition` (e.g., policy activates on "Publication" event). |
+| **Dynamic Collections** | `rl2:AssetCollection` (Core) + Profile-defined resolution queries. |
+| **Strict Semantics** | `RL2_Semantics.md` defines the formal calculus (tun-sollen vs sein-sollen). |
+| **Runtime Protocol** | `rl2p` defines the Request/Response/Trace format standardizing the "Request" policy type. |
+
+---
+
+## Conclusion
+
+**Transpilation is the Path Forward.**
+Organizations with existing ODRL assets do not need to discard them. They can use the `T(M)` transpilation strategy to compile ODRL into RL2.
+
+**The Result:**
+*   **Backwards Compatible:** Old policies still work.
+*   **Forwards Capable:** New capabilities (Promises, Events, Formal Verification) become available.
+*   **Risk Reduced:** Ambiguous "implied" logic becomes explicit "executable" logic.
+
+RL2 is not a competitor to ODRL; it is the **runtime realization** of the ODRL vision.

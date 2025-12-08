@@ -1,9 +1,9 @@
 ---
 title: "RL2 Evaluation Protocol"
 subtitle: "A Companion Specification for Interoperable Policy Evaluation"
-version: "0.4"
+version: "0.5"
 status: "Draft"
-date: 2025-01-05
+date: 2025-12-08
 ---
 
 ## Table of Contents
@@ -12,7 +12,7 @@ date: 2025-01-05
 - Design Principles
 - Request
 - Evaluation Result
-- Duty Requirement
+- Universal Requirement (Duties, Promises, Claims)
 - Fulfillment as Context
 - Case Lifecycle
 - Context
@@ -28,8 +28,8 @@ date: 2025-01-05
 This document defines the **RL2 Evaluation Protocol** — a standard format for:
 
 * Submitting access requests to RL2 policy evaluators
-* Receiving evaluation decisions with associated duties
-* Recording duty fulfillment evidence
+* Receiving evaluation decisions with associated requirements (duties, promises, claims)
+* Recording fulfillment evidence
 * Tracking access cases through their complete lifecycle
 * Enabling interoperability between independently implemented evaluators
 
@@ -65,14 +65,14 @@ This specification complements RL2 Core (the policy ontology) and RL2 Semantics 
 Cases are modeled as ordered sequences of events:
 
 ```
-Request → Context Assertions → Evaluation → Duty Requirements → Fulfillment Claims → Re-evaluation → ...
+Request → Context Assertions → Evaluation → Requirements → Fulfillment Claims → Re-evaluation → ...
 ```
 
 The complete state can be reconstructed from the event history.
 
 ## Provenance
 
-Every evaluation result, duty requirement, and fulfillment claim includes:
+Every evaluation result, requirement, and fulfillment claim includes:
 
 * Timestamp
 * Source reference (policy, agent, evidence)
@@ -157,10 +157,10 @@ rl2p:evaluatedRequest a owl:ObjectProperty ;
     rdfs:range rl2p:Request ;
     rdfs:comment "The request that was evaluated." .
 
-rl2p:activeDuties a owl:ObjectProperty ;
+rl2p:activeRequirements a owl:ObjectProperty ;
     rdfs:domain rl2p:EvaluationResult ;
-    rdfs:range rl2p:DutyRequirement ;
-    rdfs:comment "Duties that must be fulfilled for access to proceed or continue." .
+    rdfs:range rl2p:Requirement ;
+    rdfs:comment "Requirements (from Duties, Promises, or Claims) that must be fulfilled." .
 
 rl2p:matchedPolicies a owl:ObjectProperty ;
     rdfs:domain rl2p:EvaluationResult ;
@@ -189,22 +189,42 @@ rl2p:explanation a owl:DatatypeProperty ;
 ex:eval1 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
     rl2p:decision rl2p:Permit ;
-    rl2p:activeDuties ex:dutyReq1 , ex:dutyReq2 ;
+    rl2p:activeRequirements ex:req1 , ex:req2 ;
     rl2p:matchedPolicies ex:loanAccessPolicy ;
     rl2p:matchedNorms ex:loanAccessPrivilege ;
     rl2p:evaluationTime "2025-01-15T09:00:01Z"^^xsd:dateTime ;
-    rl2p:explanation "Access permitted with 2 duties required." .
+    rl2p:explanation "Access permitted with 2 requirements to fulfill." .
 ```
 
 ---
 
-# Duty Requirement
+# Universal Requirement (Duties, Promises, Claims)
 
-A **DutyRequirement** represents a duty imposed by policy evaluation.
+A **Requirement** (`rl2p:Requirement`) is a universal structure for tracking all runtime obligations, regardless of their source (Duty, Promise, or Claim).
 
-## Duty Lifecycle States
+## The "Promise as Generator" Concept
 
-DutyRequirement uses `rl2:ObligationState` from RL2 Core directly, ensuring semantic alignment:
+RL2 distinguishes between two types of "ought":
+
+1.  **Sein-Sollen (Ought-to-Be):** A required state of the world (invariant). Modeled as `rl2:Promise`.
+2.  **Tun-Sollen (Ought-to-Do):** An action to achieve or restore that state. Modeled as `rl2:Duty`.
+
+When the world deviates from a Promise's invariant (Sein-Sollen), the evaluator generates a remedial Duty (Tun-Sollen) to fix it. The Protocol tracks both as **Requirements**, distinguishing them by their `sourceNorm`.
+
+## Hohfeldian Mapping
+
+| Hohfeldian Norm | Runtime Meaning | Protocol Artifact |
+|-----------------|-----------------|-------------------|
+| Duty | "Must Do" | `rl2p:Requirement` (sourceNorm → Duty) |
+| Promise | "Must Do" (Voluntary) | `rl2p:Requirement` (sourceNorm → Promise) |
+| Claim | "Owed To" | `rl2p:Requirement` (with counterparty) |
+| Privilege | "Can Do" | `rl2p:Decision` (Permit) |
+| Power | "Can Change" | `rl2p:Decision` (Permit State Change) |
+| Immunity | "Cannot Be Changed" | `rl2p:Decision` (Deny State Change) |
+
+## Requirement Lifecycle
+
+Requirement uses `rl2:ObligationState` from RL2 Core uniformly:
 
 ```
 ┌─────────┐    condition     ┌────────┐
@@ -221,124 +241,109 @@ DutyRequirement uses `rl2:ObligationState` from RL2 Core directly, ensuring sema
              └───────────┘            └──────────┘
 ```
 
-The states are defined in RL2 Core (`rl2:Pending`, `rl2:Active`, `rl2:Fulfilled`, `rl2:Violated`) and used directly here via the `rl2p:dutyStatus` property.
+The states are defined in RL2 Core (`rl2:Pending`, `rl2:Active`, `rl2:Fulfilled`, `rl2:Violated`).
 
 ## Ontology
 
 ```turtle
-rl2p:DutyRequirement a owl:Class ;
-    rdfs:label "Duty Requirement" ;
-    rdfs:comment """A duty that must be fulfilled as a condition of access.
-    Captures the duty definition at the time of evaluation for audit purposes.""" .
+rl2p:Requirement a owl:Class ;
+    rdfs:label "Requirement" ;
+    rdfs:comment """A universal runtime obligation that must be fulfilled.
+    Tracks Duties, Promises, and Claims at runtime.""" .
 
-rl2p:requiresDuty a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
-    rdfs:range rl2:Duty ;
-    rdfs:comment "Reference to the duty definition in the policy." .
+rl2p:sourceNorm a owl:ObjectProperty ;
+    rdfs:domain rl2p:Requirement ;
+    rdfs:comment """Reference to the norm or promise that created this requirement.
+    Range: rl2:Norm | rl2:Promise.""" .
 
 rl2p:sourcePolicy a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:Policy ;
-    rdfs:comment "The policy that imposed this duty." .
+    rdfs:comment "The policy containing the norm that created this requirement." .
 
-rl2p:dutyStatus a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+rl2p:counterparty a owl:ObjectProperty ;
+    rdfs:domain rl2p:Requirement ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment """The agent who holds the correlative position (for Claims).
+    When sourceNorm is a Duty, counterparty is the Claim holder.
+    When sourceNorm is a Promise, counterparty is the promisee.""" .
+
+rl2p:requirementStatus a owl:ObjectProperty ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:ObligationState ;
-    rdfs:comment """Current lifecycle status of this duty requirement.
-    Uses rl2:ObligationState from RL2 Core (Pending, Active, Fulfilled, Violated)
-    to ensure semantic alignment between the ontology and protocol.""" .
+    rdfs:comment """Current lifecycle status of this requirement.
+    Uses rl2:ObligationState (Pending, Active, Fulfilled, Violated).""" .
 
 rl2p:imposedTime a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range xsd:dateTime ;
-    rdfs:comment "When this duty requirement was imposed." .
+    rdfs:comment "When this requirement was created/imposed." .
 
 rl2p:fulfilledByAction a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:Action ;
-    rdfs:comment "The action that fulfilled this duty requirement (if fulfilled)." .
+    rdfs:comment "The action that fulfilled this requirement (if fulfilled)." .
 
 rl2p:fulfilledByEvent a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range rl2:Event ;
-    rdfs:comment "The event/log entry evidencing fulfillment of this duty requirement." .
+    rdfs:comment "The event/log entry evidencing fulfillment of this requirement." .
 
 rl2p:fulfillmentEvidence a owl:ObjectProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment." .
 
-rl2p:dutyLabel a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+rl2p:requirementLabel a owl:DatatypeProperty ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range xsd:string ;
-    rdfs:comment "Human-readable label for the duty requirement." .
+    rdfs:comment "Human-readable label for this requirement." .
 
-rl2p:dutyDescription a owl:DatatypeProperty ;
-    rdfs:domain rl2p:DutyRequirement ;
+rl2p:requirementDescription a owl:DatatypeProperty ;
+    rdfs:domain rl2p:Requirement ;
     rdfs:range xsd:string ;
-    rdfs:comment "Human-readable description of what the duty requires." .
+    rdfs:comment "Human-readable description of what must be done." .
 ```
 
-## Example
+## Examples
 
+**1. Standard Duty (Manager Approval)**
 ```turtle
-ex:dutyReq1 a rl2p:DutyRequirement ;
-    rl2p:requiresDuty ex:managerApprovalDuty ;
+ex:req1 a rl2p:Requirement ;
+    rl2p:sourceNorm ex:managerApprovalDuty ;
     rl2p:sourcePolicy ex:loanAccessPolicy ;
-    rl2p:dutyStatus rl2:Active ;  # Activation condition has been met; duty must be performed
+    rl2p:requirementStatus rl2:Active ;
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
-
-# After fulfillment:
-# ex:dutyReq1
-#     rl2p:dutyStatus rl2:Fulfilled ;
-#     rl2p:fulfilledByAction ex:approveLoan ;
-#     rl2p:fulfilledByEvent ex:managerApprovalEvent ;
-#     rl2p:fulfillmentEvidence ex:approvalRecord123 .
-
-# Human-readable labels are available via the linked duty:
-# ex:managerApprovalDuty rdfs:label "Manager Approval" ;
-#     rdfs:comment "Obtain approval from department manager before accessing loan data." .
 ```
 
-## Duty Set Enrichment
-
-When the semantic `Eval()` function returns a `DutySet`, each `Duty` must be transformed into a `DutyRequirement` for the protocol response:
-
+**2. Promise-sourced Requirement (Data Quality)**
+```turtle
+ex:req2 a rl2p:Requirement ;
+    rl2p:sourceNorm ex:dataQualityPromise ;  # The promise itself
+    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:counterparty ex:DataConsumer ;       # The promisee (Claim holder)
+    rl2p:requirementStatus rl2:Pending ;
+    rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
 ```
-enrich : (Duty, Policy, State, Timestamp) → DutyRequirement
-
-enrich(d, P, Σ, t) =
-    DutyRequirement where
-        requiresDuty = d
-        sourcePolicy = P
-        dutyStatus   = Σ.ObligationState(d)
-        imposedTime  = t
-```
-
-This transformation:
-1. **Links to the source duty** via `rl2p:requiresDuty`
-2. **Records provenance** via `rl2p:sourcePolicy`
-3. **Captures current status** from the evaluation state
-4. **Timestamps the imposition** using the evaluation time
 
 ---
 
 # Fulfillment as Context
 
-Duty fulfillment is modeled as **context assertions** about duties. This provides a uniform pattern: all facts relevant to evaluation—whether about agents, assets, or duty completion—are context assertions referencing the request.
+Requirement fulfillment is modeled as **context assertions**. This provides a uniform pattern: all facts relevant to evaluation—whether about agents, assets, or requirement completion—are context assertions referencing the request.
 
 ## Pattern
 
 A fulfillment assertion uses:
-- `rl2p:contextSubject` → the duty requirement
-- `rl2p:contextProperty` → `rl2p:dutyFulfilled` (a left operand for fulfillment status)
+- `rl2p:contextSubject` → the requirement
+- `rl2p:contextProperty` → `rl2p:requirementFulfilled` (a left operand)
 - `rl2p:contextValue` → `"true"` or evidence reference
 
 ## Vocabulary
 
 ```turtle
-rl2p:dutyFulfilled a rl2:LeftOperand ;
-    rdfs:label "Duty Fulfilled" ;
-    rdfs:comment "Left operand indicating duty fulfillment status." .
+rl2p:requirementFulfilled a rl2:LeftOperand ;
+    rdfs:label "Requirement Fulfilled" ;
+    rdfs:comment "Left operand indicating requirement fulfillment status." .
 
 rl2p:fulfillmentEvidence a owl:ObjectProperty ;
     rdfs:domain rl2p:ContextAssertion ;
@@ -351,8 +356,8 @@ rl2p:fulfillmentEvidence a owl:ObjectProperty ;
 # Manager approval fulfillment - as context assertion
 ex:fulfillment1 a rl2p:ContextAssertion ;
     rl2p:forRequest ex:request1 ;
-    rl2p:contextSubject ex:dutyReq1 ;
-    rl2p:contextProperty rl2p:dutyFulfilled ;
+    rl2p:contextSubject ex:req1 ;
+    rl2p:contextProperty rl2p:requirementFulfilled ;
     rl2p:contextValue "true"^^xsd:boolean ;
     rl2p:fulfillmentEvidence ex:approvalEmail123 ;
     rl2p:assertedTime "2025-01-15T10:30:00Z"^^xsd:dateTime ;
@@ -469,7 +474,7 @@ Policy evaluation is triggered when the evaluation context changes. This ensures
 
 1. **Initial request** → first evaluation
 2. **Context assertion arrival** → facts about agents/assets change
-3. **Duty fulfillment claim** → duty states update
+3. **Requirement fulfillment claim** → requirement states update
 4. **Time advancement** → temporal conditions may change
 5. **Any event modifying Σ** → may activate/deactivate policies
 
@@ -482,7 +487,7 @@ When an event enters Σ, policies with EventConstraint conditions may become app
 ```
 Event arrives → Σ.Events updated →
   ApplicablePolicies(U, Env) recomputed →
-    New duties may activate
+    New requirements may activate
 ```
 
 This models workflows where external events (e.g., committee approval) trigger additional policy requirements without branching the duty lifecycle.
@@ -592,10 +597,10 @@ rl2p:NotApplicable a rl2p:Decision ;
 
 ## Decision Semantics
 
-| Decision | Meaning | Duties |
+| Decision | Meaning | Requirements |
 |----------|---------|--------|
-| **Permit** | Access granted unconditionally | No outstanding duties |
-| **PermitWithObligations** | Access granted contingent on duty fulfillment | Has duties; all must be fulfilled |
+| **Permit** | Access granted unconditionally | No outstanding requirements |
+| **PermitWithObligations** | Access granted contingent on fulfillment | Has requirements; all must be fulfilled |
 | **Deny** | Access denied | N/A |
 | **Indeterminate** | Cannot decide | Missing context or evaluation error |
 | **NotApplicable** | No matching policy | Request falls outside policy scope |
@@ -607,11 +612,11 @@ rl2p:NotApplicable a rl2p:Decision ;
 This example demonstrates the complete lifecycle described in the introduction:
 
 1. User requests access to resource with context
-2. Evaluator renders decision with possible duties
-3. Duty-fulfillment claims are added (case history/provenance)
+2. Evaluator renders decision with possible requirements (duties)
+3. Fulfillment claims are added (case history/provenance)
 4. Case is re-evaluated and fully approved
 5. Fully approved decision is handed to entitlements system
-6. After some time, access expires with creation of a new duty
+6. After some time, access expires with creation of a new requirement
 
 ## Domain Vocabulary (Profile)
 
@@ -682,49 +687,49 @@ ex:case1 a rl2p:Case ;
     rl2p:caseCreated "2025-01-15T09:00:00Z"^^xsd:dateTime .
 ```
 
-## Step 2: Evaluator Renders Decision with Duties
+## Step 2: Evaluator Renders Decision with Requirements
 
 ```turtle
-# Initial evaluation: Permit with duties
+# Initial evaluation: Permit with requirements
 ex:eval1 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
     rl2p:decision rl2p:Permit ;
-    rl2p:activeDuties ex:dutyReq1 , ex:dutyReq2 ;
+    rl2p:activeRequirements ex:req1 , ex:req2 ;
     rl2p:matchedPolicies ex:loanAccessPolicy ;
     rl2p:matchedNorms ex:loanAccessPrivilege ;
     rl2p:evaluationTime "2025-01-15T09:00:01Z"^^xsd:dateTime ;
-    rl2p:explanation "Access permitted. 2 duties must be fulfilled." .
+    rl2p:explanation "Access permitted. 2 requirements must be fulfilled." .
 
-# Duty 1: Manager Approval (Active - condition met, awaiting fulfillment)
-ex:dutyReq1 a rl2p:DutyRequirement ;
-    rl2p:requiresDuty ex:managerApprovalDuty ;
+# Requirement 1: Manager Approval (Active - condition met, awaiting fulfillment)
+ex:req1 a rl2p:Requirement ;
+    rl2p:sourceNorm ex:managerApprovalDuty ;
     rl2p:sourcePolicy ex:loanAccessPolicy ;
-    rl2p:dutyLabel "Manager Approval" ;
-    rl2p:dutyDescription "Obtain approval from department manager." ;
-    rl2p:dutyStatus rl2:Active ;
+    rl2p:requirementLabel "Manager Approval" ;
+    rl2p:requirementDescription "Obtain approval from department manager." ;
+    rl2p:requirementStatus rl2:Active ;
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
 
-# Duty 2: Data Handling Training (Pending - waiting for training window to open)
-ex:dutyReq2 a rl2p:DutyRequirement ;
-    rl2p:requiresDuty ex:dataHandlingTrainingDuty ;
+# Requirement 2: Data Handling Training (Pending - waiting for training window to open)
+ex:req2 a rl2p:Requirement ;
+    rl2p:sourceNorm ex:dataHandlingTrainingDuty ;
     rl2p:sourcePolicy ex:loanAccessPolicy ;
-    rl2p:dutyLabel "Data Handling Training" ;
-    rl2p:dutyDescription "Complete data handling certification course." ;
-    rl2p:dutyStatus rl2:Pending ;
+    rl2p:requirementLabel "Data Handling Training" ;
+    rl2p:requirementDescription "Complete data handling certification course." ;
+    rl2p:requirementStatus rl2:Pending ;
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
 
 # Case updated with evaluation
 ex:case1 rl2p:evaluationHistory ex:eval1 .
 ```
 
-## Step 3: Duty Fulfillment Context Added
+## Step 3: Fulfillment Context Added
 
 ```turtle
 # Manager approves - fulfillment as context assertion
 ex:fulfillment1 a rl2p:ContextAssertion ;
     rl2p:forRequest ex:request1 ;
-    rl2p:contextSubject ex:dutyReq1 ;
-    rl2p:contextProperty rl2p:dutyFulfilled ;
+    rl2p:contextSubject ex:req1 ;
+    rl2p:contextProperty rl2p:requirementFulfilled ;
     rl2p:contextValue "true"^^xsd:boolean ;
     rl2p:fulfillmentEvidence ex:approvalEmail123 ;
     rl2p:assertedTime "2025-01-15T10:30:00Z"^^xsd:dateTime ;
@@ -733,8 +738,8 @@ ex:fulfillment1 a rl2p:ContextAssertion ;
 # Alice completes training - fulfillment as context assertion
 ex:fulfillment2 a rl2p:ContextAssertion ;
     rl2p:forRequest ex:request1 ;
-    rl2p:contextSubject ex:dutyReq2 ;
-    rl2p:contextProperty rl2p:dutyFulfilled ;
+    rl2p:contextSubject ex:req2 ;
+    rl2p:contextProperty rl2p:requirementFulfilled ;
     rl2p:contextValue "true"^^xsd:boolean ;
     rl2p:fulfillmentEvidence ex:trainingCertificate456 ;
     rl2p:assertedTime "2025-01-15T14:00:00Z"^^xsd:dateTime ;
@@ -744,15 +749,15 @@ ex:fulfillment2 a rl2p:ContextAssertion ;
 ## Step 4: Re-evaluation with Full Approval
 
 ```turtle
-# Re-evaluation after duties fulfilled
+# Re-evaluation after requirements fulfilled
 ex:eval2 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
     rl2p:decision rl2p:Permit ;
-    rl2p:activeDuties [ ] ;  # No remaining duties
+    rl2p:activeRequirements [ ] ;  # No remaining requirements
     rl2p:matchedPolicies ex:loanAccessPolicy ;
     rl2p:matchedNorms ex:loanAccessPrivilege ;
     rl2p:evaluationTime "2025-01-15T14:05:00Z"^^xsd:dateTime ;
-    rl2p:explanation "Access permitted. All duties fulfilled." .
+    rl2p:explanation "Access permitted. All requirements fulfilled." .
 
 # Case status updated
 ex:case1
@@ -770,7 +775,7 @@ ex:case1
 
 # The entitlements system can verify:
 # - ex:case1 rl2p:caseStatus rl2p:Approved
-# - All duties in ex:eval2 rl2p:activeDuties are empty
+# - All requirements in ex:eval2 rl2p:activeRequirements are empty
 # - Fulfillment evidence via context assertions (ex:fulfillment1, ex:fulfillment2)
 # - Expiration: 2026-01-15
 
@@ -784,7 +789,7 @@ ex:accessGrant1 a ex:AccessGrant ;
     ex:expiresAt "2026-01-15T09:00:00Z"^^xsd:dateTime .
 ```
 
-## Step 6: Expiration Creates Re-certification Duty
+## Step 6: Expiration Creates Re-certification Requirement
 
 ```turtle
 # One year later: access expires
@@ -797,7 +802,7 @@ ex:expirationEvent a rl2:Event ;
 # Case status updated
 ex:case1 rl2p:caseStatus rl2p:Expired .
 
-# Re-certification duty is created (could be a new case or extension)
+# Re-certification requirement is created (could be a new case or extension)
 ex:recertCase1 a rl2p:Case ;
     rl2p:initialRequest ex:recertRequest1 ;
     rl2p:caseStatus rl2p:CasePending ;
@@ -819,7 +824,7 @@ ex:recertRequest1 a rl2p:Request ;
 |---------|-------|------|--------------|
 | Request format | ✓ XML-based | ✓ RDF-based | ✓ RDF-based |
 | Response format | ✓ XML-based | ✓ (informal) | ✓ RDF-based |
-| Obligations/Duties | ✓ Fire-and-forget | ✓ State machine | ✓ State machine |
+| Obligations/Duties | ✓ Fire-and-forget | ✓ State machine | ✓ Universal Requirement |
 | Fulfillment evidence | ✗ | ✗ | ✓ ContextAssertion |
 | Case lifecycle | ✗ (stateless) | ✗ | ✓ Case with history |
 | Provenance chain | ✗ | Partial (existingReport) | ✓ Context assertions |

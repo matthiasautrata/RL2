@@ -354,7 +354,7 @@ These terms from German legal philosophy (von Wright 1963) distinguish two funda
 - Governs agent behavior: promises, permissions, prohibitions, duties
 - Evaluated at request time or upon event occurrence
 - Violations are behavioral — an agent failed to act as required
-- RL2 examples: `ConsumerPromise`, `ProviderPromise`, `Privilege`, `Duty`
+- RL2 examples: `Promise`, `Privilege`, `Duty`
 
 **Sein-Sollen** (State-Directed Ought):
 - "It ought to **be the case** that φ holds"
