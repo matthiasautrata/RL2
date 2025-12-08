@@ -10,8 +10,8 @@
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A unified normative, descriptive, and operational rights language." ;
-  owl:versionInfo "0.4" ;
-  owl:versionIRI <https://rl2.example/ontology/0.4> .
+  owl:versionInfo "0.5" ;
+  owl:versionIRI <https://rl2.example/ontology/0.5> .
 
 ############################################################
 # 1. Normative Layer (DPCL)
@@ -220,18 +220,13 @@ rl2:AtomicConstraint a owl:Class ;
     rdfs:label "Atomic Constraint" ;
     rdfs:comment """A simple comparison constraint with left operand, operator, and right operand.
     Use this class for basic conditions like 'purpose eq research' or 'count lte 10'.
-    For compound conditions, use LogicalConstraint; for time-based, use TemporalConstraint.""" .
+    For compound conditions, use LogicalConstraint.
+    For time-based conditions, use rl2:currentDateTime operand with comparison operators.""" .
 
 rl2:LogicalConstraint a owl:Class ;
     rdfs:subClassOf rl2:Condition ;
     rdfs:label "Logical Constraint" ;
     rdfs:comment "A condition combining other conditions via logical operators." .
-
-rl2:TemporalConstraint a owl:Class ;
-    rdfs:subClassOf rl2:Condition ;
-    rdfs:label "Temporal Constraint" ;
-    rdfs:comment "A condition based on time intervals or temporal relations." .
-
 
 rl2:RuntimeReference a owl:Class ;
     rdfs:label "Runtime Reference" ;
@@ -275,6 +270,14 @@ rl2:dutyPerformerOperand a rl2:LeftOperand ;
     Returns an Agent IRI or ⊥ if not yet fulfilled.
     Requires rl2:targetNorm to specify which duty to query.
     Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
+
+rl2:currentDateTime a rl2:LeftOperand ;
+    rdfs:label "Current Date Time" ;
+    rdfs:comment """Resolves to the current system time (Σ.Clock).
+    Used in AtomicConstraints for temporal validity checks.
+    Example: currentDateTime lte "2025-01-01T00:00:00Z"^^xsd:dateTime
+    Resolution path: 'state.Clock'.""" ;
+    rl2:resolutionPath "state.Clock" .
 
 # Dynamic reference for current agent
 rl2:currentAgent a rl2:RuntimeReference ;
@@ -402,11 +405,6 @@ rl2:requires a owl:ObjectProperty ;
     rdfs:range rl2:ConditionOrEvent ;
     rdfs:comment "Composite condition requirement; may require another condition or a specific event." .
 
-
-rl2:interval a owl:ObjectProperty ;
-    rdfs:domain rl2:TemporalConstraint ;
-    rdfs:range rl2:EffectiveInterval ;
-    rdfs:comment "Interval used by a temporal constraint." .
 
 rl2:operand a owl:ObjectProperty ;
     rdfs:domain rl2:LogicalConstraint ;
@@ -576,36 +574,7 @@ rl2:after a owl:ObjectProperty ;
     temporal logic (e.g., immediately-after vs. eventually-after).""" .
 
 ############################################################
-# 6. Temporal and Contextual Constructs
-############################################################
-#
-# Scope Note: RL2 Core provides interval-based temporal constraints
-# (EffectiveInterval with start/end) and basic sequencing (rl2:after).
-# Richer temporal operators — such as Allen's interval relations
-# (before, during, overlaps, meets), recurrence patterns, relative
-# durations, or business-day calculations — are deliberately omitted
-# from Core. These are delegated to domain profiles, which can define
-# temporal vocabulary appropriate to their use cases without mandating
-# complexity that not all domains require.
-#
-############################################################
-
-rl2:EffectiveInterval a owl:Class ;
-    rdfs:label "Effective Interval" ;
-    rdfs:comment "A time interval with explicit start and end." .
-
-rl2:start a owl:DatatypeProperty ;
-    rdfs:domain rl2:EffectiveInterval ;
-    rdfs:range xsd:dateTime ;
-    rdfs:comment "Start of an interval." .
-
-rl2:end a owl:DatatypeProperty ;
-    rdfs:domain rl2:EffectiveInterval ;
-    rdfs:range xsd:dateTime ;
-    rdfs:comment "End of an interval." .
-
-############################################################
-# 7. Policy Containers
+# 6. Policy Containers
 ############################################################
 
 rl2:Policy a owl:Class ;
@@ -669,7 +638,7 @@ rl2:clauseOf a owl:ObjectProperty ;
     rdfs:comment "The policy containing this norm." .
 
 ############################################################
-# 8. Policy Generations
+# 7. Policy Generations
 ############################################################
 
 rl2:policyGeneration a owl:DatatypeProperty ;

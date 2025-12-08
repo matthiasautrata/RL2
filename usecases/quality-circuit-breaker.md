@@ -36,6 +36,7 @@ RL2's `NormState` model explicitly supports `Active`/`Suspended` transitions tri
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+# Operands
 dataquality:nullRateOperand a rl2:LeftOperand ;
     rdfs:label "Null Rate" ;
     rdfs:comment "Percentage of null values in the current batch." ;
@@ -53,6 +54,15 @@ dataquality:batchStatusOperand a rl2:LeftOperand ;
     rdfs:comment "Quality status of current batch." ;
     rl2:resolutionPath "asset.currentBatch.qualityStatus" ;
     rdfs:range dataquality:BatchStatus .
+
+# Actions
+dataquality:read a rl2:Action ;
+    rdfs:label "Read" ;
+    rdfs:comment "Read access to data asset." .
+
+dataquality:notifyQualityTeam a rl2:Action ;
+    rdfs:label "Notify Quality Team" ;
+    rdfs:comment "Send quality degradation alert to data quality team." .
 ```
 
 ## RL2 Model
@@ -66,7 +76,7 @@ dataquality:batchStatusOperand a rl2:LeftOperand ;
 # Base privilege for dashboard access
 ex:dashboardAccessPrivilege a rl2:Privilege ;
     rl2:subject ex:Analyst ;
-    rl2:action ex:read ;
+    rl2:action dataquality:read ;
     rl2:object ex:SalesDashboard ;
     rl2:condition [
         # Only active when data quality is acceptable
@@ -77,10 +87,10 @@ ex:dashboardAccessPrivilege a rl2:Privilege ;
     ] .
 
 # Prohibition when quality degrades (circuit breaker OPEN)
+# Note: No priority needed - conditions are mutually exclusive (≤5% vs >5%)
 ex:qualityCircuitBreaker a rl2:Prohibition ;
-    rl2:priority 500 ;  # Higher priority overrides privilege
     rl2:subject ex:Analyst ;
-    rl2:action ex:read ;
+    rl2:action dataquality:read ;
     rl2:object ex:SalesDashboard ;
     rl2:condition [
         a rl2:AtomicConstraint ;
@@ -92,7 +102,7 @@ ex:qualityCircuitBreaker a rl2:Prohibition ;
 # Duty: Notify data team when circuit breaker trips
 ex:notifyDataTeamDuty a rl2:Duty ;
     rl2:subject ex:DataPlatform ;
-    rl2:action ex:sendAlert ;
+    rl2:action dataquality:notifyQualityTeam ;
     rl2:object ex:DataQualityTeam ;
     rl2:condition [
         a rl2:AtomicConstraint ;
@@ -131,13 +141,13 @@ Circuit Breaker States:
 
 ## Implementation Notes
 
-### Priority-Based Resolution
+### Mutually Exclusive Conditions
 
-The circuit breaker uses RL2's priority mechanism:
-- `ex:dashboardAccessPrivilege` has default priority
-- `ex:qualityCircuitBreaker` has priority 500 (higher)
+The circuit breaker pattern uses mutually exclusive conditions:
+- `nullRate ≤ 5%` → Privilege applies (access granted)
+- `nullRate > 5%` → Prohibition applies (access denied)
 
-When both conditions match (edge case), the higher-priority prohibition wins.
+Since these conditions cannot both be true simultaneously, no priority mechanism is needed. The evaluator will find exactly one applicable norm for any given null rate.
 
 ### Metric Freshness
 
@@ -157,15 +167,16 @@ This requires hierarchy traversal (transitive closure over `dependsOn`).
 | Aspect | Manual Process | ODRL | RL2 |
 |--------|----------------|------|-----|
 | Trigger | Human review | Not supported | Automatic on metric |
-| Suspension | Manual revocation | Not supported | Priority-based prohibition |
+| Suspension | Manual revocation | Not supported | Condition-based prohibition |
 | Restoration | Manual grant | Not supported | Condition re-evaluation |
 | Notification | Separate system | Not supported | Triggered duty |
 
 ## PNF Considerations
 
 This use case is straightforward for PNF:
+
 - Single numeric comparison (`nullRate > 0.05`)
 - No transitive closure needed (unless cascading)
 - Propositional logic only
 
-The "circuit breaker" is just a high-priority prohibition with a metric condition — well within the semantic class.
+The "circuit breaker" is a prohibition with a metric condition using mutually exclusive constraints — well within the semantic class.

@@ -88,7 +88,7 @@ RL2 mirrors this basic structure but expands normative meaning through:
 | odrl:Permission  | rl2:Privilege  | Same deontic meaning      |
 | odrl:Prohibition | rl2:Prohibition | Direct deontic mapping    |
 | odrl:Duty        | rl2:Duty       | Direct                    |
-| odrl:Constraint  | rl2:AtomicConstraint | Simple ODRL constraints; RL2 also has LogicalConstraint, TemporalConstraint, etc. |
+| odrl:Constraint  | rl2:AtomicConstraint | Simple ODRL constraints; RL2 also has LogicalConstraint, EventConstraint, etc. |
 | odrl:Asset       | rl2:Asset      | Direct                    |
 | odrl:Action      | rl2:Action     | Direct                    |
 | odrl:Party       | rl2:Agent      | Direct                    |
@@ -348,7 +348,7 @@ Based on W3C Community Group notes and drafts, ODRL 3.0 extends ODRL 2.2 with:
 | Dynamic asset collections  | rl2:AssetCollection (static members; dynamic materialization profile-specific) | Partial  | Profile semantics |
 | Dynamic operand references | rl2:RuntimeReference (e.g., rl2:currentAgent) | Full     | RL2_Semantics §resolveRuntime |
 | Path expressions           | rl2:LeftOperand + rl2:resolutionPath          | Full     | RL2_Semantics §deref |
-| Temporal validity          | rl2:TemporalConstraint, rl2:EffectiveInterval | Full     | RL2_Semantics §timeout, §TemporalInterval |
+| Temporal validity          | rl2:AtomicConstraint with rl2:currentDateTime | Full     | RL2_Semantics §timeout, §Condition Semantics |
 | Duty sequencing            | Operational semantics, rl2:StateTransition    | Full     | RL2_Semantics §Operational Semantics |
 | Duty state preconditions   | rl2:obligationStateOperand, rl2:targetNorm    | Full     | RL2_Semantics §resolve |
 | Identity binding (SoD)     | rl2:dutyPerformerOperand, rl2:currentAgent    | Full     | RL2_Semantics §resolve, §DutyPerformer |
@@ -479,12 +479,20 @@ ex:FullCondition a rl2:LogicalConstraint ;
     rl2:operand ex:EthicsApproval ;
     rl2:operand ex:StewardshipFulfilled .
 
-# Temporal constraint
-ex:SemesterValid a rl2:TemporalConstraint ;
-    rl2:interval [
-        a rl2:EffectiveInterval ;
-        rl2:start "2024-09-01T00:00:00Z"^^xsd:dateTime ;
-        rl2:end   "2025-01-31T23:59:59Z"^^xsd:dateTime
+# Temporal constraint (using currentDateTime operand)
+ex:SemesterValid a rl2:LogicalConstraint ;
+    rl2:constraintOperator rl2:and ;
+    rl2:operand [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:gte ;
+        rl2:rightOperand "2024-09-01T00:00:00Z"^^xsd:dateTime
+    ] ;
+    rl2:operand [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-01-31T23:59:59Z"^^xsd:dateTime
     ] .
 
 # Event constraint for approval
@@ -504,18 +512,17 @@ ex:StewardshipPromise a rl2:Promise ;
     rl2:promiseContent ex:DataStewardship ;
     rl2:promiseState rl2:PromiseFulfilled .
 
-# Duty with deadline
+# Duty with deadline (using currentDateTime operand)
 ex:ReportDuty a rl2:Duty ;
     rl2:subject ex:Researcher ;
     rl2:action ex:submitReport ;
     rl2:object ex:RestrictedDatasets ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            rl2:end "2024-12-15T23:59:59Z"^^xsd:dateTime
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2024-12-15T23:59:59Z"^^xsd:dateTime
     ] .
 
 # Prohibition

@@ -19,17 +19,37 @@ An administrator pays for a team license. All team members gain access regardles
 - Decoupled actor from beneficiary
 - Common in SaaS B2B licensing
 
+## Profile-Declared Actions
+
+```turtle
+@prefix licensing: <https://example.org/profile/licensing#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+licensing:pay a rl2:Action ;
+    rdfs:label "Pay" ;
+    rdfs:comment "Make payment for a license." .
+
+licensing:access a rl2:Action ;
+    rdfs:label "Access" ;
+    rdfs:comment "Access premium features." .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix licensing: <https://example.org/profile/licensing#> .
+
 ex:teamPaymentDuty a rl2:Duty ;
     rl2:subject ex:TeamAdmin ;
-    rl2:action ex:pay ;
+    rl2:action licensing:pay ;
     rl2:object ex:TeamLicense .
 
 ex:teamAccessPrivilege a rl2:Privilege ;
     rl2:subject ex:TeamMember ;
-    rl2:action ex:access ;
+    rl2:action licensing:access ;
     rl2:object ex:PremiumFeatures ;
     rl2:condition [
         # Sein-sollen: Only check state, not who fulfilled

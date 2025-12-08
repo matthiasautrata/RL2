@@ -19,17 +19,37 @@ A wire transfer requires approval before execution. The person who prepared the 
 - NIST AC-5 (Separation of Duties)
 - Banking regulation compliance
 
+## Profile-Declared Actions
+
+```turtle
+@prefix finance: <https://example.org/profile/finance#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+finance:approve a rl2:Action ;
+    rdfs:label "Approve" ;
+    rdfs:comment "Approve a financial transaction." .
+
+finance:execute a rl2:Action ;
+    rdfs:label "Execute" ;
+    rdfs:comment "Execute an approved transaction." .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix finance: <https://example.org/profile/finance#> .
+
 ex:wireTransferApproval a rl2:Duty ;
     rl2:subject ex:Approver ;
-    rl2:action ex:approve ;
+    rl2:action finance:approve ;
     rl2:object ex:WireTransfer .
 
 ex:executeTransferPrivilege a rl2:Privilege ;
     rl2:subject ex:Preparer ;
-    rl2:action ex:execute ;
+    rl2:action finance:execute ;
     rl2:object ex:WireTransfer ;
     rl2:condition [
         a rl2:LogicalConstraint ;

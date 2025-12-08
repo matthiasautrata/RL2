@@ -48,10 +48,29 @@ auth:sessionMfaCompletedOperand a rl2:LeftOperand ;
     rl2:resolutionPath "session.mfaCompleted" ;
     rdfs:range xsd:boolean .
 
+auth:requestedResourceRiskLevelOperand a rl2:LeftOperand ;
+    rdfs:label "Requested Resource Risk Level" ;
+    rdfs:comment "Risk level of the resource being accessed in the current request." ;
+    rl2:resolutionPath "request.resource.riskLevel" ;
+    rdfs:range auth:RiskLevel .
+
 # Authentication levels (ordered)
 auth:PasswordOnly a auth:AuthLevel ; auth:levelValue 1 .
 auth:MFA a auth:AuthLevel ; auth:levelValue 2 .
 auth:HardwareToken a auth:AuthLevel ; auth:levelValue 3 .
+
+# Risk levels
+auth:LowRisk a auth:RiskLevel .
+auth:HighRisk a auth:RiskLevel .
+
+# Actions
+auth:read a rl2:Action ;
+    rdfs:label "Read" ;
+    rdfs:comment "Read access to resources." .
+
+auth:performMFA a rl2:Action ;
+    rdfs:label "Perform MFA" ;
+    rdfs:comment "Complete multi-factor authentication." .
 ```
 
 ## RL2 Model
@@ -65,7 +84,7 @@ auth:HardwareToken a auth:AuthLevel ; auth:levelValue 3 .
 # High-risk document access with MFA requirement
 ex:highRiskDocumentAccess a rl2:Privilege ;
     rl2:subject ex:Employee ;
-    rl2:action ex:read ;
+    rl2:action auth:read ;
     rl2:object ex:HighRiskDocument ;
     rl2:condition [
         # MFA must be completed in this session
@@ -75,27 +94,22 @@ ex:highRiskDocumentAccess a rl2:Privilege ;
         rl2:rightOperand true
     ] .
 
-# Step-up duty: If accessing high-risk without MFA, must authenticate
+# Step-up duty: When accessing high-risk resource without MFA, must authenticate
+# Note: Uses profile-declared operand for resource risk level instead of
+# attempting to match on request action/object types
 ex:stepUpAuthDuty a rl2:Duty ;
     rl2:subject ex:Employee ;
-    rl2:action ex:performMFA ;
+    rl2:action auth:performMFA ;
     rl2:object ex:AuthenticationSystem ;
     rl2:condition [
         a rl2:LogicalConstraint ;
         rl2:constraintOperator rl2:and ;
         rl2:operand [
-            # Attempting high-risk access
+            # Requested resource is high-risk
             a rl2:AtomicConstraint ;
-            rl2:leftOperand rl2:attemptedAction ;
+            rl2:leftOperand auth:requestedResourceRiskLevelOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand ex:read
-        ] ;
-        rl2:operand [
-            # On high-risk resource
-            a rl2:AtomicConstraint ;
-            rl2:leftOperand rl2:attemptedObject ;
-            rl2:constraintOperator rl2:isA ;
-            rl2:rightOperand ex:HighRiskDocument
+            rl2:rightOperand auth:HighRisk
         ] ;
         rl2:operand [
             # But MFA not yet completed

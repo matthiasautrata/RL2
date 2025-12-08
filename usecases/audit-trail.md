@@ -19,17 +19,37 @@ Access to financial records is only permitted if an audit trail has been establi
 - Compliance-driven
 - Enables defense-in-depth
 
+## Profile-Declared Actions
+
+```turtle
+@prefix compliance: <https://example.org/profile/compliance#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+compliance:enableAuditLogging a rl2:Action ;
+    rdfs:label "Enable Audit Logging" ;
+    rdfs:comment "Enable audit logging on a system." .
+
+compliance:access a rl2:Action ;
+    rdfs:label "Access" ;
+    rdfs:comment "Access to financial records." .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix compliance: <https://example.org/profile/compliance#> .
+
 ex:auditTrailSetup a rl2:Duty ;
     rl2:subject ex:SystemAdmin ;
-    rl2:action ex:enableAuditLogging ;
+    rl2:action compliance:enableAuditLogging ;
     rl2:object ex:FinancialSystem .
 
 ex:financialRecordAccess a rl2:Privilege ;
     rl2:subject ex:Auditor ;
-    rl2:action ex:access ;
+    rl2:action compliance:access ;
     rl2:object ex:FinancialRecords ;
     rl2:condition [
         # Sein-sollen: Only check state, not who fulfilled

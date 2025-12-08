@@ -19,17 +19,37 @@ A user must pay before accessing premium content. The same user who pays gets ac
 - No transferability of access rights
 - Audit trail links payment to accessor
 
+## Profile-Declared Actions
+
+```turtle
+@prefix licensing: <https://example.org/profile/licensing#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+licensing:pay a rl2:Action ;
+    rdfs:label "Pay" ;
+    rdfs:comment "Make payment for a license." .
+
+licensing:view a rl2:Action ;
+    rdfs:label "View" ;
+    rdfs:comment "View licensed content." .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix licensing: <https://example.org/profile/licensing#> .
+
 ex:paymentDuty a rl2:Duty ;
     rl2:subject ex:User ;
-    rl2:action ex:pay ;
+    rl2:action licensing:pay ;
     rl2:object ex:PhotoLicense .
 
 ex:viewPrivilege a rl2:Privilege ;
     rl2:subject ex:User ;
-    rl2:action ex:view ;
+    rl2:action licensing:view ;
     rl2:object ex:PremiumPhoto ;
     rl2:condition [
         a rl2:LogicalConstraint ;

@@ -19,14 +19,30 @@ When a fire alarm is triggered (by anyone), all building occupants gain permissi
 - Safety takes precedence
 - Broadcast permission grant
 
+## Profile-Declared Actions
+
+```turtle
+@prefix safety: <https://example.org/profile/safety#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+safety:useEmergencyExit a rl2:Action ;
+    rdfs:label "Use Emergency Exit" ;
+    rdfs:comment "Use emergency exit doors for evacuation." .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix safety: <https://example.org/profile/safety#> .
+
 ex:fireAlarmEvent a rl2:Event .
 
 ex:emergencyEvacuationPrivilege a rl2:Privilege ;
     rl2:subject ex:BuildingOccupant ;
-    rl2:action ex:useEmergencyExit ;
+    rl2:action safety:useEmergencyExit ;
     rl2:object ex:EmergencyDoors ;
     rl2:condition [
         # Sein-sollen: Only check event occurred, not who triggered

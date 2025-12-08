@@ -34,6 +34,11 @@ emergency:eventPerformerOperand a rl2:LeftOperand ;
     rdfs:comment "Resolves to the agent who performed the triggering event." ;
     rl2:resolutionPath "state.Events.BreakGlassEvent.operationalAgent" ;
     rdfs:range rl2:Agent .
+
+# Actions
+emergency:accessEmergencySystem a rl2:Action ;
+    rdfs:label "Access Emergency System" ;
+    rdfs:comment "Access to fire suppression or other emergency controls." .
 ```
 
 ## RL2 Model (Unified State Approach)
@@ -47,10 +52,12 @@ emergency:eventPerformerOperand a rl2:LeftOperand ;
 ex:BreakGlassEvent a rl2:Event ;
     rdfs:comment "Template for glass-breaking events" .
 
+# Note: Priority 500 is appropriate here - this is an emergency override
+# that should take precedence over normal access controls
 ex:emergencyAccessPrivilege a rl2:Privilege ;
-    rl2:priority 500 ;  # High priority override
+    rl2:priority 500 ;
     rl2:subject ex:Employee ;
-    rl2:action ex:accessEmergencySystem ;
+    rl2:action emergency:accessEmergencySystem ;
     rl2:object ex:FireSuppressionControls ;
     rl2:condition [
         a rl2:LogicalConstraint ;

@@ -26,7 +26,7 @@ The policy is a `Prohibition` that explicitly expires upon receipt of a `Publica
 - The transition from "embargoed" to "available"
 - The dependency on an external event
 
-RL2's `EventConstraint` and `EffectiveInterval` provide the necessary machinery.
+RL2's `EventConstraint` and temporal conditions via `currentDateTime` provide the necessary machinery.
 
 ## Profile-Declared Operands
 
@@ -55,6 +55,11 @@ finance:Published a finance:PublicationStatus .
 # Department values
 finance:InvestmentBanking a finance:Department .
 finance:Research a finance:Department .
+
+# Actions
+finance:read a rl2:Action ;
+    rdfs:label "Read" ;
+    rdfs:comment "Read access to financial documents." .
 ```
 
 ## RL2 Model
@@ -70,10 +75,10 @@ ex:PublicationEvent a rl2:Event ;
     rdfs:comment "Triggered when research is officially published." .
 
 # Embargo: Investment Banking cannot view draft research
+# Note: No priority needed - conditions are mutually exclusive with privilege (Draft vs Published)
 ex:researchEmbargo a rl2:Prohibition ;
-    rl2:priority 100 ;
     rl2:subject ex:InvestmentBanker ;
-    rl2:action ex:read ;
+    rl2:action finance:read ;
     rl2:object ex:ResearchReport ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -97,7 +102,7 @@ ex:researchEmbargo a rl2:Prohibition ;
 # After publication: Embargo lifts
 ex:publishedResearchAccess a rl2:Privilege ;
     rl2:subject ex:InvestmentBanker ;
-    rl2:action ex:read ;
+    rl2:action finance:read ;
     rl2:object ex:ResearchReport ;
     rl2:condition [
         # Research is published
@@ -108,10 +113,10 @@ ex:publishedResearchAccess a rl2:Privilege ;
     ] .
 
 # Research analysts can always access their own work
+# Note: Different subject class (ResearchAnalyst), no conflict with InvestmentBanker norms
 ex:researchAnalystAccess a rl2:Privilege ;
-    rl2:priority 200 ;
     rl2:subject ex:ResearchAnalyst ;
-    rl2:action ex:read ;
+    rl2:action finance:read ;
     rl2:object ex:ResearchReport .
 ```
 
@@ -148,13 +153,20 @@ The wall prevents conflicts of interest where investment banking activity could 
 
 ## Alternative: Event-Based Model
 
-Instead of status polling, an event-driven model:
+Instead of status polling, an event-driven model could use a profile-declared operand:
 
 ```turtle
+# Profile operand for checking event occurrence
+finance:publicationEventOccurredOperand a rl2:LeftOperand ;
+    rdfs:label "Publication Event Occurred" ;
+    rdfs:comment "Whether the publication event has occurred for this asset." ;
+    rl2:resolutionPath "state.Events.PublicationEvent.exists" ;
+    rdfs:range xsd:boolean .
+
 # Embargo active until publication event received
 ex:researchEmbargoEventBased a rl2:Prohibition ;
     rl2:subject ex:InvestmentBanker ;
-    rl2:action ex:read ;
+    rl2:action finance:read ;
     rl2:object ex:ResearchReport ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -167,9 +179,10 @@ ex:researchEmbargoEventBased a rl2:Prohibition ;
         ] ;
         rl2:operand [
             # Publication event has NOT occurred
-            a rl2:EventConstraint ;
-            rl2:expectsEvent ex:PublicationEvent ;
-            rl2:eventOccurred false
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand finance:publicationEventOccurredOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand false
         ]
     ] .
 ```

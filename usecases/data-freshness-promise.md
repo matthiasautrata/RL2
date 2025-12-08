@@ -48,6 +48,15 @@ datacontract:refreshIntervalOperand a rl2:LeftOperand ;
     rdfs:comment "Maximum allowed time between refreshes." ;
     rl2:resolutionPath "contract.sla.refreshInterval" ;
     rdfs:range xsd:duration .
+
+# Actions
+datacontract:refreshData a rl2:Action ;
+    rdfs:label "Refresh Data" ;
+    rdfs:comment "Refresh a dataset with new data." .
+
+datacontract:createIncidentTicket a rl2:Action ;
+    rdfs:label "Create Incident Ticket" ;
+    rdfs:comment "Create an incident ticket for SLA violation." .
 ```
 
 ## RL2 Model
@@ -64,7 +73,7 @@ ex:freshnessPromise a rl2:Promise ;
     rl2:promisee ex:DataConsumer ;
     rl2:promiseContent [
         a rl2:PromiseContent ;
-        rl2:action ex:refreshData ;
+        rl2:action datacontract:refreshData ;
         rl2:object ex:CustomerDataset ;
         rl2:recurrence "PT6H"^^xsd:duration
     ] .
@@ -72,7 +81,7 @@ ex:freshnessPromise a rl2:Promise ;
 # Duty triggered on violation: create incident ticket
 ex:escalationDuty a rl2:Duty ;
     rl2:subject ex:DataProvider ;
-    rl2:action ex:createIncidentTicket ;
+    rl2:action datacontract:createIncidentTicket ;
     rl2:object ex:SLAViolationReport ;
     rl2:condition [
         a rl2:AtomicConstraint ;
@@ -112,7 +121,7 @@ Promise State Machine:
 | Aspect | ODRL | RL2 |
 |--------|------|-----|
 | Provider obligations | Awkward (permission with duty?) | Native Promise type |
-| Temporal monitoring | Not built-in | `EffectiveInterval` + state machine |
+| Temporal monitoring | Not built-in | `currentDateTime` constraints + state machine |
 | Violation detection | No standard mechanism | `promiseStateOperand = Violated` |
 | Escalation triggers | Not expressible | Duty conditioned on Promise state |
 

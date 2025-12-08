@@ -44,6 +44,18 @@ research:approvalExpirationOperand a rl2:LeftOperand ;
     rdfs:comment "Resolves to the expiration timestamp of the approval." ;
     rl2:resolutionPath "state.Events.EthicsApprovalEvent.expirationDate" ;
     rdfs:range xsd:dateTime .
+
+# Profile-declared operand for current datetime
+research:currentDateTimeOperand a rl2:LeftOperand ;
+    rdfs:label "Current DateTime" ;
+    rdfs:comment "Resolves to the current evaluation timestamp." ;
+    rl2:resolutionPath "context.now" ;
+    rdfs:range xsd:dateTime .
+
+# Actions
+research:access a rl2:Action ;
+    rdfs:label "Access" ;
+    rdfs:comment "Access to research datasets." .
 ```
 
 ## RL2 Model (Unified State Approach)
@@ -61,7 +73,7 @@ ex:EthicsApprovalEvent a rl2:Event ;
 
 ex:sensitiveDataAccess a rl2:Privilege ;
     rl2:subject ex:Researcher ;
-    rl2:action ex:access ;
+    rl2:action research:access ;
     rl2:object ex:SensitiveDataset ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -81,8 +93,11 @@ ex:sensitiveDataAccess a rl2:Privilege ;
         ] ;
         rl2:operand [
             # Check 3: Is approval still valid?
-            a rl2:TemporalConstraint ;
-            rl2:interval [ rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime ]
+            # Uses profile-declared operand comparing current time to expiration
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand research:currentDateTimeOperand ;
+            rl2:constraintOperator rl2:lt ;
+            rl2:rightOperandRef research:approvalExpirationOperand
         ]
     ] .
 ```

@@ -10,7 +10,7 @@
 The PNF proposal (v0.7) commits to "propositional + bounded transitive closure" as the execution semantic class. This excludes general rule evaluation, open quantification, arbitrary joins, and open-world inference. **Action:** Verify this boundary is acceptable by hand-compiling representative use cases (break-glass, separation of duty, GDPR erasure, high-volume entitlements) to PNF and confirming no essential expressiveness is lost.
 
 ### Alignment Modules
-Optional `owl:equivalentClass` mappings to standard vocabularies (PROV-O for Case/Event, OWL-Time for EffectiveInterval, FOAF for Agent). Enables interoperability while keeping core standalone.
+Optional `owl:equivalentClass` mappings to standard vocabularies (PROV-O for Case/Event, FOAF for Agent). Enables interoperability while keeping core standalone.
 
 ### Common Profile
 Baseline actions (`use`, `read`, `modify`, `delete`, `transfer`) and operands (`dateTime`, `purpose`, `recipient`, `spatial`) for cross-implementation interoperability. Enables ODRL compilation without profile-specific mappings.
@@ -85,6 +85,13 @@ Finalize persistent URI (e.g., `https://w3id.org/rl2/core#`) — pending organiz
 ---
 
 ## Resolved
+
+### Temporal Classes Simplification (2025-12-07)
+Removed `rl2:TemporalConstraint` and `rl2:EffectiveInterval` from RL2 Core. These were syntactic sugar over `rl2:AtomicConstraint` with datetime comparisons. Added `rl2:currentDateTime` as Core LeftOperand (parallel to `rl2:currentAgent`). All temporal logic now uses explicit AtomicConstraints with comparison operators. Bumped ontology to version 0.5. Benefits:
+- Reduced ontology surface area
+- Eliminated "magic" semantics (implicit "now" comparison)
+- Aligned with PNF propositional goal
+- Time is now "just another comparable value"
 
 ### Spec Fixes (2025-01-06)
 - Created `rl2:RuntimeReference` class, removed broken `DynamicOperandReference`

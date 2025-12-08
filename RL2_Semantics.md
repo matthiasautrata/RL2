@@ -110,7 +110,6 @@ Condition ::=
     | Or(Condition+)
     | Xone(Condition+)
     | Not(Condition)
-    | TemporalInterval(t_start, t_end)
     | EventConstraint(expectsEvent: Event)
     | Composite(requires: Condition+)
 ```
@@ -119,7 +118,8 @@ Notes:
 - `And`, `Or`, and `Xone` take one or more conditions
 - `Composite` models conditions that require other conditions to hold (using `rl2:requires` property chains)
 - `EventConstraint` models approval requirements; holds when the expected event is present in Σ.Events
-- `leftOperand` is drawn from profile-defined operands (RL2 Core defines the class `rl2:LeftOperand` but not instances)
+- `leftOperand` is drawn from profile-defined operands (RL2 Core defines `rl2:LeftOperand` class plus `currentDateTime`, `obligationStateOperand`, `dutyPerformerOperand` instances)
+- Time-based conditions use `AtomicConstraint` with `leftOperand = currentDateTime` (e.g., `currentDateTime lte deadline`)
 - Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`
 - Dynamic value resolution on the right side uses `RuntimeReference` (e.g., `currentAgent`)
 
@@ -322,13 +322,6 @@ Logical conditions:
 ⟦ Not(c)       ⟧(Env) = ¬⟦c⟧(Env)
 ⟦ Xone(c1..cn) ⟧(Env) = true iff exactly one of ⟦c1⟧(Env)..⟦cn⟧(Env) is true
                         (false when zero or more than one)
-```
-
-Temporal:
-
-```
-⟦ TemporalInterval(start,end) ⟧(Env) =
-    true if start ≤ Env.Σ.Clock ≤ end
 ```
 
 Event constraint (approval requirement):
@@ -595,7 +588,7 @@ contentHolds(content, Σ) =
 
 #### timeout : Condition → Boolean
 
-The function `timeout(c)` checks if a temporal deadline has passed:
+The function `timeout(c)` checks if a temporal deadline has passed. Since time-based conditions use `AtomicConstraint` with `currentDateTime`, we extract deadline values from constraints using `lte` or `lt` operators:
 
 ```
 timeout : Condition × State → Boolean
@@ -607,10 +600,11 @@ timeout(c, Σ) =
 
 extractDeadline(c) =
     case c of
-        TemporalInterval(_, end)  → Some(end)
-        And(c1, c2)               → min(extractDeadline(c1), extractDeadline(c2))
-        Or(c1, c2)                → max(extractDeadline(c1), extractDeadline(c2))
-        _                         → None
+        AtomicConstraint(currentDateTime, lte, t)  → Some(t)
+        AtomicConstraint(currentDateTime, lt, t)   → Some(t)
+        And(c1, c2)                                → min(extractDeadline(c1), extractDeadline(c2))
+        Or(c1, c2)                                 → max(extractDeadline(c1), extractDeadline(c2))
+        _                                          → None
 ```
 
 #### deadline : PromiseContent × State → Boolean

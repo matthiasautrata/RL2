@@ -43,17 +43,37 @@ rl2:dutyPerformerOperand a rl2:LeftOperand ;
     Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
 ```
 
+## Profile-Declared Actions
+
+```turtle
+@prefix finance: <https://example.org/profile/finance#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+finance:prepare a rl2:Action ;
+    rdfs:label "Prepare" ;
+    rdfs:comment "Prepare a check for signing." .
+
+finance:sign a rl2:Action ;
+    rdfs:label "Sign" ;
+    rdfs:comment "Sign a prepared check." .
+```
+
 ## RL2 Model (Unified State Approach)
 
 ```turtle
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix finance: <https://example.org/profile/finance#> .
+
 ex:checkPreparation a rl2:Duty ;
     rl2:subject ex:FinanceStaff ;
-    rl2:action ex:prepare ;
+    rl2:action finance:prepare ;
     rl2:object ex:Check .
 
 ex:signCheckPrivilege a rl2:Privilege ;
     rl2:subject ex:FinanceStaff ;
-    rl2:action ex:sign ;
+    rl2:action finance:sign ;
     rl2:object ex:Check ;
     rl2:condition [
         a rl2:LogicalConstraint ;

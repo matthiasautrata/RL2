@@ -24,7 +24,7 @@ A data consumer allows the provider to change schema columns *only if* changes a
 This requires **Event Semantics**. A `SchemaChangeEvent` must be evaluated against a condition (`isBackwardCompatible`). If false, it triggers:
 1. A temporary `Prohibition` on the breaking change
 2. A `Duty` to notify consumers
-3. An `EffectiveInterval` that lifts the prohibition after 30 days
+3. A temporal condition (via `currentDateTime`) that lifts the prohibition after 30 days
 
 ODRL has no event model to evaluate changes as they occur.
 
@@ -47,6 +47,21 @@ datacontract:noticeGivenDateOperand a rl2:LeftOperand ;
     rdfs:comment "Date when breaking change notice was provided." ;
     rl2:resolutionPath "state.Notices.schemaChange.givenDate" ;
     rdfs:range xsd:dateTime .
+
+datacontract:daysSinceNoticeOperand a rl2:LeftOperand ;
+    rdfs:label "Days Since Notice" ;
+    rdfs:comment "Number of days elapsed since breaking change notice was given." ;
+    rl2:resolutionPath "state.Notices.schemaChange.daysSinceGiven" ;
+    rdfs:range xsd:integer .
+
+# Actions
+datacontract:modifySchema a rl2:Action ;
+    rdfs:label "Modify Schema" ;
+    rdfs:comment "Modify the schema of a dataset." .
+
+datacontract:notifyConsumers a rl2:Action ;
+    rdfs:label "Notify Consumers" ;
+    rdfs:comment "Send notification to data consumers about schema changes." .
 ```
 
 ## RL2 Model
@@ -63,9 +78,8 @@ ex:SchemaChangeEvent a rl2:Event ;
 
 # Privilege: Backward-compatible changes are always allowed
 ex:compatibleChangePrivilege a rl2:Privilege ;
-    rl2:priority 100 ;
     rl2:subject ex:DataProvider ;
-    rl2:action ex:modifySchema ;
+    rl2:action datacontract:modifySchema ;
     rl2:object ex:CustomerDataset ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -82,11 +96,10 @@ ex:compatibleChangePrivilege a rl2:Privilege ;
         ]
     ] .
 
-# Prohibition: Breaking changes blocked unless notice period elapsed
-ex:breakingChangeProhibition a rl2:Prohibition ;
-    rl2:priority 200 ;
+# Privilege: Breaking changes allowed AFTER 30-day notice period
+ex:breakingChangeAfterNoticePrivilege a rl2:Privilege ;
     rl2:subject ex:DataProvider ;
-    rl2:action ex:modifySchema ;
+    rl2:action datacontract:modifySchema ;
     rl2:object ex:CustomerDataset ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -98,18 +111,42 @@ ex:breakingChangeProhibition a rl2:Prohibition ;
             rl2:rightOperand false
         ] ;
         rl2:operand [
-            # Notice period has NOT elapsed
+            # Notice period HAS elapsed (30+ days)
             a rl2:AtomicConstraint ;
-            rl2:leftOperand rl2:elapsedTime ;
+            rl2:leftOperand datacontract:daysSinceNoticeOperand ;
+            rl2:constraintOperator rl2:gteq ;
+            rl2:rightOperand 30
+        ]
+    ] .
+
+# Prohibition: Breaking changes blocked if notice period not yet elapsed
+# Note: No priority needed - conditions are mutually exclusive with privilege above
+ex:breakingChangeProhibition a rl2:Prohibition ;
+    rl2:subject ex:DataProvider ;
+    rl2:action datacontract:modifySchema ;
+    rl2:object ex:CustomerDataset ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand datacontract:isBackwardCompatibleOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperand false
+        ] ;
+        rl2:operand [
+            # Notice period has NOT elapsed (< 30 days)
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand datacontract:daysSinceNoticeOperand ;
             rl2:constraintOperator rl2:lt ;
-            rl2:rightOperand "P30D"^^xsd:duration
+            rl2:rightOperand 30
         ]
     ] .
 
 # Duty: Must notify consumers of breaking changes
 ex:notifyBreakingChangeDuty a rl2:Duty ;
     rl2:subject ex:DataProvider ;
-    rl2:action ex:notifyConsumers ;
+    rl2:action datacontract:notifyConsumers ;
     rl2:object ex:BreakingChangeNotice ;
     rl2:condition [
         a rl2:AtomicConstraint ;
@@ -160,9 +197,10 @@ SchemaChangeEvent received
 ## Key Insight
 
 Schema evolution policies require:
+
 1. **Event evaluation** at change time
 2. **Conditional branching** based on change properties
-3. **Temporal state** (notice given date, elapsed time)
+3. **Temporal state** (notice given date, days since notice)
 4. **Dynamic duty creation** for notification requirement
 
 This is firmly in RL2 territory — ODRL's static permission model cannot express "allow this breaking change *after* 30 days from notice."
@@ -173,5 +211,5 @@ This is firmly in RL2 territory — ODRL's static permission model cannot expres
 |--------|------|-----|
 | Event evaluation | Not supported | `EventConstraint` |
 | Conditional branching | Limited | Full `LogicalConstraint` |
-| Temporal delays | `dateTime` constraints only | `EffectiveInterval` + elapsed time |
+| Temporal delays | `dateTime` constraints only | Profile operand for days since notice |
 | Dynamic duties | Not supported | Condition-triggered `Duty` |

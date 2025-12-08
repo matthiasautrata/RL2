@@ -249,11 +249,19 @@ ex:aliceUsePrivilege a rl2:Privilege ;
     rl2:action ex:use ;
     rl2:object ex:ResearchDataset ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
-            rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand rl2:currentDateTime ;
+            rl2:constraintOperator rl2:gte ;
+            rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand rl2:currentDateTime ;
+            rl2:constraintOperator rl2:lte ;
+            rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
         ]
     ] .
 ```
@@ -318,11 +326,10 @@ ex:deletionDuty a rl2:Duty ;
     rl2:object ex:Dataset ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            rl2:end "2025-03-15T23:59:59Z"^^xsd:dateTime
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-03-15T23:59:59Z"^^xsd:dateTime
     ] .
 ```
 
@@ -612,21 +619,36 @@ ex:combinedConstraint a rl2:LogicalConstraint ;
 
 ### Temporal Constraints
 
-Temporal constraints use **EffectiveInterval** to specify validity periods:
+Temporal constraints use **currentDateTime** with comparison operators to specify validity periods:
 
 ```turtle
-ex:validityPeriod a rl2:TemporalConstraint ;
-    rl2:interval [
-        a rl2:EffectiveInterval ;
-        rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
-        rl2:end "2025-06-30T23:59:59Z"^^xsd:dateTime
+# Closed interval: from January 1 to June 30
+ex:validityPeriod a rl2:LogicalConstraint ;
+    rl2:constraintOperator rl2:and ;
+    rl2:operand [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:gte ;
+        rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+    ] ;
+    rl2:operand [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime
     ] .
+
+# Deadline only: until June 30
+ex:deadline a rl2:AtomicConstraint ;
+    rl2:leftOperand rl2:currentDateTime ;
+    rl2:constraintOperator rl2:lte ;
+    rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime .
 ```
 
-**Open intervals**: Both start and end are optional:
-- Start only: "from January 1 onwards" (open-ended)
-- End only: "until June 30" (deadline)
-- Both: "from January 1 to June 30" (closed interval)
+**Temporal patterns**:
+- **Start only**: `currentDateTime gte startDate` (from date onwards)
+- **End only**: `currentDateTime lte endDate` (deadline)
+- **Both**: combine with `rl2:and` (closed interval)
 
 ### Contextual Constraints
 
@@ -678,11 +700,19 @@ ex:complexPrivilege a rl2:Privilege ;
             rl2:rightOperand "research"
         ] ;
         rl2:operand [
-            a rl2:TemporalConstraint ;
-            rl2:interval [
-                a rl2:EffectiveInterval ;
-                rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
-                rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime
+            a rl2:LogicalConstraint ;
+            rl2:constraintOperator rl2:and ;
+            rl2:operand [
+                a rl2:AtomicConstraint ;
+                rl2:leftOperand rl2:currentDateTime ;
+                rl2:constraintOperator rl2:gte ;
+                rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+            ] ;
+            rl2:operand [
+                a rl2:AtomicConstraint ;
+                rl2:leftOperand rl2:currentDateTime ;
+                rl2:constraintOperator rl2:lte ;
+                rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
             ]
         ] ;
         rl2:operand [
@@ -1021,11 +1051,10 @@ ex:deletionDuty a rl2:Duty ;
     rl2:object ex:Dataset ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            rl2:end "2025-03-15T23:59:59Z"^^xsd:dateTime
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-03-15T23:59:59Z"^^xsd:dateTime
     ] .
 ```
 
@@ -1185,11 +1214,19 @@ ex:usePrivilege a rl2:Privilege ;
         ] ;
         rl2:operand [
             # Valid during 2025
-            a rl2:TemporalConstraint ;
-            rl2:interval [
-                a rl2:EffectiveInterval ;
-                rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
-                rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime
+            a rl2:LogicalConstraint ;
+            rl2:constraintOperator rl2:and ;
+            rl2:operand [
+                a rl2:AtomicConstraint ;
+                rl2:leftOperand rl2:currentDateTime ;
+                rl2:constraintOperator rl2:gte ;
+                rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+            ] ;
+            rl2:operand [
+                a rl2:AtomicConstraint ;
+                rl2:leftOperand rl2:currentDateTime ;
+                rl2:constraintOperator rl2:lte ;
+                rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
             ]
         ] ;
         rl2:operand [
@@ -1213,11 +1250,10 @@ ex:reportDuty a rl2:Duty ;
     rl2:object ex:ResearchDataset ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            rl2:end "2025-06-30T23:59:59Z"^^xsd:dateTime
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime
     ] .
 
 # ============================================
@@ -1231,11 +1267,10 @@ ex:deletionDuty a rl2:Duty ;
     rl2:object ex:ResearchDataset ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [
-            a rl2:EffectiveInterval ;
-            rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
     ] .
 
 # ============================================
@@ -1341,7 +1376,7 @@ If the researcher attempted to distribute:
 | Model a held right | `rl2:Claim` |
 | Model authority to change rules | `rl2:Power` |
 | Model voluntary commitment | `rl2:Promise` |
-| Set a time window | `rl2:TemporalConstraint` with `rl2:EffectiveInterval` |
+| Set a time window | `rl2:AtomicConstraint` with `rl2:currentDateTime` |
 | Require approval | `rl2:EventConstraint` with `rl2:approver` |
 | Combine conditions | `rl2:LogicalConstraint` with `rl2:and`/`rl2:or` |
 | Bundle norms | `rl2:Policy` with `rl2:clause` |

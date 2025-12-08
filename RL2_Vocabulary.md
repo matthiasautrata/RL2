@@ -1,7 +1,7 @@
 ---
 title: "RL2 Vocabulary Reference"
 subtitle: "Complete Class and Property Definitions"
-version: "0.4"
+version: "0.5"
 status: "Draft"
 date: 2025-01-05
 purpose: "Reference documentation for all RL2 ontology terms"
@@ -19,10 +19,10 @@ This document serves as the authoritative lookup reference for RL2 terms.
 
 - Section 2: Namespace and conformance
 - Section 3: Class index (alphabetical listing)
-- Sections 4-11: Class definitions by layer
-- Section 12: Property reference
-- Section 13: Operators and enumerations
-- Section 14: SHACL validation summary
+- Sections 4-10: Class definitions by layer
+- Section 11: Property reference
+- Section 12: Named individuals (operators and enumerations)
+- Section 13: SHACL validation summary
 
 ### Normative Status
 
@@ -40,12 +40,11 @@ The canonical definitions are in **rl2.ttl** (OWL ontology) and **rl2-shacl.ttl*
 6. [Agent and Role Classes](#6-agent-and-role-classes)
 7. [Action, Asset, and Condition Classes](#7-action-asset-and-condition-classes)
 8. [Operational Layer Classes](#8-operational-layer-classes)
-9. [Temporal Classes](#9-temporal-classes)
-10. [Policy Container Classes](#10-policy-container-classes)
-11. [Operator Classes](#11-operator-classes)
-12. [Property Reference](#12-property-reference)
-13. [Named Individuals](#13-named-individuals)
-14. [SHACL Validation Summary](#14-shacl-validation-summary)
+9. [Policy Container Classes](#9-policy-container-classes)
+10. [Operator Classes](#10-operator-classes)
+11. [Property Reference](#11-property-reference)
+12. [Named Individuals](#12-named-individuals)
+13. [SHACL Validation Summary](#13-shacl-validation-summary)
 
 ---
 
@@ -72,8 +71,8 @@ The conventional prefix is `rl2:`.
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A unified normative, descriptive, and operational rights language." ;
-  owl:versionInfo "0.4" ;
-  owl:versionIRI <https://rl2.example/ontology/0.4> .
+  owl:versionInfo "0.5" ;
+  owl:versionIRI <https://rl2.example/ontology/0.5> .
 ```
 
 ### Conformance
@@ -112,7 +111,6 @@ Alphabetical listing of all RL2 classes with brief descriptions.
 | `rl2:Condition` | Condition | Base class for constraints |
 | `rl2:Duty` | Normative | An obligation imposed on an agent |
 | `rl2:RuntimeReference` | Value | Value reference resolved at evaluation time (e.g., `currentAgent`) |
-| `rl2:EffectiveInterval` | Temporal | A time interval with start and end |
 | `rl2:Event` | Operational | Observable event triggering transitions |
 | `rl2:EventConstraint` | Condition | Constraint requiring an event to occur |
 | `rl2:Immunity` | Normative | Protection against another's power |
@@ -134,7 +132,6 @@ Alphabetical listing of all RL2 classes with brief descriptions.
 | `rl2:PromiseState` | Operational | State enumeration for promises |
 | `rl2:Set` | Policy | Unilateral policy declaration |
 | `rl2:StateTransition` | Operational | Transition in system state |
-| `rl2:TemporalConstraint` | Condition | Time-based condition |
 
 ---
 
@@ -220,8 +217,10 @@ ex:reportDuty a rl2:Duty ;
     rl2:object ex:Dataset ;
     rl2:obligationState rl2:Pending ;
     rl2:condition [
-        a rl2:TemporalConstraint ;
-        rl2:interval [ rl2:end "2025-06-30T23:59:59Z"^^xsd:dateTime ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime
     ] .
 ```
 
@@ -510,7 +509,7 @@ ex:sensitiveAssets a rl2:AssetCollection ;
 
 **Type**: `owl:Class`
 
-**Subclasses**: AtomicConstraint, LogicalConstraint, TemporalConstraint, EventConstraint
+**Subclasses**: AtomicConstraint, LogicalConstraint, EventConstraint
 
 **Common Properties**:
 - `rl2:constraintOperator` — Operator for evaluation
@@ -590,31 +589,6 @@ ex:combined a rl2:LogicalConstraint ;
 **Notes**:
 - `rl2:not` requires exactly one operand
 - `rl2:and`, `rl2:or`, `rl2:xone` require at least two operands
-
----
-
-### rl2:TemporalConstraint
-
-**Definition**: A condition based on time intervals.
-
-**Type**: `owl:Class`
-
-**Superclass**: `rl2:Condition`
-
-**Required Properties**:
-- `rl2:interval` — The EffectiveInterval to check against
-
-**SHACL Shape**: `rl2:TemporalConstraintShape`
-
-**Example**:
-```turtle
-ex:validity a rl2:TemporalConstraint ;
-    rl2:interval [
-        a rl2:EffectiveInterval ;
-        rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
-        rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime
-    ] .
-```
 
 ---
 
@@ -809,45 +783,7 @@ ex:activation a rl2:StateTransition ;
 
 ---
 
-## 9. Temporal Classes
-
-### rl2:EffectiveInterval
-
-**Definition**: A time interval with explicit start and/or end points.
-
-**Type**: `owl:Class`
-
-**Optional Properties**:
-- `rl2:start` — Start of interval (xsd:dateTime)
-- `rl2:end` — End of interval (xsd:dateTime)
-
-**SHACL Shape**: `rl2:EffectiveIntervalShape`
-
-**Interval Patterns**:
-- **Closed** (both start and end): "from X to Y"
-- **Open-ended** (start only): "from X onwards"
-- **Deadline** (end only): "until Y"
-- **Unbounded** (neither): "always" (use sparingly)
-
-**Validation**: SHACL enforces `start ≤ end` when both are present.
-
-**Example**:
-```turtle
-# Closed interval
-ex:year2025 a rl2:EffectiveInterval ;
-    rl2:start "2025-01-01T00:00:00Z"^^xsd:dateTime ;
-    rl2:end "2025-12-31T23:59:59Z"^^xsd:dateTime .
-
-# Deadline only
-ex:deadline a rl2:EffectiveInterval ;
-    rl2:end "2025-06-30T23:59:59Z"^^xsd:dateTime .
-```
-
-**Scope Note**: RL2 Core provides interval-based temporal constraints. Richer temporal operators (Allen's interval relations, recurrence patterns) are delegated to domain profiles.
-
----
-
-## 10. Policy Container Classes
+## 9. Policy Container Classes
 
 ### rl2:Policy
 
@@ -988,7 +924,7 @@ ex:complianceAssertion a rl2:Assertion ;
 
 ---
 
-## 11. Operator Classes
+## 10. Operator Classes
 
 ### rl2:Operator
 
@@ -1024,7 +960,7 @@ ex:complianceAssertion a rl2:Assertion ;
 
 ---
 
-## 12. Property Reference
+## 11. Property Reference
 
 ### Normative Properties
 
@@ -1082,15 +1018,12 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:targetNorm` | AtomicConstraint | Norm | Norm whose state to query (for obligationStateOperand/dutyPerformerOperand) |
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
 | `rl2:requires` | Condition | ConditionOrEvent | Composite requirement |
-| `rl2:interval` | TemporalConstraint | EffectiveInterval | Time interval |
 | `rl2:expectsEvent` | EventConstraint | Event | Required event |
 
-### Temporal Properties
+### Event Properties
 
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
-| `rl2:start` | EffectiveInterval | xsd:dateTime | Interval start |
-| `rl2:end` | EffectiveInterval | xsd:dateTime | Interval end |
 | `rl2:eventTime` | Event | xsd:dateTime | When event occurred |
 | `rl2:after` | Event | Event | Temporal sequence |
 
@@ -1111,7 +1044,7 @@ ex:complianceAssertion a rl2:Assertion ;
 
 ---
 
-## 13. Named Individuals
+## 12. Named Individuals
 
 ### Logical Operators
 
@@ -1160,6 +1093,7 @@ ex:complianceAssertion a rl2:Assertion ;
 |------------|------|-------------|
 | `rl2:obligationStateOperand` | LeftOperand | Queries Σ.ObligationState(targetNorm) |
 | `rl2:dutyPerformerOperand` | LeftOperand | Queries Σ.DutyPerformer(targetNorm) |
+| `rl2:currentDateTime` | LeftOperand | Resolves to Σ.Clock. Used for temporal validity checks. |
 
 ### Runtime Reference Instances
 
@@ -1169,7 +1103,7 @@ ex:complianceAssertion a rl2:Assertion ;
 
 ---
 
-## 14. SHACL Validation Summary
+## 13. SHACL Validation Summary
 
 The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for complete definitions.
 
@@ -1207,15 +1141,8 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:AtomicConstraintShape` | rl2:AtomicConstraint | Requires leftOperand, ComparisonOperator, rightOperand or rightOperandRef; validates targetNorm if present |
 | `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires targetNorm |
 | `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires LogicalOperator, at least one operand |
-| `rl2:TemporalConstraintShape` | rl2:TemporalConstraint | Requires interval |
 | `rl2:EventConstraintShape` | rl2:EventConstraint | Requires expectsEvent |
 | `rl2:DynamicOperandPairingShape` | AtomicConstraint with dutyPerformerOperand | Warns if rightOperandRef is not a RuntimeReference |
-
-### Temporal Shapes
-
-| Shape | Target | Validates |
-|-------|--------|-----------|
-| `rl2:EffectiveIntervalShape` | rl2:EffectiveInterval | start ≤ end when both present |
 
 ### Operational Shapes
 
@@ -1262,7 +1189,7 @@ RL2 Core leaves these deliberately open for profiles to define:
 - **LeftOperands**: Domain-specific evaluation properties
 - **Assets**: Domain-specific asset types
 - **Agents**: Domain-specific agent classifications
-- **Temporal extensions**: Allen relations, recurrence, etc.
+- **Temporal extensions**: Richer temporal operators (Allen relations, recurrence) if needed
 
 ---
 
@@ -1272,4 +1199,4 @@ For complete bibliography and glossary, see **RL2_References.md**.
 
 ---
 
-*This vocabulary reference covers RL2 version 0.4. The normative definitions are in rl2.ttl and rl2-shacl.ttl.*
+*This vocabulary reference covers RL2 version 0.5. The normative definitions are in rl2.ttl and rl2-shacl.ttl.*

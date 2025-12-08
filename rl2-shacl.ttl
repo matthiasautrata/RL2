@@ -220,36 +220,6 @@ rl2:EventConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:EventConstraint ;
     sh:property [ sh:path rl2:expectsEvent ; sh:minCount 1 ; sh:class rl2:Event ] .
 
-# Temporal constraint shape
-rl2:TemporalConstraintShape a sh:NodeShape ;
-    sh:targetClass rl2:TemporalConstraint ;
-    sh:property [
-        sh:path rl2:interval ;
-        sh:minCount 1 ;
-        sh:class rl2:EffectiveInterval
-    ] .
-
-# Effective interval shape with start <= end validation
-# Note: Both start and end are OPTIONAL, allowing:
-#   - Open-ended intervals (start only): "from date X onwards"
-#   - Deadline intervals (end only): "until date Y"
-#   - Closed intervals (both): "from X to Y"
-# The sh:lessThanOrEquals constraint only applies when both are present.
-rl2:EffectiveIntervalShape a sh:NodeShape ;
-    sh:targetClass rl2:EffectiveInterval ;
-    sh:property [
-        sh:path rl2:start ;
-        sh:maxCount 1 ;
-        sh:datatype xsd:dateTime ;
-        sh:lessThanOrEquals rl2:end ;
-        sh:message "rl2:start must be less than or equal to rl2:end"
-    ] ;
-    sh:property [
-        sh:path rl2:end ;
-        sh:maxCount 1 ;
-        sh:datatype xsd:dateTime
-    ] .
-
 # Asset collection shape
 rl2:AssetCollectionShape a sh:NodeShape ;
     sh:targetClass rl2:AssetCollection ;
@@ -459,7 +429,7 @@ rl2:OperandResolutionRecommendationShape a sh:NodeShape ;
                 ?this a rl2:LeftOperand .
                 FILTER NOT EXISTS { ?this rl2:resolutionPath ?p }
                 FILTER NOT EXISTS { ?this rl2:resolutionFunction ?f }
-                FILTER(?this NOT IN (rl2:obligationStateOperand, rl2:dutyPerformerOperand))
+                FILTER(?this NOT IN (rl2:obligationStateOperand, rl2:dutyPerformerOperand, rl2:currentDateTime))
             }
         """
     ] ;

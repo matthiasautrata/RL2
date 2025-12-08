@@ -141,7 +141,7 @@ ex:accessPrivilege a rl2:Privilege ;
 | **Event-based conditions** | Not supported | EventConstraint |
 | **State transitions** | Not supported | NormState machine |
 | **Identity binding** | Implied (SameSubject) | Explicit constraints |
-| **Temporal monitoring** | Limited | EffectiveInterval |
+| **Temporal monitoring** | Limited | `currentDateTime` constraints |
 | **Violation detection** | Not supported | State tracking |
 
 **Guidance:** Use cases 11-17 demonstrate patterns that require RL2's operational semantics. Static access control (purpose, geofencing) can be modeled in either, but RL2 provides a unified approach.

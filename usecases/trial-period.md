@@ -58,6 +58,15 @@ licensing:licenseTypeOperand a rl2:LeftOperand ;
 licensing:Trial a licensing:LicenseType .
 licensing:Expired a licensing:LicenseType .
 licensing:Paid a licensing:LicenseType .
+
+# Actions
+licensing:execute a rl2:Action ;
+    rdfs:label "Execute" ;
+    rdfs:comment "Execute/run the application." .
+
+licensing:read a rl2:Action ;
+    rdfs:label "Read" ;
+    rdfs:comment "Read-only access to application data." .
 ```
 
 ## RL2 Model
@@ -71,7 +80,7 @@ licensing:Paid a licensing:LicenseType .
 # Full access during active trial
 ex:trialFullAccess a rl2:Privilege ;
     rl2:subject ex:TrialUser ;
-    rl2:action ex:execute ;
+    rl2:action licensing:execute ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;
@@ -83,14 +92,14 @@ ex:trialFullAccess a rl2:Privilege ;
 # Read-only access always available (trial or expired)
 ex:readOnlyAccess a rl2:Privilege ;
     rl2:subject ex:TrialUser ;
-    rl2:action ex:read ;
+    rl2:action licensing:read ;
     rl2:object ex:Application .
 
 # Prohibition: No execute after trial expires
+# Note: No priority needed - conditions are mutually exclusive (daysRemaining > 0 vs ≤ 0)
 ex:expiredTrialProhibition a rl2:Prohibition ;
-    rl2:priority 100 ;
     rl2:subject ex:TrialUser ;
-    rl2:action ex:execute ;
+    rl2:action licensing:execute ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;
@@ -99,11 +108,10 @@ ex:expiredTrialProhibition a rl2:Prohibition ;
         rl2:rightOperand 0
     ] .
 
-# Paid users always have full access
+# Paid users always have full access (no condition needed)
 ex:paidFullAccess a rl2:Privilege ;
-    rl2:priority 200 ;
     rl2:subject ex:PaidUser ;
-    rl2:action ex:execute ;
+    rl2:action licensing:execute ;
     rl2:object ex:Application .
 ```
 
