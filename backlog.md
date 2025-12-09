@@ -34,6 +34,12 @@ Action: We will draft this rule during the implementation phase to ensure the "P
 
 ### **Rejection Semantics:** Already resolved by tracking agent in RL2P? Active disapproval vs absence of approval. Options: separate RejectionEvent type, outcome property on ApprovalEvent, or rejection as Prohibition activation.
 
+### **Event Assertion Mechanism**
+How are events represented in `rl2p:ContextAssertion`? ContextAssertion has `contextSubject`, `contextProperty`, `contextValue` — an attribute pattern. Events may need a different pattern where the event IS the subject. Clarify whether:
+- Events are asserted as ContextAssertions where `contextSubject` is the Event IRI
+- Or events have a separate assertion mechanism
+- Or events are implicit in the Request stream
+
 ### SHACL Enhancements
 - State machine validation (ObligationState, PromiseState transitions) — requires SHACL-SPARQL
 - Case state machine formalization (rl2p) — requires SHACL-SPARQL
