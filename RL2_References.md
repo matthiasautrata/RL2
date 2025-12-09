@@ -186,6 +186,49 @@
 - **RL2 relevance**: UCON uses binary obligation states (satisfied/revoked) vs RL2's explicit lifecycle (Pending→Active→Fulfilled/Violated). UCON's continuity concept validates RL2's operational layer; its mutability patterns support RL2's Power normative concept. Functional decision model (f(subject, resource, env, obligations)) informs Why3 mechanization.
 - **Gap**: UCON lacks Hohfeldian normative categories; operates via allow/deny rather than explicit normative relations
 
+**[I/O Logic 2000]** Makinson, David, and Leendert van der Torre. "Input/Output Logics." *Journal of Philosophical Logic*, Vol 29, 2000, pp 383-408.
+- https://doi.org/10.1023/A:1004748624537
+- https://icr.uni.lu/leonvandertorre/papers/deon00a.pdf
+- Foundational paper introducing I/O operations for normative reasoning
+- Models norms as pairs `(φ, ψ)` meaning "if φ holds, ψ is normatively produced"
+- **RL2 relevance**: RL2's `Out(U,Env)` function directly implements I/O-style derivation — monotone production of normative atoms from facts, with conflict resolution as a separate post-derivation step. The key property that "contradiction is data, not failure" comes from I/O logic's treatment of conflicting outputs.
+
+**[I/O Logic Tutorial]** Makinson, David, and Leendert van der Torre. "What is Input/Output Logic?" *Foundations of the Formal Sciences II*, Trends in Logic Series vol 17, 2003, pp 163-174.
+- https://icr.uni.lu/leonvandertorre/papers/fotfs03.pdf
+- Tutorial exposition of I/O logic motivations and core operations
+- Distinguishes simple-minded output, basic output, and reusable output
+- **RL2 relevance**: Clarifies that RL2 uses "simple-minded" I/O output (no throughput of input to output), which ensures polynomial derivation
+
+**[I/O Logic Constraints]** Makinson, David, and Leendert van der Torre. "Constraints for Input/Output Logics." *Journal of Philosophical Logic*, Vol 30, 2001, pp 155-185.
+- https://doi.org/10.1023/A:1017599526096
+- Adds consistency and contrary-to-duty constraints to I/O logic
+- Addresses how to handle conflicting normative outputs
+- **RL2 relevance**: RL2's conflict resolution strategies (ProhibitOverrides, PermitOverrides) are procedural implementations of constrained I/O output selection
+
+**[Defeasible Reasoning]** Koons, Robert. "Defeasible Reasoning." *Stanford Encyclopedia of Philosophy*, 2017.
+- https://plato.stanford.edu/entries/reasoning-defeasible/
+- Classic survey of non-monotonic and defeasible logic
+- Covers prioritized rules, defeat, exceptions
+- **RL2 relevance**: Formal background for RL2's post-derivation resolution layer; explains why `Out` is monotone but `Eval` is not
+
+**[Defeasible Deontic Calculus]** Olson, Eric, et al. "A Defeasible Deontic Calculus for Resolving Norm Conflicts." *arXiv*, 2024.
+- https://arxiv.org/abs/2407.04869
+- Formalizes norm conflict resolution between obligations, permissions, prohibitions
+- Addresses priority-based defeat in deontic contexts
+- **RL2 relevance**: Directly relevant to RL2's conflict resolution; validates approach of separate normative atoms (obligate, forbid, permit) resolved by strategy
+
+**[Defeasible Normative Reasoning]** Arieli, Ofer, et al. "Defeasible Normative Reasoning: A Proof-Theoretic Approach." *AAAI*, 2024.
+- https://ojs.aaai.org/index.php/AAAI/article/view/28913
+- Two-phase architecture: derive normative conclusions, then resolve conflicts
+- Monotone derivation phase, non-monotone resolution phase
+- **RL2 relevance**: Very close to RL2's architecture — validates the `Out(U,Env)` → `resolveDecision` pipeline as formally sound
+
+**[Defeasible Deontic Logic]** Governatori, Guido. "Practical Normative Reasoning with Defeasible Deontic Logic." *Handbook of Deontic Logic and Normative Systems*, 2021.
+- https://www.researchgate.net/publication/326583727
+- Applies defeasible logic to obligations, duties, compliance
+- Shows how obligations transition through states
+- **RL2 relevance**: Supports RL2's duty state automaton (Pending→Active→Fulfilled/Violated); offers alternative formalization path to I/O logic
+
 **[LegalRuleML]** Athan, Tara, Guido Governatori, Monica Palmirani, Adrian Paschke, and Adam Wyner. "LegalRuleML: Design Principles and Foundations." *Reasoning Web 2015*, LNCS 9203, Springer, 2015.
 - https://link.springer.com/chapter/10.1007/978-3-319-21768-0_6
 - XML format extending RuleML for legal domain norms; based on defeasible logic
@@ -389,6 +432,8 @@
 | rl2.ttl | Core ontology (OWL) |
 | rl2-shacl.ttl | SHACL validation shapes |
 | RL2_Semantics.md | Formal evaluation semantics |
+| RL2_Architecture.md | Evaluation pipeline, layer separation, design rationale |
 | RL2_Protocol.md | Request/response protocol for interoperability |
 | RL2_ODRL_Coverage.md | Mapping from ODRL 2.2/3.0 to RL2 |
 | RL2_Primer.md | Tutorial introduction |
+| RL2_Vocabulary.md | Complete class and property reference |

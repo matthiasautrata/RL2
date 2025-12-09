@@ -22,43 +22,7 @@ RL2 (“Rights Language 2”) addresses these limitations by integrating ideas f
 
 RL2 is fully RDF-compatible, but its semantics are defined **at the abstract syntax level**, independent of serialization.
 
-This document gives a full formal semantics for RL2.
-
----
-
-## Relationship to Prior ODRL Formalization Work
-
-*This section is non-normative.*
-
-RL2's semantics build on and extend prior work in ODRL formalization:
-
-| Work | Contribution | RL2 Extension |
-|------|--------------|---------------|
-| **[Pucella-Weissman 2006]** | First formal semantics; proved permission implication is NP-hard | RL2 adds operational semantics absent in their static model |
-| **[Steyskal-Polleres 2015]** | Action dependencies, rule-based reasoning | RL2 integrates this into condition evaluation |
-| **[Fornara-Colombetti 2017]** | Operational semantics for obligations via state machines | RL2 generalizes their approach to a full small-step calculus |
-| **[W3C ODRL Formal Semantics]** | Evaluator specification, state of the world | RL2 provides more precise denotational definitions |
-
-Key gaps in prior work that RL2 addresses:
-- **No unified semantics**: Prior work treated permissions, prohibitions, and duties separately
-- **Implementation-specific**: Fornara-Colombetti's work used Apache Jena specifically
-- **Missing Hohfeldian relations**: No prior work covers Claims, Powers, Liabilities, Immunities
-- **No mechanization path**: None provided a specification ready for Why3/Lean/Coq
-
-See **RL2_References.md** for complete citations.
-
----
-
-## Design Goals and Guiding Principles
-
-RL2 semantics are designed to be:
-
-1. **Precise**: Every construct has a clear formal meaning.
-2. **Modular**: Norms, conditions, roles, and events are independent but composable.
-3. **Mechanizable**: Designed to map directly into Why3, Lean, or Coq.
-4. **Standalone**: RL2 semantics are self-contained and do not depend on external standards for definition.
-5. **Operational**: Policies evolve in time through events and actions.
-6. **Analytically useful**: Supports reasoning about obligations, compliance, and violations.
+This document defines the formal semantics. For architectural design and rationale, see **RL2_Architecture.md**. For protocol details, see **RL2_Protocol.md**.
 
 ---
 
@@ -835,6 +799,8 @@ Given a universe of policies U and environment Env:
 ApplicablePolicies(U, Env) = { P ∈ U | PolicyApplicable(P, Env) }
 ```
 
+**PolicyUniverse determination**: The universe U is the set of all policies in the active *generation*. When evaluation begins, the evaluator resolves the generation identifier (from `rl2p:policyGeneration` on the Case) to obtain U. This is an evaluator responsibility, not a semantic operation — the semantics assume U is provided. See §Policy Generations for the generation model.
+
 ## Effective Norm Activation
 
 A norm n within policy P is active when both the policy and norm conditions hold:
@@ -1079,6 +1045,66 @@ ProhibitionActive(a, x, s, c)
 
 ---
 
+## Normative Derivation (I/O-Logic Foundation)
+
+RL2's evaluation follows an **I/O logic** pattern (Makinson & van der Torre): derivation produces a normative envelope, then conflict resolution yields a final decision.
+
+### Pre-Resolution Normative Envelope
+
+The function `Out` computes the **unresolved multiset** of normative atoms from a policy universe and environment:
+
+```
+Out : (PolicyUniverse U, Env) → NormativeAtoms*
+
+Out(U, Env) =
+    let applicablePolicies = ApplicablePolicies(U, Env)
+    in ⋃ { deriveNorms(P, Env) | P ∈ applicablePolicies }
+
+deriveNorms(P, Env) =
+    { permit(a,x,s)    | Privilege(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = true } ∪
+    { forbid(a,x,s)    | Prohibition(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = true } ∪
+    { obligate(d)      | Duty d ∈ P.clauses, matches(d, R), ⟦d.condition⟧(Env) = true } ∪
+    { violated(d)      | Duty d ∈ P.clauses, Σ.ObligationState(d) = Violated }
+```
+
+### Monotonicity of Derivation
+
+The derivation function `Out` is **monotone** with respect to facts:
+
+```
+If Env ⊆ Env' (additional facts only), then Out(U, Env) ⊆ Out(U, Env')
+```
+
+Adding facts to the environment can only add normative conclusions, never remove them. This is the key I/O-logic property: **derivation is monotone; resolution is not**.
+
+### Derivation vs Resolution
+
+| Property | Out (Derivation) | Eval (Full) |
+|----------|------------------|-------------|
+| Monotone | Yes | No |
+| Deterministic | Yes | Yes |
+| Conflict-handling | None (contradiction is data) | Strategy-based |
+| Output | Multiset of atoms | Single decision |
+
+The `Eval` function composes `Out` with state updates and conflict resolution:
+
+```
+Eval(U, R, Σ, Ctx) =
+    let Env = mkEnv(R, Σ, Ctx)
+    let envelope = Out(U, Env)                    -- ① Derivation (monotone)
+    let Σ' = updateDutyStates(envelope, Env, Σ)   -- ② State transitions
+    let decision = resolveDecision(envelope, Σ', strategy)  -- ③ Resolution (non-monotone)
+    in (decision, Σ', duties(envelope))
+```
+
+The **normative envelope** `Out(U, Env)` is the first-class intermediate result — visible before resolution, available for audit, and formally monotone.
+
+Resolution may eliminate norms via priority or strategy, breaking monotonicity. This is by design: `permit(a,x,s) ∧ forbid(a,x,s)` is not a logical contradiction but a **conflict to be resolved procedurally**.
+
+For architectural context on the full evaluation pipeline, see **RL2_Architecture.md** §Evaluation Pipeline.
+
+---
+
 ## Big-Step Semantics (Policy Evaluation)
 
 ### Evaluation Function Signature
@@ -1173,23 +1199,55 @@ Note: `NotApplicable` (no matching rule) is distinct from `Deny` (explicit prohi
 
 ### Duty State Updates
 
+The duty lifecycle is governed by three inference rules:
+
+**Rule D-ACTIVATE** (Pending → Active):
+```
+Σ.ObligationState(d) = Pending
+⟦d.condition⟧(Env) = true
+─────────────────────────────────────────────────────────
+Σ' = Σ[ObligationState(d) ↦ Active]
+```
+
+Activation is **condition-driven**: when the duty's condition first evaluates to true, the duty becomes active. This typically occurs when temporal preconditions are met (e.g., "after contract signing").
+
+**Rule D-FULFILL** (Active → Fulfilled):
+```
+Σ.ObligationState(d) = Active
+Σ.Performed(d.subject, d.action, d.object) = true
+─────────────────────────────────────────────────────────
+Σ' = Σ[ObligationState(d) ↦ Fulfilled,
+       DutyPerformer(d) ↦ performer]
+```
+
+Fulfillment is **event-driven**: when `Performed` records show the required action was done, the duty is fulfilled. The performing agent is recorded for identity binding.
+
+**Rule D-VIOLATE** (Active → Violated):
+```
+Σ.ObligationState(d) = Active
+Σ.Performed(d.subject, d.action, d.object) = false
+timeout(d.condition, Σ) = true
+─────────────────────────────────────────────────────────
+Σ' = Σ[ObligationState(d) ↦ Violated]
+```
+
+Violation is **time-driven**: when the deadline passes without fulfillment, the duty is violated.
+
+**Algorithmic form** (for implementation):
+
 ```
 updateDutyStates(duties, Env, Σ) =
     foldl(updateOneDuty(Env), Σ, duties)
 
 updateOneDuty(Env)(Σ, d) =
-    let currentState = Σ.ObligationState(d)
-    in case currentState of
-        Pending →
-            if ⟦d.condition⟧(Env) then Σ[ObligationState(d) ↦ Active]
-            else Σ
-        Active →
-            if Σ.Performed(d.subject, d.action, d.object) then
-                Σ[ObligationState(d) ↦ Fulfilled]
-            else if timeout(d.condition, Σ) then
-                Σ[ObligationState(d) ↦ Violated]
-            else Σ
-        _ → Σ  -- Fulfilled/Violated are terminal states
+    case Σ.ObligationState(d) of
+        Pending → if ⟦d.condition⟧(Env) then Σ[ObligationState(d) ↦ Active] else Σ
+        Active  → if Σ.Performed(d.subject, d.action, d.object)
+                  then Σ[ObligationState(d) ↦ Fulfilled, DutyPerformer(d) ↦ performer]
+                  else if timeout(d.condition, Σ)
+                  then Σ[ObligationState(d) ↦ Violated]
+                  else Σ
+        _       → Σ  -- Fulfilled/Violated are terminal
 ```
 
 ### PermitWithObligations Semantics
@@ -1347,61 +1405,54 @@ Where `P_RL2` is a semantically precise RL2 representation of the intent of `P_l
 
 ---
 
-## Relationship to RL2 Protocol
+## Protocol Correspondence
 
-The RL2 Protocol (RL2_Protocol.md) defines runtime artifacts for policy evaluation:
-
-- **Request** → corresponds to initiating evaluation with a specific action, asset, and agent
-- **ContextAssertion** → provides values for left operand resolution during evaluation
-- **EvaluationResult** → the output of `Eval(Policy, Σ, E)`
-- **Requirement** → universal runtime obligations from Duties, Promises, or Claims
-- **Case** → tracks the evolution of Σ over multiple evaluation cycles
-
-The formal semantics define *what* evaluation means; the Protocol defines *how* to exchange evaluation inputs and outputs between systems.
-
-Key correspondence:
-
-| Semantics Concept | Protocol Artifact |
-|-------------------|-------------------|
-| Request R = (a, x, s) | rl2p:Request (requestingAgent, requestedAction, requestedAsset) |
-| Env (environment) | Request + ContextAssertions |
-| Σ (state) | Case history |
-| Σ.ObligationState | rl2p:requirementStatus (Pending, Active, Fulfilled, Violated) |
-| Σ.PromiseState | rl2p:Requirement with sourceNorm → Promise |
-| Decision | EvaluationResult.decision |
-| Active requirements | EvaluationResult.activeRequirements |
-| Events | ContextAssertions (including fulfillment) |
-| mkEnv(R, Σ, Ctx) | Evaluator constructs from Request + Context |
-
-**Hohfeldian Mapping to Protocol** (normative):
-
-| Hohfeldian Norm | Runtime Meaning | Protocol Artifact |
-|-----------------|-----------------|-------------------|
-| Duty | "Must Do" | `rl2p:Requirement` (sourceNorm → Duty) |
-| Promise | "Must Do" (Voluntary) | `rl2p:Requirement` (sourceNorm → Promise) |
-| Claim | "Owed To" | `rl2p:Requirement` (with counterparty) |
-| Privilege | "Can Do" | `rl2p:Decision` (Permit) |
-| Power | "Can Change" | `rl2p:Decision` (Permit State Change) |
-| Immunity | "Cannot Be Changed" | `rl2p:Decision` (Deny State Change) |
-| Liability | "Can Be Changed" | Implicit (side effect of Power) |
-
-This unified `Requirement` structure simplifies the protocol while preserving semantic distinctions through `sourceNorm`.
+For the mapping between semantic concepts and Protocol artifacts, see **RL2_Architecture.md** §Correspondence.
 
 ---
 
-## Discussion
+## Complexity and Constraints
 
 *This section is non-normative.*
 
-The RL2 semantics unify normative logic, temporal logic, event calculus, and promise theory in a way that:
+RL2 evaluation is designed to be **polynomial-time** and **total** under the following constraints.
 
-* remains RDF-compatible
-* supports mechanization
-* covers ODRL 3.0’s anticipated scope
-* can be implemented in a verified kernel
-* is expressive enough for enterprise data-governance policies
+### Structural Constraints
 
-RL2 provides, for the first time, a rigorous semantic foundation capable of supporting large-scale, automated reasoning over data policies and contracts.
+1. **Finite policy universe**: U is a finite set of policies
+2. **Bounded condition nesting**: Conditions have bounded depth (recommended ≤ 20)
+3. **Acyclic conditions**: No self-referential condition definitions
+4. **Finite Σ**: State contains finite sets (Events, Performed, ObligationState)
+5. **No recursive policy references**: Policies cannot invoke evaluation of other policies
+
+### Path Resolution Constraints
+
+6. **Bounded path depth**: Maximum 10 segments (enforced by grammar)
+7. **No joins**: Path resolution is single-threaded navigation, not graph pattern matching
+8. **No iteration**: `resolutionFunction` must be O(1) or O(log n) per invocation
+9. **Deterministic selection**: Wildcards resolve to single values via most-recent-wins
+
+### Complexity Analysis
+
+Given these constraints:
+
+| Operation | Complexity |
+|-----------|------------|
+| Path resolution (`deref`) | O(d) where d = path depth |
+| Condition evaluation | O(n × d) where n = condition tree size |
+| Norm matching | O(\|U\| × m) where m = max clauses per policy |
+| Conflict resolution | O(k) where k = matched norms |
+| **Total `Eval`** | **O(\|U\| × m × n × d)** — polynomial |
+
+### Totality Guarantees
+
+Under these constraints, `Eval` is **total**: it terminates for all well-formed inputs. The function never:
+
+- Loops infinitely (no recursive evaluation)
+- Blocks on external resources (resolution is synchronous or fails to ⊥)
+- Diverges due to condition structure (bounded, acyclic)
+
+**Extension warning**: Implementations using unbounded external queries via `resolutionFunction` or `lookupExternal` may exhibit non-polynomial or non-terminating behavior. Such extensions must document their complexity characteristics.
 
 ---
 
@@ -1454,59 +1505,7 @@ The following properties should be proved for a verified implementation:
 
 See **RL2_ResearchPlan.md** for the complete mechanization roadmap, phased implementation plan, and deliverable specifications.
 
----
-
-## Expressive Characterization
-
-*This section is non-normative.*
-
-RL2's expressive power can be characterized formally as:
-
-```
-RL2 ≈ LTL_F + Deontic(P, O, F) + Finite Obligation Automata
-```
-
-Where:
-* `LTL_F` = Linear Temporal Logic with finite traces
-* `Deontic(P, O, F)` = Permission, Obligation, Prohibition modalities
-* `Finite Obligation Automata` = Duty lifecycle state machine (Pending → Active → Fulfilled/Violated)
-
-## What RL2 Can Express
-
-* **Single-deadline obligations** ✓
-* **Conditional activation** ("duty activates when X") ✓
-* **Sequential dependencies** ("A before B") ✓
-* **Dynamic policy applicability** (events activate policies) ✓
-* **Compensatory obligations** via Power/Liability ✓
-* **Contrary-to-duty** ("if violated, then Y") — partial support via sanctions
-
-## Known Limitations
-
-The following patterns are not directly expressible in current RL2:
-
-* **Repeating/periodic obligations** ("every month")
-* **Quorum approvals** ("any 2 of 5 committee members")
-* **Nested temporal modalities** ("eventually always X")
-
-These may be addressed in future extensions. See **backlog.md** for ongoing discussion.
-
-## Comparison with Other Formalisms
-
-| Policy Language | Approximate Logic | Temporal Model |
-|-----------------|-------------------|----------------|
-| Simple ACLs | Propositional | None |
-| XACML | First-order over attributes | Point-in-time |
-| ODRL 2.2 | Deontic (O, P, F) | Implicit |
-| **RL2** | **LTL + Deontic + Finite State** | **Linear time** |
-| Full temporal deontic | CTL* + Deontic | Branching time |
-
-RL2 occupies a practical sweet spot: more expressive than ODRL, with explicit operational semantics, while avoiding the complexity of full CTL branching.
-
----
-
-## Conclusion
-
-This document provides the first complete formal semantics for RL2, defining abstract syntax, types, semantic domains, denotational and operational semantics, event and temporal semantics, role resolution, constraint algebra, and policy evaluation.
+For expressive characterization and comparison with other formalisms, see **RL2_Architecture.md**.
 
 ---
 

@@ -439,6 +439,12 @@ rl2p:policyGeneration a owl:DatatypeProperty ;
     This ensures reproducible evaluation and clear auditability.""" .
 ```
 
+**Policy Generation Binding**: At case creation, the evaluator sets `rl2p:policyGeneration` from its current generation identifier. This generation determines the PolicyUniverse U for all evaluations of that case. Future evaluations use the same generation unless an explicit migration workflow is invoked (outside RL2 scope). This ensures:
+
+- **Reproducibility**: Same case + same generation = same evaluation
+- **Auditability**: The policy universe is always identifiable
+- **Grandfather clauses**: Old cases continue under old rules until explicitly migrated
+
 ## Case State Transitions
 
 ```
@@ -604,6 +610,10 @@ rl2p:NotApplicable a rl2p:Decision ;
 | **Deny** | Access denied | N/A |
 | **Indeterminate** | Cannot decide | Missing context or evaluation error |
 | **NotApplicable** | No matching policy | Request falls outside policy scope |
+
+**Semantic Correspondence**: At the semantic level (RL2_Semantics.md), `Eval` returns `(Decision, State, DutySet)`. The Protocol lifts `PermitWithObligations` into a first-class decision to make contingent permits explicitly visible to consuming systems. Specifically:
+- Semantic `Permit` + empty `DutySet` → Protocol `rl2p:Permit`
+- Semantic `Permit` + non-empty `DutySet` → Protocol `rl2p:PermitWithObligations` + `activeRequirements`
 
 ---
 

@@ -33,6 +33,7 @@ RL2 provides a semantic superset of ODRL 2.2 capabilities (see [ODRL Coverage](R
 | Document | Description |
 |----------|-------------|
 | [RL2_Semantics.md](RL2_Semantics.md) | Formal denotational and operational semantics |
+| [RL2_Architecture.md](RL2_Architecture.md) | Evaluation pipeline, layer separation, design rationale |
 | [RL2_Protocol.md](RL2_Protocol.md) | Runtime evaluation protocol |
 | [RL2_ODRL_Coverage.md](RL2_ODRL_Coverage.md) | ODRL 2.2 feature coverage |
 
@@ -91,7 +92,7 @@ The spec provides hooks (`evaluationTime`, `policyGeneration`, `ContextAssertion
 
 ## Status
 
-Draft v0.4 — Under active development.
+Draft v0.5 — Under active development.
 
 ## License
 

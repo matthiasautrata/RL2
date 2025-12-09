@@ -1,9 +1,9 @@
 ---
 title: "RL2 Primer"
 subtitle: "A Practical Introduction to Rights Language 2"
-version: "0.4"
+version: "0.5"
 status: "Draft"
-date: 2025-01-05
+date: 2025-12-09
 audience: "Students, practitioners, and implementers new to RL2"
 prerequisites: "Basic familiarity with RDF and policy concepts"
 ---
@@ -561,11 +561,13 @@ Most norms do not apply unconditionally. Constraints—time windows, purpose res
 ```
                     Condition
                         |
-     +------------------+------------------+
-     |          |            |             |
-  Atomic    Logical      Temporal       Event
-Constraint Constraint   Constraint    Constraint
+          +-------------+-------------+
+          |             |             |
+       Atomic       Logical        Event
+     Constraint   Constraint    Constraint
 ```
+
+Note: Temporal conditions use `AtomicConstraint` with `rl2:currentDateTime` as the left operand (see §Temporal Constraints below).
 
 Note: Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`. Dynamic value resolution on the right side (e.g., comparing to the current agent) uses `RuntimeReference`.
 
@@ -1353,6 +1355,7 @@ If the researcher attempted to distribute:
 ### Formal Semantics
 
 - **RL2_Semantics.md** — Mathematical definitions of evaluation, state transitions, and typing rules
+- **RL2_Architecture.md** — Evaluation pipeline, layer separation, design rationale
 
 ### Runtime Behavior
 
@@ -1391,4 +1394,4 @@ For definitions of terms used in this document, see **RL2_References.md**.
 
 ---
 
-*This primer covers RL2 version 0.4. For updates and errata, see the RL2 repository.*
+*This primer covers RL2 version 0.5. For updates and errata, see the RL2 repository.*
