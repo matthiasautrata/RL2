@@ -214,6 +214,43 @@ rl2:LogicalConstraintShape a sh:NodeShape ;
     sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:LogicalOperator ] ;
     sh:property [ sh:path rl2:operand ; sh:minCount 1 ; sh:class rl2:Condition ] .
 
+# Operand cardinalities for logical operators
+rl2:NotOperandCardinalityShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this a rl2:LogicalConstraint ;
+                      rl2:constraintOperator rl2:not .
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2:operand ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "The 'not' operator must have exactly one operand."
+    ] .
+
+rl2:AndOrXoneOperandCardinalityShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this a rl2:LogicalConstraint ;
+                      rl2:constraintOperator ?op .
+                FILTER(?op IN (rl2:and, rl2:or, rl2:xone))
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2:operand ;
+        sh:minCount 2 ;
+        sh:message "The 'and', 'or', and 'xone' operators must have at least two operands."
+    ] .
+
 
 # Event constraints require an expected event
 rl2:EventConstraintShape a sh:NodeShape ;

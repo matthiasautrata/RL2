@@ -590,6 +590,7 @@ ex:combined a rl2:LogicalConstraint ;
 **Notes**:
 - `rl2:not` requires exactly one operand
 - `rl2:and`, `rl2:or`, `rl2:xone` require at least two operands
+- These operand cardinalities are enforced by SHACL shapes in `rl2-shacl.ttl`.
 
 ---
 

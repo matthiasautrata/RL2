@@ -35,6 +35,8 @@ RL2 follows an **I/O Logic + Transformer + Post-hoc Conflict Resolution** archit
 
 This pipeline **separates derivation from resolution** — the key architectural invariant.
 
+For a given Case, the policy universe **U** is the set of policies in the generation identified by the case's `rl2p:policyGeneration`.
+
 ---
 
 ## Layer Separation

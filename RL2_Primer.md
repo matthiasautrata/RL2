@@ -680,9 +680,9 @@ ex:approvalRequired a rl2:EventConstraint ;
 
 This requires: "An approval event from the DataOwner must have occurred."
 
-### Composite Conditions
+### Composed Conditions and Dependencies
 
-Conditions may be composed. The following privilege requires:
+Conditions are composed with logical constraints (`rl2:and`, `rl2:or`, `rl2:xone`, `rl2:not`). The following privilege requires:
 - Purpose is research
 - Time is within 2025
 - Approval has been granted
@@ -726,6 +726,8 @@ ex:complexPrivilege a rl2:Privilege ;
         ]
     ] .
 ```
+
+Dependencies between conditions or events are expressed via `rl2:requires` links between `ConditionOrEvent` instances in the RDF graph rather than a separate Composite constructor.
 
 ### Duty State as Precondition
 

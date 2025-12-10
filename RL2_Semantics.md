@@ -75,12 +75,10 @@ Condition ::=
     | Xone(Condition+)
     | Not(Condition)
     | EventConstraint(expectsEvent: Event)
-    | Composite(requires: Condition+)
 ```
 
 Notes:
 - `And`, `Or`, and `Xone` take one or more conditions
-- `Composite` models conditions that require other conditions to hold (using `rl2:requires` property chains)
 - `EventConstraint` models approval requirements; holds when the expected event is present in Σ.Events
 - `leftOperand` is drawn from profile-defined operands (RL2 Core defines `rl2:LeftOperand` class plus `currentDateTime`, `obligationStateOperand`, `dutyPerformerOperand` instances)
 - Time-based conditions use `AtomicConstraint` with `leftOperand = currentDateTime` (e.g., `currentDateTime lte deadline`)
@@ -103,8 +101,14 @@ StateTransition ::=
 #### Policies
 
 ```
-Policy ::= Policy { clauses: Norm*, meta: Metadata }
+Policy ::= Policy {
+  condition : Condition?,   -- optional policy-level activation condition
+  clauses   : Norm*,
+  meta      : Metadata
+}
 ```
+
+When a policy condition is present, the effective condition for a norm is the conjunction of the policy condition and the norm condition: `n.effectiveCondition = And(P.condition, n.condition)`, consistent with the `PolicyApplicable` and `NormActive` definitions below.
 
 ---
 
@@ -202,7 +206,8 @@ Formally:
      Metadata : S → Map,
      Promises : Promise → PromiseRecord,
      ObligationState : Duty → {Pending, Active, Fulfilled, Violated},
-     DutyPerformer : Duty → Agent ∪ {⊥})
+     DutyPerformer : Duty → Agent ∪ {⊥},
+     Requirements : RequirementID → RequirementRecord)
 
 PromiseRecord = (promisor : Agent,
                  promisee : Agent,
@@ -212,7 +217,9 @@ PromiseRecord = (promisor : Agent,
 
 Notes:
 - `PromiseState(p)` is shorthand for `Σ.Promises[p].state`; we keep the accessor for consistency with the duty/state notation.
+- `RequirementRecord` carries lifecycle `status` using the same `rl2:ObligationState` individuals (`Pending`, `Active`, `Fulfilled`, `Violated`) defined in the Vocabulary.
 - `ObligationState` is the canonical name (matching `rl2:ObligationState` in the ontology).
+- PromiseState values (`PromisePending`, `PromiseFulfilled`, `PromiseViolated`) are the individuals defined in the RL2 Vocabulary.
 - `DutyPerformer` tracks which agent fulfilled a duty. Returns `⊥` if the duty has not been fulfilled. This enables identity binding patterns:
   - *Tun-sollen* (ought-to-do): `DutyPerformer(d) = currentAgent` — the same agent must fulfill
   - *Sein-sollen* (ought-to-be): Check only `ObligationState(d) = Fulfilled` — anyone may fulfill
@@ -296,15 +303,7 @@ Event constraint (approval requirement):
     false otherwise
 ```
 
-Composite condition (condition requiring other conditions):
-
-```
-⟦ Composite(requires: c1..cn) ⟧(Env) =
-    true  if ∀i ∈ 1..n : ⟦ci⟧(Env) = true
-    false otherwise
-```
-
-Composite conditions model transitive requirements where one condition depends on others (e.g., a promise condition requiring that subordinate conditions are met).
+**rl2:requires semantics**: Conditions (and events) may declare dependencies via `rl2:requires`. A dependency `c1 requires c2` means that whenever `c1` is considered, `c2` must also hold. This is expressed in the RDF graph through `rl2:requires` links between `ConditionOrEvent` instances rather than via a distinct Composite constructor in the abstract syntax.
 
 ---
 
@@ -571,22 +570,32 @@ extractDeadline(c) =
         _                                          → None
 ```
 
-#### deadline : PromiseContent × State → Boolean
+#### deadline : PromiseContent × State → TimeBound?
 
-The function `deadline(content, Σ)` checks if the promise content's temporal bound has passed:
+The function `deadline(content, Σ)` extracts any temporal bound on promise content:
 
 ```
-deadline : PromiseContent × State → Boolean
+deadline : PromiseContent × State → TimeBound?
 
 deadline(content, Σ) =
     case content of
-        Action(a, x, s)  → false                        -- Raw actions have no inherent deadline
-        Duty(d)          → timeout(d.condition, Σ)      -- Duty deadline from its condition
-        Condition(c)     → timeout(c, Σ)                -- Condition deadline directly
+        Action(a, x, s)  → None                        -- Raw actions have no inherent deadline
+        Duty(d)          → extractDeadline(d.condition)
+        Condition(c)     → extractDeadline(c)
 ```
 
-This function is used in the Promise Violation rule to determine when a pending promise
-has exceeded its temporal bounds without fulfillment.
+`TimeBound` values are obtained from temporal comparisons in conditions (e.g., `currentDateTime lte t`) or profile-specific temporal properties that reduce to the same structure.
+
+For evaluation, deadline expiry is checked via:
+
+```
+deadlinePassed(content, Σ) =
+    case deadline(content, Σ) of
+        None    → false
+        Some(t) → Σ.Clock > t
+```
+
+This predicate is used in the Promise Violation rule to determine when a pending promise has exceeded its temporal bounds without fulfillment.
 
 #### apply : Operator × Value × Value → Boolean
 
@@ -640,6 +649,8 @@ Where:
 - `roles(a_req)` returns role memberships of the agent
 - `x_req ⊑ x` indicates action subsumption (e.g., `read ⊑ access`)
 - `members(s)` returns collection members if `s` is an AssetCollection
+
+**RDF grounding**: In RDF/OWL, `x_req ⊑ x` follows subclass (or SKOS broader/narrower) relations on `rl2:Action` individuals; `members(s)` is the closure over `rl2:member` when `s` is an `rl2:AssetCollection`; and `roles(a_req)` derives from the agent's RDF typing/role assignments as defined in the Agent and role classes in the Vocabulary.
 
 ### Norm Denotations
 
@@ -927,14 +938,14 @@ A pending promise is violated when its deadline expires without fulfillment:
 ```
 Σ.PromiseState(Promise(p,q,content)) = Pending
 contentHolds(content, Σ) = false
-deadline(content, Σ) = true
+deadlinePassed(content, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Promise(p,q,content)) →
     (Σ[PromiseState(Promise(p,q,content)) ↦ Violated],
      PromiseViolated(p,q,content))
 ```
 
-Where `deadline(content, Σ)` extracts and checks temporal bounds from the promise content.
+Where `deadlinePassed(content, Σ)` checks for expiry of any temporal bound extracted from the promise content.
 
 ### Promise→Duty Generation (Remedial Generation Rule)
 
