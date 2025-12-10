@@ -130,6 +130,10 @@ rl2p:RequirementShape a sh:NodeShape ;
         sh:path rl2p:sourceNorm ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
+        sh:or (
+            [ sh:class rl2:Norm ]
+            [ sh:class rl2:Promise ]
+        ) ;
         sh:message "A Requirement must reference exactly one source norm or promise."
     ] ;
     sh:property [
@@ -170,8 +174,9 @@ rl2p:RequirementShape a sh:NodeShape ;
         sh:datatype xsd:string
     ] .
 
-# Fulfillment links: if a requirement is fulfilled, require evidence hooks
+# Fulfillment links: if a requirement is fulfilled, evidence SHOULD be present (warning)
 rl2p:RequirementFulfillmentAuditShape a sh:NodeShape ;
+    sh:severity sh:Warning ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """

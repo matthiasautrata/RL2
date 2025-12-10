@@ -703,7 +703,7 @@ ex:case1 a rl2p:Case ;
 # Initial evaluation: Permit with requirements
 ex:eval1 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
-    rl2p:decision rl2p:Permit ;
+    rl2p:decision rl2p:PermitWithObligations ;
     rl2p:activeRequirements ex:req1 , ex:req2 ;
     rl2p:matchedPolicies ex:loanAccessPolicy ;
     rl2p:matchedNorms ex:loanAccessPrivilege ;
@@ -760,10 +760,10 @@ ex:fulfillment2 a rl2p:ContextAssertion ;
 
 ```turtle
 # Re-evaluation after requirements fulfilled
+# Note: activeRequirements is omitted when all requirements are fulfilled
 ex:eval2 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
     rl2p:decision rl2p:Permit ;
-    rl2p:activeRequirements [ ] ;  # No remaining requirements
     rl2p:matchedPolicies ex:loanAccessPolicy ;
     rl2p:matchedNorms ex:loanAccessPrivilege ;
     rl2p:evaluationTime "2025-01-15T14:05:00Z"^^xsd:dateTime ;

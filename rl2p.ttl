@@ -143,9 +143,9 @@ rl2p:Requirement a owl:Class ;
 
 rl2p:sourceNorm a owl:ObjectProperty ;
     rdfs:domain rl2p:Requirement ;
+    rdfs:range [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
     rdfs:comment """Reference to the norm or promise that created this requirement.
-    Range: rl2:Norm | rl2:Promise. Enables tracing requirements back to their
-    source for audit and explanation purposes.""" .
+    Enables tracing requirements back to their source for audit and explanation purposes.""" .
 
 rl2p:sourcePolicy a owl:ObjectProperty ;
     rdfs:domain rl2p:Requirement ;
