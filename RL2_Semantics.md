@@ -41,6 +41,7 @@ Let:
 * **T** = time domain
 * **Env** = evaluation environment
 * **Σ** = system state
+* **⊥** = bottom/undefined; represents absence of value or evaluation failure
 
 We define RL2 expressions as:
 

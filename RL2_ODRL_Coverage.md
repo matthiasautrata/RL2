@@ -1,4 +1,12 @@
-# RL2 Coverage of ODRL (v0.5)
+---
+title: "RL2 Coverage of ODRL"
+subtitle: "A Migration, Transpilation, and Coverage Guide"
+version: "0.5"
+status: "Draft"
+date: 2025-12-09
+---
+
+# RL2 Coverage of ODRL
 
 *A Migration, Transpilation, and Coverage Guide*
 
@@ -45,6 +53,7 @@ RL2 mirrors ODRL's core "Policy contains Rules" structure but refines the vocabu
 | `action` | `rl2:action` | The operation being regulated. |
 | `constraint` | `rl2:condition` | Activation requirements. |
 | `refinement` | `rl2:condition` | Nested conditions on assets/actions. |
+| `relation` | `rl2:refines` | Links Asset to another Asset or Collection. |
 | `consequence` | State-Triggered Duty | See Pattern 2.4 (Consequences). |
 | `remedy` | State-Triggered Duty | See Pattern 2.4 (Remedies). |
 

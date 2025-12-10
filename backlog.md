@@ -25,6 +25,45 @@
 - PNF targets? Rego?
 - ODRL->RL2 Transpilation
 
+## Deferred from Review
+
+### 3.1 Namespace URI is Example Domain
+
+**Files:** All TTL files
+**Current:**
+
+```turtle
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2p: <https://rl2.example/protocol#> .
+```
+
+**Recommendation:** Before publication, decide on actual namespace:
+- Option A: `https://w3id.org/rl2/` (persistent, recommended)
+- Option B: Institutional namespace if this remains internal
+
+---
+
+### 3.2 Missing `owl:imports` for ODRL
+
+**File:** `rl2.ttl`
+**Problem:** The ontology should import ODRL to establish formal relationship.
+
+**Add:**
+
+```turtle
+<https://rl2.example/ontology>
+    owl:imports <http://www.w3.org/ns/odrl/2/> .
+```
+
+---
+
+### 3.9 Mixed Date Formats
+
+**Files:** Various
+**Problem:** Some dates use ISO format (`2025-12-09`), others mixed.
+
+**Standardize:** Use ISO 8601 throughout (`YYYY-MM-DD`).
+
 
 ## RL2 Modularization
 
@@ -134,7 +173,7 @@ Pick 6–8 domains that ODRL people will recognize immediately:
    * “In emergency, doctor may access record if obligation to justify access is created.”
 8. **Sub-licensing restriction**
 
-   * “May use, but may not sublicence to third parties.”
+   * "May use, but may not sublicense to third parties."
 
 For each use case, give **three parallel views**:
 

@@ -525,6 +525,18 @@ Promises have a lifecycle:
 +----------------+  +----------------+
 ```
 
+**Note on Promise vs Duty State Machines:**
+
+Unlike Duties, Promises have no `Active` state. This reflects a fundamental semantic distinction:
+
+| Aspect | Duty (4 states) | Promise (3 states) |
+|--------|-----------------|-------------------|
+| **Pending** | Exists but activation condition not yet met | Commitment made, awaiting fulfillment |
+| **Active** | Condition met; must be fulfilled | *Not applicable* |
+| **Fulfilled/Violated** | Terminal states | Terminal states |
+
+A Duty requires an activation condition to transition from Pending to Active. A Promise is immediately binding upon creation—the `PromisePending` state means the commitment exists and the promisor is already obligated to fulfill it. There is no separate activation step.
+
 ### Promises as Norm Sources
 
 When Alice promises Bob to delete data, this may generate:
@@ -1381,7 +1393,7 @@ If the researcher attempted to distribute:
 | Model a held right | `rl2:Claim` |
 | Model authority to change rules | `rl2:Power` |
 | Model voluntary commitment | `rl2:Promise` |
-| Set a time window | `rl2:AtomicConstraint` with `rl2:currentDateTime` |
+| Set a time window | `rl2:AtomicConstraint` with `rl2:currentDateTime` using `rl2:gte`/`rl2:lte` |
 | Require approval | `rl2:EventConstraint` with `rl2:approver` |
 | Combine conditions | `rl2:LogicalConstraint` with `rl2:and`/`rl2:or` |
 | Bundle norms | `rl2:Policy` with `rl2:clause` |

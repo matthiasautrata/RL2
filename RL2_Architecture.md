@@ -1,3 +1,11 @@
+---
+title: "RL2 Architecture"
+subtitle: "Evaluation Pipeline, Layer Separation, and Design Rationale"
+version: "0.5"
+status: "Draft"
+date: 2025-12-09
+---
+
 # RL2 Architecture
 
 This document describes the architectural design of RL2 — the evaluation pipeline, layer separation, and design rationale.
@@ -36,6 +44,12 @@ RL2 follows an **I/O Logic + Transformer + Post-hoc Conflict Resolution** archit
 This pipeline **separates derivation from resolution** — the key architectural invariant.
 
 For a given Case, the policy universe **U** is the set of policies in the generation identified by the case's `rl2p:policyGeneration`.
+
+**Definition (Policy Universe):**
+
+> U = { p | p ∈ Policy ∧ p.generation = currentGeneration }
+>
+> The Policy Universe is the complete set of policies in force at a given generation.
 
 ---
 

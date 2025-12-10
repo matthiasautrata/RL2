@@ -1,3 +1,11 @@
+---
+title: "RL2 Research Plan"
+subtitle: "Modular, ODRL-Aligned Verification Roadmap"
+version: "0.5"
+status: "Draft"
+date: 2025-12-09
+---
+
 # RL2 Research Plan (Modular, ODRL‑Aligned)
 
 This plan reorganizes the original RL2 research program around **ODRL‑derived modules**, with a **common mechanics layer first**, followed by **module‑specific semantics, proofs, and implementation phases**, and a final **integration and transpiler strategy**. The objective is to establish **expressive completeness of RL2‑Core‑ODRL relative to ODRL 2.2**, with additional RL2 capabilities layered incrementally.
