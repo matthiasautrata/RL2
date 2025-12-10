@@ -258,6 +258,76 @@ RL2 semantics are designed to be:
 
 ---
 
+## Enforcement Boundary
+
+RL2 is a **decision layer**, not an **enforcement layer**.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ RL2 Scope                                                │
+│  • Policy authoring (RDF/Turtle)                         │
+│  • Semantic evaluation (Permit/Deny/PermitWithDuties)    │
+│  • Duty lifecycle tracking (Pending→Active→Fulfilled)    │
+│  • Case lifecycle (Protocol)                             │
+│  • Audit trail (ContextAssertions, fulfillment evidence) │
+└──────────────────────────────────────────────────────────┘
+                           │
+                           │ Handoff: approved Case
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│ Enforcement Layer (NOT RL2)                              │
+│  • Rego: row-level filtering, attribute masking          │
+│  • Cedar: fine-grained resource authorization            │
+│  • Immuta: data platform policy execution                │
+│  • Custom: application-specific enforcement              │
+└──────────────────────────────────────────────────────────┘
+```
+
+### What RL2 Provides to Enforcement
+
+When evaluation completes, the Protocol's `rl2p:Case` serves as the handoff artifact:
+
+| Artifact | Purpose |
+|----------|---------|
+| `rl2p:decision` | What was decided (Permit, Deny, PermitWithDuties) |
+| `rl2p:activeRequirements` | Duties to track (if any) |
+| `rl2p:matchedPolicies` | Which policies applied |
+| `rl2p:matchedNorms` | Which norms matched |
+| `rl2p:evaluationHistory` | Audit trail of all evaluations |
+| `rl2p:expirationTime` | When the grant expires |
+
+### What RL2 Does NOT Prescribe
+
+RL2 does not prescribe enforcement mechanisms:
+
+* **Row-level security** — Enforcement systems translate `Permit` + asset scope into database predicates
+* **Attribute masking** — Enforcement systems decide which fields to redact
+* **Rate limiting** — Enforcement systems implement counters and throttling
+* **Session management** — Enforcement systems manage tokens and credentials
+
+Enforcement systems translate RL2 decisions into their native constructs. RL2 is responsible for *what* is decided and *why*, not *how* it is enforced.
+
+### The Protocol as Interoperability Boundary
+
+The `rl2p` Protocol is the interoperability contract:
+
+* **Input**: `rl2p:Request` + `rl2p:ContextAssertion`
+* **Output**: `rl2p:EvaluationResult` + `rl2p:Case`
+
+Any system that can produce Requests and consume Cases can integrate with RL2 evaluators. The Protocol is serialization-flexible (RDF/Turtle, JSON-LD) and implementation-agnostic.
+
+### Future: Compiled Execution Format
+
+A future phase may introduce a **Policy Normal Form (PNF)** — a closed, compiled execution format for high-performance evaluation. PNF would be:
+
+* An internal optimization (compile RL2 → PNF before execution)
+* Not an interoperability format (the Protocol remains the external boundary)
+* Propositional + bounded transitive closure (decidable, verifiable)
+
+PNF is deferred until the core semantics and reference evaluator are stable. The Protocol serves all interoperability needs in the interim.
+
+---
+
 ## References
 
 See **RL2_References.md** for complete citations.

@@ -51,23 +51,63 @@ Guiding principle: proofs must **not block early executability**.
 
 ### I.4 Proof Methodology (Staged)
 
-Proof obligations are discharged incrementally by layer:
+Proof obligations are discharged incrementally by layer. Each obligation is tagged with its target module(s).
 
-**Stage A — RL2‑Core Safety**
+#### Stage A — RL2‑Core Safety
 
-* Determinism of evaluation
-* Duty lifecycle consistency
-* Termination and totality of the transformer
+**(S1) Determinism of Evaluation** [Modules A–F]
+```
+∀ Σ, R, Ctx, e:
+  (Σ, R, Ctx, e) → (Σ₁, e₁) ∧ (Σ, R, Ctx, e) → (Σ₂, e₂)
+  ⇒ Σ₁ = Σ₂ ∧ e₁ = e₂
+```
 
-**Stage B — RDF Correspondence**
+**(S2) Progress** [Modules A–F]
+Every closed, well-typed expression either:
+- Is a value (Fulfilled, Violated, Permit, Deny, ...), or
+- Can take a step
 
-* AST ↔ TTL/SHACL soundness
-* Well‑typedness preservation
+**(S3) Type Preservation** [Modules A–F]
+```
+Γ ⊢ e : τ ∧ (Σ, R, Ctx, e) → (Σ', e')
+⇒ Γ ⊢ e' : τ ∧ Σ' is well-typed
+```
 
-**Stage C — ODRL Compilation**
+**(S4) Duty-State Consistency** [Modules B, C, D]
+`DutyState(d)` can never be both `Fulfilled` and `Violated` in the same Σ.
 
-* Conditional semantic preservation (modulo clarifications)
-* Expressive coverage modulo explicit assumptions
+**(S5) Timeout Correctness** [Module B]
+```
+timeout(c, Σ) = true
+⇒ after clock advances past deadline, duty is eventually Violated
+```
+
+**(S6) Policy-Evaluation Totality** [Modules A–F]
+`Eval(P, R, Σ, Ctx)` terminates and returns a decision in:
+`{Permit, Deny, PermitWithDuties, NotApplicable, Indeterminate}`
+
+#### Stage B — RDF Correspondence
+
+**(B1) Syntax Soundness** [All Modules]
+SHACL-valid RDF ⇒ well-formed abstract syntax term
+
+**(B2) Semantic Soundness** [All Modules]
+SHACL-valid + well-typed ⇒ all semantic functions defined (no ⊥)
+
+**(B3) Semantic Completeness** [All Modules]
+Every abstract syntax object has a corresponding SHACL-valid RDF representation
+
+#### Stage C — ODRL Compilation
+
+**(C1) Compilation Correctness** [Modules A–C]
+```
+∀ ODRL policy P, request R:
+  ODRL_eval(P, R) = RL2_eval(C(P), R)
+```
+modulo clarifications emitted by the transpiler.
+
+**(C2) Expressive Completeness** [Modules A–C]
+Every ODRL 2.2 concept has an RL2‑Core‑ODRL representation; RL2 is a semantic superset. Some ODRL constructs (e.g., `odrl:inheritFrom`) require compilation/transformation.
 
 ### I.5 Clarification Reports (First‑Class Artifact)
 
@@ -117,10 +157,11 @@ Each module has:
 * Pure state‑read evaluation
 * No protocol or promises required
 
-**Proof Focus**
+**Proof Obligations**
 
-* Determinism
-* Constraint soundness
+* (S1) Determinism — for privilege/prohibition evaluation
+* (S6) Totality — constraint evaluation terminates
+* (B1–B3) RDF correspondence for rl2:Privilege, rl2:Prohibition, rl2:Condition
 
 **Phase**
 
@@ -146,10 +187,12 @@ Each module has:
 * Duty activation as state transition
 * Fulfillment as external evidence
 
-**Proof Focus**
+**Proof Obligations**
 
-* Lifecycle consistency
-* Performer uniqueness
+* (S4) Duty-state consistency — Fulfilled ⊗ Violated mutual exclusion
+* (S5) Timeout correctness — deadline violation
+* (S1) Determinism — duty activation/evaluation
+* (S2) Progress — duty state machine advances
 
 **Phase**
 
@@ -173,10 +216,11 @@ Each module has:
 
 * State‑triggered duty creation
 
-**Proof Focus**
+**Proof Obligations**
 
-* No orphan remedies
-* Guaranteed violation trace
+* (S4) Duty-state consistency — extends to remedial duties
+* No orphan remedies — every remedy has a traceable violation
+* Violation trace preservation — state Σ records causal chain
 
 **Phase**
 
@@ -196,6 +240,12 @@ Each module has:
 * Not native in ODRL 2.2
 * Derived from delayed‑commitment patterns
 
+**Proof Obligations**
+
+* Promise-state consistency — analogous to (S4)
+* Promise→Duty derivation soundness
+* (S1) Determinism — promise evaluation
+
 **Phase**
 
 * Phase 3
@@ -214,6 +264,13 @@ Each module has:
 * Not present
 * Pure RL2 expressive enrichment
 
+**Proof Obligations**
+
+* Correlative consistency — Claim(A,B) ↔ Duty(B,A)
+* Power-Liability duality preservation
+* (S1) Determinism — correlative derivation
+* (B1–B3) RDF correspondence for Hohfeldian types
+
 **Phase**
 
 * Phase 4
@@ -231,6 +288,13 @@ Each module has:
 **ODRL Status**
 
 * Execution and audit layer only
+
+**Proof Obligations**
+
+* Case-state consistency — well-formed lifecycle transitions
+* Requirement fulfillment soundness
+* (S6) Totality — protocol-level evaluation terminates
+* Evidence integrity assumptions (parameterized)
 
 **Phase**
 
@@ -284,7 +348,51 @@ This is the **minimum target** for full ODRL 2.2 coverage.
 
 * Module E
 
-### III.5 What This Is NOT
+### III.5 Deliverables
+
+**Deliverable A: Why3 Semantics Modules**
+
+```
+RL2_Semantics_Why3/
+├── Syntax.mlw           # Abstract syntax datatypes
+├── Types.mlw            # Type system
+├── Environment.mlw      # State and environment
+├── ConditionEval.mlw    # Condition evaluation
+├── NormEval.mlw         # Norm evaluation
+├── DutyLifecycle.mlw    # Duty state machine
+├── PolicyEval.mlw       # Policy evaluation
+└── Proofs/
+    ├── Determinism.mlw
+    ├── Preservation.mlw
+    ├── StateInvariants.mlw
+    └── ConstraintAlgebra.mlw
+```
+
+**Deliverable B: OCaml Reference Evaluator**
+
+Extracted from Why3:
+* Pure, side-effect-free evaluator kernel
+* CLI for testing: `rl2-eval --policy p.ttl --request r.json`
+* Property-based test suite (qcheck)
+
+**Deliverable C: ODRL→RL2 Transpiler**
+
+* Formal compiler `C : ODRL → RL2`
+* Clarification report generator
+* Semantic preservation proof outline
+
+### III.6 Success Criteria
+
+RL2 mechanization is complete when:
+
+- [ ] (S1, S4, S6) discharged in Why3 for Phase 1 modules
+- [ ] OCaml reference evaluator extracted and tested
+- [ ] Test suite covers all RL2‑Core‑ODRL constructs
+- [ ] (C1, C2) established for Modules A–C
+- [ ] Clarification reports normatively documented
+- [ ] At least one production implementation tested against OCaml reference
+
+### III.7 What This Is NOT
 
 * Not a new syntax standard
 * Not a UI or enforcement engine

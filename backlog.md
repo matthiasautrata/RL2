@@ -7,8 +7,27 @@
 ## Design Decisions (Open)
 
 ### Profiles
-#### minimal for RL2 actions (`use`, `analyze`, `distribute` What else?) and operands (`dateTime`, `purpose`, `recipient`, `spatial`, `organizaton`, `cost-center`) for minimal interoperability. 
-#### ODRL profile: define ODRL standard vocabulary for actions, etc.
+
+**Minimal RL2 Profile:** Core actions (`use`, `analyze`, `distribute`, ...) and operands (`dateTime`, `purpose`, `recipient`, `spatial`, `organization`, `cost-center`) for minimal interoperability.
+
+**ODRL Compatibility Profile:** Define ODRL 2.2 standard vocabulary (actions, leftOperands, operators) as RL2 profile-declared constructs. Enables transpilation without vocabulary loss.
+
+### ODRL Relationship
+
+**Dual goals:**
+
+1. **Coverage** — RL2-Core-ODRL (Modules A–C) provides semantic superset of ODRL 2.2. Detailed operator/operand mapping tables deferred until transpiler implementation.
+
+2. **Differentiation** — Use cases aligned to phases show where RL2 goes beyond ODRL:
+
+| Phase | Module | Beyond ODRL | Example Use Cases |
+|-------|--------|-------------|-------------------|
+| 1 | A–B | Identity binding (Tun/Sein-sollen), explicit duty lifecycle | pay-to-play, team-license, wire-transfer-sod |
+| 2 | C | Violation tracking, remedial chains | quality-circuit-breaker |
+| 3 | D, F | Promises, Protocol/Case lifecycle | data-freshness-promise, data-stewardship |
+| 4 | E | Hohfeldian correlatives | (future) |
+
+ODRL has no equivalent for: EventConstraint, Promise, explicit DutyPerformer tracking, Case lifecycle, or Hohfeldian Power/Immunity.
 
 
 ### Examples/use-cases
@@ -21,9 +40,8 @@
 ## Future Research
 
 - Formal verification targets (Why3, K Framework, Lean 4) — see RL2_ResearchPlan.md
-- RL2->Rego mapping? Equivalence with others? Cedar, Immuta?
-- PNF targets? Rego?
-- ODRL->RL2 Transpilation
+- RL2→Rego/Cedar/Immuta integration patterns (enforcement layer, not RL2 scope)
+- ODRL→RL2 Transpilation
 
 ## Deferred from Review
 
