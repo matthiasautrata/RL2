@@ -393,7 +393,7 @@ ex:dataPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
     rl2:promiseContent ex:dataStewardshipDuty ;
-    rl2:promiseState rl2:PromisePending .
+    rl2:promiseState rl2:Pending .
 ```
 
 **Notes**: Promises are fundamentally different from Duties:
@@ -731,7 +731,7 @@ ex:approvalEvent a rl2:Event ;
 **Usage**: Assign via `rl2:obligationState` property on Duty instances.
 
 **State Descriptions**:
-- **Pending**: Duty exists but activation condition not yet met
+- **Pending**: Exists but not yet fulfilled or violated; for duties this often means activation condition not yet met
 - **Active**: Duty is active and must be fulfilled
 - **Fulfilled**: Duty has been satisfied
 - **Violated**: Duty was not fulfilled within required constraints
@@ -751,14 +751,14 @@ Active  --[deadline passed]-> Violated
 
 **Type**: `owl:Class`
 
-**Members**: `rl2:PromisePending`, `rl2:PromiseFulfilled`, `rl2:PromiseViolated`
+**Members**: `rl2:Pending`, `rl2:Fulfilled`, `rl2:Violated` (shared with `rl2:ObligationState`; promises do not use `Active`)
 
 **Usage**: Assign via `rl2:promiseState` property on Promise instances.
 
 **State Descriptions**:
-- **PromisePending**: Promise made but not yet fulfilled
-- **PromiseFulfilled**: Promise content has been satisfied
-- **PromiseViolated**: Promise was broken or deadline expired
+- **Pending**: Promise exists but has not been fulfilled or violated (Active is not used for promises; linked duties projecting to Active collapse to Pending)
+- **Fulfilled**: Promise content has been satisfied
+- **Violated**: Promise was broken or deadline expired
 
 ---
 
@@ -1076,7 +1076,7 @@ ex:complianceAssertion a rl2:Assertion ;
 
 | Individual | Type | Description |
 |------------|------|-------------|
-| `rl2:Pending` | ObligationState | Not yet activated |
+| `rl2:Pending` | ObligationState | Exists, not fulfilled/violated (often pre-activation for duties) |
 | `rl2:Active` | ObligationState | Must be fulfilled |
 | `rl2:Fulfilled` | ObligationState | Successfully completed |
 | `rl2:Violated` | ObligationState | Failed to fulfill |
@@ -1085,9 +1085,9 @@ ex:complianceAssertion a rl2:Assertion ;
 
 | Individual | Type | Description |
 |------------|------|-------------|
-| `rl2:PromisePending` | PromiseState | Awaiting fulfillment |
-| `rl2:PromiseFulfilled` | PromiseState | Successfully kept |
-| `rl2:PromiseViolated` | PromiseState | Broken |
+| `rl2:Pending` | PromiseState | Commitment exists, not fulfilled or violated (no Active for promises) |
+| `rl2:Fulfilled` | PromiseState | Successfully kept |
+| `rl2:Violated` | PromiseState | Broken |
 
 ### Left Operand Instances
 

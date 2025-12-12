@@ -247,7 +247,7 @@ RL2 is already aligned with emerging ODRL 3.0 requirements.
 
 | ODRL 3.0 Need | RL2 Solution |
 | :--- | :--- |
-| **Promises** | First-class `rl2:Promise` class with `PromisePending`, `PromiseFulfilled`, `PromiseViolated` states. |
+| **Promises** | First-class `rl2:Promise` class with `Pending`, `Fulfilled`, `Violated` states (shared individuals; promises do not use `Active`). |
 | **Event Triggers** | `rl2:Event` and `rl2:StateTransition` (e.g., policy activates on "Publication" event). |
 | **Dynamic Collections** | `rl2:AssetCollection` (Core) + Profile-defined resolution queries. |
 | **Strict Semantics** | `RL2_Semantics.md` defines the formal calculus (tun-sollen vs sein-sollen). |

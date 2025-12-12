@@ -56,7 +56,7 @@ ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
     rl2:promiseContent ex:DataStewardshipCommitment ;
-    rl2:promiseState rl2:PromisePending .
+    rl2:promiseState rl2:Pending .
 
 ex:dataAccessPrivilege a rl2:Privilege ;
     rl2:subject ex:Researcher ;
@@ -70,7 +70,7 @@ ex:dataAccessPrivilege a rl2:Privilege ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand governance:promiseStateOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand rl2:PromiseFulfilled
+            rl2:rightOperand rl2:Fulfilled
         ] ;
         rl2:operand [
             # Check 2: Am I the promisor?
@@ -99,7 +99,7 @@ When evaluating the identity binding condition:
 |--------|---------|------|
 | Origin | Voluntary | Imposed |
 | Counterparty | Specific promisee | May be abstract |
-| Lifecycle | PromisePending → PromiseFulfilled | Pending → Active → Fulfilled |
+| Lifecycle | Pending → Fulfilled (or Violated) | Pending → Active → Fulfilled (or Violated) |
 | Semantics | Cooperative commitment | Normative obligation |
 | Identity Binding | `promisorOperand = currentAgent` | `dutyPerformerOperand = currentAgent` |
 

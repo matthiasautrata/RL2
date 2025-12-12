@@ -217,10 +217,10 @@ PromiseRecord = (promisor : Agent,
 ```
 
 Notes:
-- `PromiseState(p)` is shorthand for `Σ.Promises[p].state`; we keep the accessor for consistency with the duty/state notation.
+- `PromiseState(p, Σ)` is the derived promise state (see Promise State Derivation). For standalone promises, it coincides with the stored `Σ.Promises[p].state`.
 - `RequirementRecord` carries lifecycle `status` using the same `rl2:ObligationState` individuals (`Pending`, `Active`, `Fulfilled`, `Violated`) defined in the Vocabulary.
 - `ObligationState` is the canonical name (matching `rl2:ObligationState` in the ontology).
-- PromiseState values (`PromisePending`, `PromiseFulfilled`, `PromiseViolated`) are the individuals defined in the RL2 Vocabulary.
+- PromiseState values (`Pending`, `Fulfilled`, `Violated`) reuse the shared state individuals defined in the Vocabulary (promises do not use `Active`).
 - `DutyPerformer` tracks which agent fulfilled a duty. Returns `⊥` if the duty has not been fulfilled. This enables identity binding patterns:
   - *Tun-sollen* (ought-to-do): `DutyPerformer(d) = currentAgent` — the same agent must fulfill
   - *Sein-sollen* (ought-to-be): Check only `ObligationState(d) = Fulfilled` — anyone may fulfill
@@ -874,6 +874,34 @@ We use the notation `Σ[f ↦ v]` to denote state update:
      Σ.ObligationState)
 ```
 
+### Promise State Derivation
+
+Let `linkedDuty(p)` be `d` when `rl2:promiseContent(p) = d` and `d` is a `Duty`; otherwise `⊥`. Promise state is derived (not guessed) from Σ as:
+
+```
+PromiseState(p, Σ) =
+    if linkedDuty(p) ≠ ⊥ then projectObligationState(ObligationState(linkedDuty(p), Σ))
+    else evidencePromiseState(p, Σ)
+
+projectObligationState(s) =
+    Pending    if s = Pending
+    Pending    if s = Active     -- Promises never expose Active; it collapses to Pending
+    Fulfilled  if s = Fulfilled
+    Violated   if s = Violated
+
+evidencePromiseState(p, Σ) =
+    if fulfilledEvidence(p, Σ) then Fulfilled
+    else if violatedEvidence(p, Σ) then Violated
+    else Pending
+```
+
+Where:
+- `fulfilledEvidence(p, Σ)` holds when Σ contains an event or assertion establishing the promise content holds (e.g., `contentHolds(content, Σ)`).
+- `violatedEvidence(p, Σ)` holds when Σ contains an event or assertion establishing the promise content is violated, including deadline/timeout (`deadlinePassed(content, Σ)` with unmet content).
+- Default is `Pending` until evidence moves it to a terminal value.
+
+The projection keeps PromiseState deterministic and monotone: adding evidence or advancing a linked duty's lifecycle cannot revert a promise from `Fulfilled`/`Violated` to `Pending`.
+
 ### Duty Activation
 
 A pending duty becomes active when its activation condition holds:
@@ -921,10 +949,11 @@ timeout(c, Σ) = true
 
 ### Promise Fulfillment
 
-A pending promise is fulfilled when its content holds:
+For promises without a linked duty (`linkedDuty(Promise(p,q,content)) = ⊥`), evidence that the content holds fulfills the promise. This is the operational realization of `fulfilledEvidence`:
 
 ```
-Σ.PromiseState(Promise(p,q,content)) = Pending
+PromiseState(Promise(p,q,content), Σ) = Pending
+linkedDuty(Promise(p,q,content)) = ⊥
 contentHolds(content, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Promise(p,q,content)) →
@@ -934,10 +963,11 @@ contentHolds(content, Σ) = true
 
 ### Promise Violation
 
-A pending promise is violated when its deadline expires without fulfillment:
+For promises without a linked duty, evidence of non-fulfillment (including timeouts) violates the promise. This is the operational realization of `violatedEvidence`:
 
 ```
-Σ.PromiseState(Promise(p,q,content)) = Pending
+PromiseState(Promise(p,q,content), Σ) = Pending
+linkedDuty(Promise(p,q,content)) = ⊥
 contentHolds(content, Σ) = false
 deadlinePassed(content, Σ) = true
 ──────────────────────────────────────────────────────────────────
@@ -959,10 +989,10 @@ When the world deviates from a Promise's invariant, the evaluator generates a re
 
 **Generation Rule**:
 
-When a Promise enters the `PromiseViolated` state, a remedial Requirement is generated:
+When a Promise enters the `Violated` state, a remedial Requirement is generated:
 
 ```
-Σ.PromiseState(Promise(p, q, content)) = Violated
+PromiseState(Promise(p, q, content), Σ) = Violated
 d = RemedialDuty(p, restoreAction(content), content.object)
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, PromiseViolated(p, q, content)) →
@@ -972,7 +1002,7 @@ d = RemedialDuty(p, restoreAction(content), content.object)
 ```
 
 Where:
-- `restoreAction(content)` derives the remedial action from the promise content
+- `restoreAction(content)` is an abstract, implementation-defined function that maps the violated content to a remedial Action. (Note: The core semantics do not prescribe *how* this mapping occurs; implementations may use lookup tables, policy metadata, or manual intervention).
 - The generated `Requirement` tracks `sourceNorm = Promise(p,q,content)` and `counterparty = q` (the promisee)
 - The promisee `q` holds the correlative Claim
 

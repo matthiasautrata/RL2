@@ -26,7 +26,7 @@ Trying to shoehorn a Promise into a `Duty(Action: "Agree")` fails for three crit
 
 1.  **Action ≠ State**
     *   **The Problem:** "Agreeing" is a point-in-time *event* (an Action). A Contract is a persistent relationship.
-    *   **The RL2 Solution:** A `Promise` is a **standing object in the system state (Σ)**. It persists. It has a lifecycle (`PromisePending` → `PromiseFulfilled` → `PromiseViolated`). You don't just want to know that an event happened; you want to check if a binding relationship *currently exists*.
+    *   **The RL2 Solution:** A `Promise` is a **standing object in the system state (Σ)**. It persists. It has a lifecycle (`Pending` → `Fulfilled` → `Violated`). You don't just want to know that an event happened; you want to check if a binding relationship *currently exists*.
 
 2.  **Promise Content (Crucial)**
     *   **The Problem:** A `Duty(Action: "Agree")` is opaque. The system sees the user performed "Agree," but the structure of *what* they agreed to is lost or buried in metadata.

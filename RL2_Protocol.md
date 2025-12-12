@@ -241,6 +241,17 @@ Requirement uses `rl2:ObligationState` from RL2 Core uniformly:
              └───────────┘            └──────────┘
 ```
 
+**State Mapping Note:**
+While RL2 Core distinguishes Promise states (`Pending`, `Fulfilled`, `Violated`) from Duty states, the Protocol tracks them uniformly. The mapping is as follows:
+
+| Source (Promise) | Target (Requirement) | Rationale |
+| :--- | :--- | :--- |
+| **Pending** | **Active** | Promises are "always on" (Sein-Sollen invariants). A pending promise is actively monitored for violation; therefore, the runtime Requirement is Active. |
+| **Fulfilled** | **Fulfilled** | The invariant was satisfied or the action performed. |
+| **Violated** | **Violated** | The invariant was broken or deadline missed. |
+
+*Note: If a Promise has an explicit future effective date (via `rl2:condition`), the Requirement remains `Pending` until that date is reached.*
+
 The states are defined in RL2 Core (`rl2:Pending`, `rl2:Active`, `rl2:Fulfilled`, `rl2:Violated`).
 
 ## Ontology

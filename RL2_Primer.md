@@ -505,24 +505,25 @@ ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;       # Maker of the promise
     rl2:promisee ex:DataOwner ;        # Recipient
     rl2:promiseContent ex:DataStewardshipDuty ;  # Content of promise
-    rl2:promiseState rl2:PromisePending .        # Current state
+    rl2:promiseState rl2:Pending .                # Current state
 ```
+Pending/Active/Fulfilled/Violated are shared state individuals; promises never use `Active`.
 
 ### Promise States
 
 Promises have a lifecycle:
 
 ```
-+----------------+
-| PromisePending |  (commitment made, not yet fulfilled)
-+-------+--------+
-        |
-   +----+----+
-   |         |
-   v         v
-+----------------+  +----------------+
-|PromiseFulfilled|  |PromiseViolated |
-+----------------+  +----------------+
++-----------+
+| Pending   |  (commitment exists, not fulfilled/violated)
++-----+-----+
+      |
+ +----+----+
+ |         |
+ v         v
++-----------+   +-----------+
+| Fulfilled |   | Violated  |
++-----------+   +-----------+
 ```
 
 **Note on Promise vs Duty State Machines:**
@@ -535,7 +536,7 @@ Unlike Duties, Promises have no `Active` state. This reflects a fundamental sema
 | **Active** | Condition met; must be fulfilled | *Not applicable* |
 | **Fulfilled/Violated** | Terminal states | Terminal states |
 
-A Duty requires an activation condition to transition from Pending to Active. A Promise is immediately binding upon creation—the `PromisePending` state means the commitment exists and the promisor is already obligated to fulfill it. There is no separate activation step.
+A Duty requires an activation condition to transition from Pending to Active. A Promise is immediately binding upon creation—the `Pending` state means the commitment exists and the promisor is already obligated to fulfill it. There is no separate activation step.
 
 ### Promises as Norm Sources
 

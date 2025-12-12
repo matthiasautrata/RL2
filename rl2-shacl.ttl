@@ -321,8 +321,8 @@ rl2:PromiseStateShape a sh:NodeShape ;
     sh:property [
         sh:path rl2:promiseState ;
         sh:maxCount 1 ;
-        sh:in (rl2:PromisePending rl2:PromiseFulfilled rl2:PromiseViolated) ;
-        sh:message "Promise promiseState must be one of: PromisePending, PromiseFulfilled, PromiseViolated."
+        sh:in (rl2:Pending rl2:Fulfilled rl2:Violated) ;
+        sh:message "Promise promiseState must be one of: Pending, Fulfilled, Violated (promises do not use Active)."
     ] .
 
 # Norm priority validation - ensure valid integer
@@ -550,7 +550,6 @@ rl2:WildcardEventConstraintShape a sh:NodeShape ;
             }
         """
     ] ;
-    sh:severity sh:Warning ;
     sh:sparql [
         a sh:SPARQLConstraint ;
         sh:message """Wildcard path state.Events.* should be accompanied by an EventConstraint 

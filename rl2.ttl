@@ -507,7 +507,7 @@ rl2:ObligationState a owl:Class ;
 
 rl2:Pending a rl2:ObligationState ;
     rdfs:label "Pending" ;
-    rdfs:comment "Duty exists but activation condition not yet met." .
+    rdfs:comment "Exists but not yet fulfilled or violated; may or may not be active." .
 
 rl2:Active a rl2:ObligationState ;
     rdfs:label "Active" ;
@@ -521,23 +521,16 @@ rl2:Violated a rl2:ObligationState ;
     rdfs:label "Violated" ;
     rdfs:comment "Duty was not fulfilled within required constraints." .
 
-# Promise States (enumeration pattern)
+# Promise States (enumeration pattern) — aligned with ObligationState vocabulary
 rl2:PromiseState a owl:Class ;
     rdfs:label "Promise State" ;
-    rdfs:comment "State of a promise: pending, fulfilled, violated." ;
-    owl:oneOf (rl2:PromisePending rl2:PromiseFulfilled rl2:PromiseViolated) .
+    rdfs:comment "State of a promise. Uses the shared state individuals: Pending, Fulfilled, Violated. (Promises do not use Active.)" ;
+    owl:oneOf (rl2:Pending rl2:Fulfilled rl2:Violated) .
 
-rl2:PromisePending a rl2:PromiseState ;
-    rdfs:label "Promise Pending" ;
-    rdfs:comment "Promise has been made but not yet fulfilled." .
-
-rl2:PromiseFulfilled a rl2:PromiseState ;
-    rdfs:label "Promise Fulfilled" ;
-    rdfs:comment "Promise content has been satisfied." .
-
-rl2:PromiseViolated a rl2:PromiseState ;
-    rdfs:label "Promise Violated" ;
-    rdfs:comment "Promise was broken or deadline expired without fulfillment." .
+# Shared state individuals are also PromiseState values
+rl2:Pending a rl2:PromiseState .
+rl2:Fulfilled a rl2:PromiseState .
+rl2:Violated a rl2:PromiseState .
 
 rl2:promiseState a owl:ObjectProperty ;
     rdfs:domain rl2:Promise ;
