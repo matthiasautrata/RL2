@@ -1,151 +1,121 @@
 # RL2 Use Cases
 
-This folder contains use cases demonstrating RL2's capabilities, particularly duty state preconditions using the **Unified State Approach** (explicit AtomicConstraints rather than a specialized DutyConstraint class).
+**Total: 51 use cases** — 17 complete, 34 draft
 
-## Use Case Index
+---
 
-### Core Patterns (1-10)
+## Status
 
-| # | Name | Pattern | Identity Check | File |
-|---|------|---------|----------------|------|
-| 1 | Pay-to-Play | Tun-sollen | `dutyPerformer = currentAgent` | [pay-to-play.md](pay-to-play.md) |
-| 2 | Team License | Sein-sollen | (none) | [team-license.md](team-license.md) |
-| 3 | Break Glass (Liability) | Event + Identity | `operationalAgent = currentAgent` | [break-glass.md](break-glass.md) |
-| 4 | Fire Alarm Evacuation | Event, decoupled | (none) | [fire-alarm.md](fire-alarm.md) |
-| 5 | Wire Transfer (Two-Man Rule) | Separation of Duty | `dutyPerformer ≠ currentAgent` | [wire-transfer-sod.md](wire-transfer-sod.md) |
-| 6 | Check Signing (Dynamic SoD) | Separation of Duty | `dutyPerformer ≠ currentAgent` | [check-signing-sod.md](check-signing-sod.md) |
-| 7 | Ethics Board Approval | Multi-party workflow | `operationalAgent = currentAgent` | [ethics-approval.md](ethics-approval.md) |
-| 8 | Data Stewardship Promise | Promise fulfillment | `promisor = currentAgent` | [data-stewardship.md](data-stewardship.md) |
-| 9 | GDPR Right to Erasure | Data subject rights | attribute matching | [gdpr-erasure.md](gdpr-erasure.md) |
-| 10 | Audit Trail Requirement | Compliance | (none) | [audit-trail.md](audit-trail.md) |
+| Status | Symbol | Meaning |
+|--------|--------|---------|
+| Complete | ✅ | Documented with RL2 Turtle model |
+| Draft | 📝 | Documented, RL2 model pending |
 
-### Data Contracts & SLAs (11-13)
+---
 
-| # | Name | Pattern | Domain | File |
-|---|------|---------|--------|------|
-| 11 | Data Freshness Promise | Promise + violation | Data Contracts | [data-freshness-promise.md](data-freshness-promise.md) |
-| 12 | Schema Evolution Lock | Event + temporal duty | Data Contracts | [schema-evolution.md](schema-evolution.md) |
-| 13 | Quality Circuit Breaker | State transition | Data Contracts | [quality-circuit-breaker.md](quality-circuit-breaker.md) |
+## Core Patterns (1-17) ✅
 
-### Financial Entitlements (14-15)
+| # | File | Pattern |
+|---|------|---------|
+| 1 | pay-to-play | Tun-sollen (I must do it myself) |
+| 2 | team-license | Sein-sollen (anyone can fulfill) |
+| 3 | break-glass | Event + personal liability |
+| 4 | fire-alarm | Event, decoupled |
+| 5 | wire-transfer-sod | Separation of Duty |
+| 6 | check-signing-sod | Dynamic SoD |
+| 7 | ethics-approval | Multi-party workflow |
+| 8 | data-stewardship | Promise fulfillment |
+| 9 | gdpr-erasure | Data subject rights |
+| 10 | audit-trail | Compliance prerequisite |
+| 11 | data-freshness-promise | Promise + violation |
+| 12 | schema-evolution | Event + temporal |
+| 13 | quality-circuit-breaker | State machine |
+| 14 | step-up-auth | Conditional duty |
+| 15 | chinese-wall | Event-based expiry |
+| 16 | concurrent-seats | Global state counter |
+| 17 | trial-period | Temporal transition |
 
-| # | Name | Pattern | Domain | File |
-|---|------|---------|--------|------|
-| 14 | Step-Up Authentication | Condition + obligation | Access Control | [step-up-auth.md](step-up-auth.md) |
-| 15 | Chinese Wall (Embargo) | Event-based expiry | Conflict of Interest | [chinese-wall.md](chinese-wall.md) |
+---
 
-### Software Licensing (16-17)
+## External Data Licenses (18-23) 📝
 
-| # | Name | Pattern | Domain | File |
-|---|------|---------|--------|------|
-| 16 | Concurrent Seat Licensing | Global state | Licensing | [concurrent-seats.md](concurrent-seats.md) |
-| 17 | Trial Period Expiration | Temporal state transition | Licensing | [trial-period.md](trial-period.md) |
+| # | File | Pattern | Gap Filled |
+|---|------|---------|------------|
+| 18 | internal-use-only | Basic restriction | — |
+| 19 | no-redistribution | Prohibition + pass-through | — |
+| 20 | derived-data-restriction | Conditional prohibition | — |
+| 21 | usage-metering | Count-based constraint | — |
+| 22 | display-vs-nondisplay | Use-type differentiation | — |
+| 23 | pass-through-terms | Downstream obligations | — |
 
-## Design Approach: Unified State
+---
 
-RL2 uses **explicit AtomicConstraints** to query duty state, rather than a specialized `DutyConstraint` class with a "magic" `SubjectScope` enum.
+## Data Contract Patterns (24-31) 📝
 
-### Why This Approach?
+| # | File | Pattern | Gap Filled |
+|---|------|---------|------------|
+| 24 | purpose-restriction | Purpose whitelist | `isAnyOf` |
+| 25 | geo-restriction | Jurisdiction control | `isNoneOf` |
+| 26 | legal-review-gate | Approval workflow | `Offer`→`Agreement` |
+| 27 | approval-revocation | Power to revoke | `Power` |
+| 28 | data-retention-limit | Time-bound deletion | — |
+| 29 | anonymization-required | Processing constraint | — |
+| 30 | no-ml-training | Use prohibition | — |
+| 31 | multi-level-approval | Sequential approvals | — |
 
-1. **De-Magicing:** Identity binding is an explicit logical proposition (`performer = agent`), not a hidden enum interpretation
-2. **Regularity:** Norm state is just another queryable property of Σ, like `dateTime`
-3. **Parsimony:** No new classes or enumerations needed
-4. **Expressiveness:** Supports patterns impossible with a fixed enum (e.g., specific agent)
-5. **Decidability:** All logic is explicit in the policy graph
+---
 
-### Key LeftOperands
+## EU Data Spaces / IDS (32-37) 📝
 
-| LeftOperand | Queries | Returns |
-|-------------|---------|---------|
-| `rl2:obligationStateOperand` | `Σ.ObligationState(targetNorm)` | Pending, Active, Fulfilled, Violated |
-| `rl2:dutyPerformerOperand` | `Σ.DutyPerformer(targetNorm)` | Agent who fulfilled, or ⊥ |
+| # | File | Pattern | Gap Filled |
+|---|------|---------|------------|
+| 32 | connector-certification | Certified connector | — |
+| 33 | data-sovereignty | Provider controls | — |
+| 34 | volume-limit | Data amount restriction | — |
+| 35 | logging-notification | Must log or notify | — |
+| 36 | deletion-after-use | Post-processing deletion | — |
+| 37 | time-window-access | Temporal restriction | — |
 
-### Identity Binding Patterns
+---
 
-| Pattern | Equivalent To | Implementation |
-|---------|---------------|----------------|
-| "By anyone" | AnySubject | Check `obligationState = Fulfilled` only |
-| "By me" | SameSubject | Add `dutyPerformer = currentAgent` |
-| "By someone else" | DifferentSubject | Add `dutyPerformer ≠ currentAgent` |
-| "By Bob specifically" | (impossible before) | Add `dutyPerformer = ex:Bob` |
+## Hohfeldian Completeness (38-42) 📝
 
-## Theoretical Foundation
+| # | File | Pattern | Gap Filled |
+|---|------|---------|------------|
+| 38 | claim-counterclaim | Correlative positions | `Claim` |
+| 39 | immunity-from-termination | Protection from power | `Immunity` |
+| 40 | power-to-grant | Authority to create | `Power` |
+| 41 | liability-exposure | Exposure to power | — |
+| 42 | no-claim-inference | Privilege correlative | — |
 
-### Deontic Logic: Tun-sollen vs. Sein-sollen
+---
 
-| German Term | English | RL2 Implementation |
-|-------------|---------|-------------------|
-| *Tun-sollen* | Ought-to-do | `obligationState = Fulfilled` AND `dutyPerformer = currentAgent` |
-| *Sein-sollen* | Ought-to-be | `obligationState = Fulfilled` (only) |
+## Vocabulary Completeness (43-49) 📝
 
-RL2 operationalizes this classical distinction from normative philosophy through explicit constraint composition.
+| # | File | Pattern | Gap Filled |
+|---|------|---------|------------|
+| 43 | exclusive-license | Exactly-one choice | `xone` |
+| 44 | multi-certification | All required | `isAllOf` |
+| 45 | negated-condition | Unless clause | `not` |
+| 46 | role-hierarchy | Type-based access | `isA` |
+| 47 | asset-collection-access | Bulk dataset | `AssetCollection` |
+| 48 | compliance-attestation | Status declaration | `Assertion` |
+| 49 | policy-versioning | Generation tracking | `policyGeneration` |
 
-### Comparison with Other Standards
+---
 
-| Standard | Agency/State Handling | RL2 Advantage |
-|----------|----------------------|---------------|
-| **ODRL** | Implied via nesting (SameSubject assumed) | Explicit `eq`/`neq` constraints |
-| **XACML** | Manual attribute matching, verbose | Same verbosity, but with semantic clarity |
-| **UCON** | System vs. user attributes | Unified model via LeftOperands |
-| **RBAC/NIST** | Separation of Duty as separate concept | Natural via `neq` operator |
+## Protocol (50-51) 📝
 
-### The Verbosity Trade-off
+| # | File | Pattern | Gap Filled |
+|---|------|---------|------------|
+| 50 | runtime-evaluation | Evaluation trace | `rl2p:Requirement` |
+| 51 | fulfillment-evidence | Audit trail | `rl2p:fulfillmentEvidence` |
 
-The explicit approach is more verbose (3 objects vs. 1), but:
+---
 
-- Every piece of logic is explicit in the graph
-- No hidden evaluator semantics
-- Formally decidable by static analysis
-- This is the correct trade-off for a rigorous normative language
+## Next Steps
 
-## Canonical Pattern
-
-### Duty State as Precondition (Tun-sollen)
-
-```turtle
-ex:accessPrivilege a rl2:Privilege ;
-    rl2:subject ex:User ;
-    rl2:action ex:access ;
-    rl2:object ex:Resource ;
-    rl2:condition [
-        a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:and ;
-        rl2:operand [
-            # Check 1: Is the duty fulfilled?
-            a rl2:AtomicConstraint ;
-            rl2:targetNorm ex:paymentDuty ;
-            rl2:leftOperand rl2:obligationStateOperand ;
-            rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand rl2:Fulfilled
-        ] ;
-        rl2:operand [
-            # Check 2: Did I fulfill it?
-            a rl2:AtomicConstraint ;
-            rl2:targetNorm ex:paymentDuty ;
-            rl2:leftOperand rl2:dutyPerformerOperand ;
-            rl2:constraintOperator rl2:eq ;
-            rl2:rightOperandRef rl2:currentAgent
-        ]
-    ] .
-```
-
-## RL2 vs ODRL: When Each Applies
-
-| Capability | ODRL 2.2 | RL2 |
-|------------|----------|-----|
-| Static permissions | Excellent | Supported |
-| Static prohibitions | Excellent | Supported |
-| Purpose constraints | Native (`odrl:purpose`) | Profile operand |
-| Spatial constraints | Native | Profile operand |
-| **Provider obligations** | Awkward | Native (Promise) |
-| **Event-based conditions** | Not supported | EventConstraint |
-| **State transitions** | Not supported | NormState machine |
-| **Identity binding** | Implied (SameSubject) | Explicit constraints |
-| **Temporal monitoring** | Limited | `currentDateTime` constraints |
-| **Violation detection** | Not supported | State tracking |
-
-**Guidance:** Use cases 11-17 demonstrate patterns that require RL2's operational semantics. Static access control (purpose, geofencing) can be modeled in either, but RL2 provides a unified approach.
-
-## Note on Use Case Files
-
-The individual use case files (pay-to-play.md, etc.) have been updated to use the **Unified State Approach** (explicit constraint pattern) as defined in the v0.4 implementation. They demonstrate the rigorous, explicit modeling of identity binding and state preconditions.
+Work through drafts in batches to add RL2 models. Priority:
+1. **Vocabulary gaps** (24-27, 38-40, 43-49) — demonstrate unused constructs
+2. **External licenses** (18-23) — real-world applicability
+3. **IDS patterns** (32-37) — EU data space alignment

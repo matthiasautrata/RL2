@@ -4,7 +4,7 @@ A next-generation policy language unifying normative, descriptive, and operation
 
 ## Overview
 
-RL2 provides a semantic superset of ODRL 2.2 with:
+RL2 provides a semantic superset of ODRL 2.2 capabilities (see [ODRL Coverage](RL2_ODRL_Coverage.md)) with:
 
 - **Formal semantics** suitable for verified runtime kernels
 - **Hohfeldian normative relations** (privilege, duty, claim, power, liability, immunity)
@@ -16,43 +16,40 @@ RL2 provides a semantic superset of ODRL 2.2 with:
 
 **New to RL2?** Start here:
 
-1. **[RL2_Primer.md](RL2_Primer.md)** — Learn RL2 concepts, see ODRL mapping (Appendix A)
+1. **[RL2_Primer.md](RL2_Primer.md)** — Learn RL2 concepts step by step
 2. **[RL2_Vocabulary.md](RL2_Vocabulary.md)** — Look up any class or property
-3. **[usecases/](usecases/)** — Practical policy patterns
 
 ## Documentation
 
-### Conceptual
+### Conceptual Documentation
 
 | Document | Description |
 |----------|-------------|
-| [RL2_Primer.md](RL2_Primer.md) | Technical introduction with ODRL mapping |
+| [RL2_Primer.md](RL2_Primer.md) | Progressive tutorial for learning RL2 |
 | [RL2_Vocabulary.md](RL2_Vocabulary.md) | Complete class and property reference |
-| [usecases/](usecases/) | 17 use cases demonstrating RL2 patterns |
 
 ### Technical Specifications
 
 | Document | Description |
 |----------|-------------|
 | [RL2_Semantics.md](RL2_Semantics.md) | Formal denotational and operational semantics |
-| [RL2_Architecture.md](RL2_Architecture.md) | Evaluation pipeline and design rationale |
+| [RL2_Architecture.md](RL2_Architecture.md) | Evaluation pipeline, layer separation, design rationale |
 | [RL2_Protocol.md](RL2_Protocol.md) | Runtime evaluation protocol |
+| [RL2_ODRL_Coverage.md](RL2_ODRL_Coverage.md) | ODRL 2.2 feature coverage |
 
 ### Normative Files
 
 | File | Description |
 |------|-------------|
-| [rl2.ttl](rl2.ttl) | OWL ontology |
+| [rl2.ttl](rl2.ttl) | OWL ontology (Turtle) |
 | [rl2-shacl.ttl](rl2-shacl.ttl) | SHACL validation shapes |
-| [rl2p.ttl](rl2p.ttl) | Protocol ontology |
-| [rl2p-shacl.ttl](rl2p-shacl.ttl) | Protocol SHACL shapes |
 
-### Project Tracking
+### Reference
 
 | Document | Description |
 |----------|-------------|
-| [backlog.md](backlog.md) | Open decisions and work items |
 | [RL2_References.md](RL2_References.md) | Citations and glossary |
+| [RL2_ResearchPlan.md](RL2_ResearchPlan.md) | Mechanization roadmap |
 
 ## Quick Example
 
@@ -84,12 +81,14 @@ See [RL2_Primer.md](RL2_Primer.md) for a complete walkthrough.
 
 ## High-Trust Deployment Prerequisites
 
-RL2 defines policy semantics and evaluation protocols. For deployments requiring full audit trails and non-repudiation:
+RL2 defines policy semantics and evaluation protocols. For deployments requiring full audit trails and non-repudiation, the following infrastructure is assumed:
 
-- **Temporal/versioned data stores** — Reconstruct state at any historical point
-- **Immutable audit logs** — Append-only storage for decisions and evidence
-- **Cryptographic attestation** — Signed decisions for non-repudiation
-- **Policy version control** — Bind cases to specific policy generations
+- **Temporal/versioned data stores** — Reconstruct collection membership and attribute values at any historical point. Required for auditing decisions that reference dynamic data (e.g., "High Risk Client" lists).
+- **Immutable audit logs** — Append-only storage for EvaluationResults, ContextAssertions, and state transitions.
+- **Cryptographic attestation** — Signed decisions and evidence chains for non-repudiation.
+- **Policy version control** — Use `rl2:policyGeneration` to bind cases to specific policy versions.
+
+The spec provides hooks (`evaluationTime`, `policyGeneration`, `ContextAssertion`) — implementations wire these to appropriate infrastructure.
 
 ## Status
 
