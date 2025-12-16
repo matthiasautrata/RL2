@@ -108,6 +108,7 @@ Conflict resolution is **procedural**, not logical:
 - **P vs F conflicts**: Resolved by strategy (ProhibitOverrides, PermitOverrides)
 
 **Key insight**: `P(a) ∧ F(a)` is not a logical contradiction — it's a conflict to be resolved procedurally.
+`resolveDecision` is a parameterized algorithm (strategy + priorities); if these inputs do not disambiguate, the evaluator must return an explicit ambiguity/error instead of applying an implicit specificity heuristic.
 
 ### Why Separation Matters
 
@@ -241,7 +242,7 @@ Gaps addressed:
 - Unified semantics (prior work separated P, F, O)
 - Implementation-independent (not tied to Jena)
 - Hohfeldian coverage (Claims, Powers, Immunities)
-- Mechanization path (ready for Why3/Lean/Coq)
+- Mechanization path (Why3/WhyML with OCaml extraction; other assistants optional validation)
 
 ---
 
@@ -251,7 +252,7 @@ RL2 semantics are designed to be:
 
 1. **Precise** — Every construct has clear formal meaning
 2. **Modular** — Norms, conditions, roles, events are independent but composable
-3. **Mechanizable** — Maps directly to Why3, Lean, Coq
+3. **Mechanizable** — Maps directly to Why3/WhyML; other assistants are optional cross-checks
 4. **Standalone** — Self-contained, no external standard dependencies
 5. **Operational** — Policies evolve through events and actions
 6. **Analytically useful** — Supports reasoning about compliance and violations

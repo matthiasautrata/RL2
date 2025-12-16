@@ -43,11 +43,15 @@ This plan reorganizes the original RL2 research program around **ODRL‑derived 
 
 ### I.3 Toolchain
 
-* **Why3** as the primary mechanization and proof environment
-* **OCaml** as the reference executable evaluator extracted from Why3
-* Scala/JVM as a compatible secondary target if required
+* **Why3/WhyML** as the primary mechanization and proof environment
+* **OCaml** as the normative executable evaluator extracted from Why3
+* Optional downstream targets (e.g., Scala/JVM) must derive from the extracted OCaml and remain non-normative
 
 Guiding principle: proofs must **not block early executability**.
+
+### Proof scope and normative artifact
+
+RL2's formal guarantees are established by proving properties of the reference evaluator written in WhyML and extracted to OCaml. The extracted evaluator is the **normative realization** of RL2 semantics for implementation purposes. Proof obligations (S1–S6 and successors) apply to this evaluator and its extracted code, not to an open class of independent implementations.
 
 ### I.4 Proof Methodology (Staged)
 

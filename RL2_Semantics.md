@@ -902,6 +902,15 @@ Where:
 
 The projection keeps PromiseState deterministic and monotone: adding evidence or advancing a linked duty's lifecycle cannot revert a promise from `Fulfilled`/`Violated` to `Pending`.
 
+### Promise and duty states vs protocol requirement status
+
+- `PromiseState ∈ {Pending, Fulfilled, Violated}` (no `Active`).
+- `Obligation/DutyState ∈ {Pending, Active, Fulfilled, Violated}`.
+- `rl2p:requirementStatus` is the protocol/runtime projection:
+  - A pending promise that is **effective now** may be represented as an `Active` requirement (monitored/in-force) while the semantic promise state remains `Pending`.
+  - If the promise is not yet effective, the requirement remains `Pending`.
+  - Terminal promise states map to terminal requirement states.
+
 ### Duty Activation
 
 A pending duty becomes active when its activation condition holds:
@@ -1118,6 +1127,7 @@ If Env ⊆ Env' (additional facts only), then Out(U, Env) ⊆ Out(U, Env')
 ```
 
 Adding facts to the environment can only add normative conclusions, never remove them. This is the key I/O-logic property: **derivation is monotone; resolution is not**.
+Phase ① avoids negation-as-failure and rule-level negation over derived facts; condition evaluation still allows data-level boolean/comparator predicates such as `rl2:neq` as ground terms.
 
 ### Derivation vs Resolution
 
@@ -1142,6 +1152,7 @@ Eval(U, R, Σ, Ctx) =
 The **normative envelope** `Out(U, Env)` is the first-class intermediate result — visible before resolution, available for audit, and formally monotone.
 
 Resolution may eliminate norms via priority or strategy, breaking monotonicity. This is by design: `permit(a,x,s) ∧ forbid(a,x,s)` is not a logical contradiction but a **conflict to be resolved procedurally**.
+`resolveDecision` is a parameterized algorithm (strategy + priorities); if these inputs cannot break ties, the evaluator must surface an explicit ambiguity/error rather than applying an implicit specificity heuristic.
 
 For architectural context on the full evaluation pipeline, see **RL2_Architecture.md** §Evaluation Pipeline.
 
@@ -1498,20 +1509,26 @@ Under these constraints, `Eval` is **total**: it terminates for all well-formed 
 
 ---
 
+## Proof scope and normative artifact
+
+RL2's formal guarantees are established by proving properties of the **reference evaluator written in WhyML and extracted to OCaml**. The extracted evaluator is the **normative realization** of RL2 semantics for implementation purposes. Proof obligations (S1–S6 and successors) apply to this evaluator and its extracted code, not to an open class of independent implementations.
+
+---
+
 ## Mechanization
 
 *This section is non-normative.*
 
-RL2's semantics are explicitly designed for mechanization in proof assistants. The abstract syntax maps cleanly to inductive datatypes, and the operational rules are syntax-directed.
+RL2's semantics are explicitly designed for mechanization in Why3/WhyML, with the extracted OCaml evaluator as the endorsed runtime artifact. The abstract syntax maps cleanly to inductive datatypes, and the operational rules are syntax-directed.
 
 ## Target Platforms
 
 | Platform | Strengths | Status |
 |----------|-----------|--------|
-| **Why3** | Algebraic types, multiple backend provers (Alt-Ergo, Z3), Coq integration | Primary target |
-| **K Framework** | Executable semantics, automatic interpreter generation | Validation target |
-| **Lean 4** | Dependent types, code extraction, AI-assisted proofs | Alternative |
-| **Coq** | Mature ecosystem, CompCert precedent | Alternative |
+| **Why3/WhyML + OCaml extraction** | Algebraic types, multiple backend provers (Alt-Ergo, Z3), extracted reference evaluator | Primary (normative) |
+| **K Framework** | Executable semantics, automatic interpreter generation | Optional independent validation |
+| **Lean 4** | Dependent types, code extraction, AI-assisted proofs | Optional independent validation |
+| **Coq** | Mature ecosystem, CompCert precedent | Optional independent validation |
 
 ## Why3 Example
 

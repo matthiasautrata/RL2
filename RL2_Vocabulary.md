@@ -760,6 +760,8 @@ Active  --[deadline passed]-> Violated
 - **Fulfilled**: Promise content has been satisfied
 - **Violated**: Promise was broken or deadline expired
 
+Protocol projections use `rl2:ObligationState` via `rl2p:requirementStatus`; see **RL2_Semantics.md** §Promise and duty states vs protocol requirement status and **RL2_Protocol.md** §Requirement Lifecycle.
+
 ---
 
 ### rl2:StateTransition
@@ -1181,13 +1183,11 @@ The RL2 Protocol namespace (`https://rl2.example/protocol#`, prefix `rl2p:`) def
 - `rl2p:requirementLabel` — Human-readable label
 - `rl2p:requirementDescription` — Human-readable description
 
+Lifecycle projection rules are defined in **RL2_Semantics.md** §Promise and duty states vs protocol requirement status and reflected in **RL2_Protocol.md** §Requirement Lifecycle.
+
 **SHACL Shape**: `rl2p:RequirementShape`, `rl2p:RequirementFulfillmentAuditShape`
 
-**Design Rationale (Sein-Sollen vs Tun-Sollen)**:
-- **Promise = Sein-Sollen (Ought-to-Be)**: Required state of the world (invariant)
-- **Duty = Tun-Sollen (Ought-to-Do)**: Action to achieve/restore that state
-
-When the world deviates from a Promise's invariant, the evaluator generates a Requirement (remedial Duty) to fix it. This unified structure enables tracking of all runtime obligations regardless of their source.
+Design rationale and the Promise-as-generator workflow are described in **RL2_Protocol.md** §Universal Requirement; this entry lists the properties only.
 
 **Example (Duty-sourced Requirement)**:
 ```turtle
