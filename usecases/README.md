@@ -13,103 +13,103 @@
 
 ---
 
-## Core Patterns (1-17) ✅
+## Core Patterns (1-17)
 
-| # | File | Pattern |
-|---|------|---------|
-| 1 | pay-to-play | Tun-sollen (I must do it myself) |
-| 2 | team-license | Sein-sollen (anyone can fulfill) |
-| 3 | break-glass | Event + personal liability |
-| 4 | fire-alarm | Event, decoupled |
-| 5 | wire-transfer-sod | Separation of Duty |
-| 6 | check-signing-sod | Dynamic SoD |
-| 7 | ethics-approval | Multi-party workflow |
-| 8 | data-stewardship | Promise fulfillment |
-| 9 | gdpr-erasure | Data subject rights |
-| 10 | audit-trail | Compliance prerequisite |
-| 11 | data-freshness-promise | Promise + violation |
-| 12 | schema-evolution | Event + temporal |
-| 13 | quality-circuit-breaker | State machine |
-| 14 | step-up-auth | Conditional duty |
-| 15 | chinese-wall | Event-based expiry |
-| 16 | concurrent-seats | Global state counter |
-| 17 | trial-period | Temporal transition |
-
----
-
-## External Data Licenses (18-23) 📝
-
-| # | File | Pattern | Gap Filled |
-|---|------|---------|------------|
-| 18 | internal-use-only | Basic restriction | — |
-| 19 | no-redistribution | Prohibition + pass-through | — |
-| 20 | derived-data-restriction | Conditional prohibition | — |
-| 21 | usage-metering | Count-based constraint | — |
-| 22 | display-vs-nondisplay | Use-type differentiation | — |
-| 23 | pass-through-terms | Downstream obligations | — |
+| # | File | Pattern | Status |
+|---|------|---------|--------|
+| 1 | pay-to-play.md | Tun-sollen (I must do it myself) | ✅ |
+| 2 | team-license.md | Sein-sollen (anyone can fulfill) | ✅ |
+| 3 | break-glass.md | Event + personal liability | ✅ |
+| 4 | fire-alarm.md | Event, decoupled | ✅ |
+| 5 | wire-transfer-sod.md | Separation of Duty | ✅ |
+| 6 | check-signing-sod.md | Dynamic SoD | ✅ |
+| 7 | ethics-approval.md | Multi-party workflow | ✅ |
+| 8 | data-stewardship.md | Promise fulfillment | ✅ |
+| 9 | gdpr-erasure.md | GDPR data subject rights | ✅ |
+| 10 | audit-trail.md | Compliance prerequisite | ✅ |
+| 11 | data-freshness-promise.md | Promise + violation | ✅ |
+| 12 | schema-evolution.md | Event + temporal | ✅ |
+| 13 | quality-circuit-breaker.md | State machine | ✅ |
+| 14 | step-up-auth.md | Conditional duty | ✅ |
+| 15 | chinese-wall.md | Event-based expiry | ✅ |
+| 16 | concurrent-seats.md | Global state counter | ✅ |
+| 17 | trial-period.md | Temporal transition | ✅ |
 
 ---
 
-## Data Contract Patterns (24-31) 📝
+## External Data Licenses (18-23)
 
-| # | File | Pattern | Gap Filled |
-|---|------|---------|------------|
-| 24 | purpose-restriction | Purpose whitelist | `isAnyOf` |
-| 25 | geo-restriction | Jurisdiction control | `isNoneOf` |
-| 26 | legal-review-gate | Approval workflow | `Offer`→`Agreement` |
-| 27 | approval-revocation | Power to revoke | `Power` |
-| 28 | data-retention-limit | Time-bound deletion | — |
-| 29 | anonymization-required | Processing constraint | — |
-| 30 | no-ml-training | Use prohibition | — |
-| 31 | multi-level-approval | Sequential approvals | — |
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 18 | internal-use-only.md | Basic restriction | — | 📝 |
+| 19 | no-redistribution.md | Prohibition + pass-through | — | 📝 |
+| 20 | derived-data-restriction.md | Conditional prohibition | — | 📝 |
+| 21 | usage-metering.md | Count-based constraint | — | 📝 |
+| 22 | display-vs-nondisplay.md | Use-type differentiation | — | 📝 |
+| 23 | pass-through-terms.md | Downstream obligations | — | 📝 |
 
 ---
 
-## EU Data Spaces / IDS (32-37) 📝
+## Data Contract Patterns (24-31)
 
-| # | File | Pattern | Gap Filled |
-|---|------|---------|------------|
-| 32 | connector-certification | Certified connector | — |
-| 33 | data-sovereignty | Provider controls | — |
-| 34 | volume-limit | Data amount restriction | — |
-| 35 | logging-notification | Must log or notify | — |
-| 36 | deletion-after-use | Post-processing deletion | — |
-| 37 | time-window-access | Temporal restriction | — |
-
----
-
-## Hohfeldian Completeness (38-42) 📝
-
-| # | File | Pattern | Gap Filled |
-|---|------|---------|------------|
-| 38 | claim-counterclaim | Correlative positions | `Claim` |
-| 39 | immunity-from-termination | Protection from power | `Immunity` |
-| 40 | power-to-grant | Authority to create | `Power` |
-| 41 | liability-exposure | Exposure to power | — |
-| 42 | no-claim-inference | Privilege correlative | — |
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 24 | purpose-restriction.md | Purpose whitelist | `isAnyOf` | 📝 |
+| 25 | geo-restriction.md | Jurisdiction control | `isNoneOf` | 📝 |
+| 26 | legal-review-gate.md | Approval workflow | `Offer`→`Agreement` | 📝 |
+| 27 | approval-revocation.md | Power to revoke | `Power` | 📝 |
+| 28 | data-retention-limit.md | Time-bound deletion | — | 📝 |
+| 29 | anonymization-required.md | Processing constraint | — | 📝 |
+| 30 | no-ml-training.md | Use prohibition | — | 📝 |
+| 31 | multi-level-approval.md | Sequential approvals | — | 📝 |
 
 ---
 
-## Vocabulary Completeness (43-49) 📝
+## EU Data Spaces / IDS (32-37)
 
-| # | File | Pattern | Gap Filled |
-|---|------|---------|------------|
-| 43 | exclusive-license | Exactly-one choice | `xone` |
-| 44 | multi-certification | All required | `isAllOf` |
-| 45 | negated-condition | Unless clause | `not` |
-| 46 | role-hierarchy | Type-based access | `isA` |
-| 47 | asset-collection-access | Bulk dataset | `AssetCollection` |
-| 48 | compliance-attestation | Status declaration | `Assertion` |
-| 49 | policy-versioning | Generation tracking | `policyGeneration` |
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 32 | connector-certification.md | Certified connector | — | 📝 |
+| 33 | data-sovereignty.md | Provider controls | — | 📝 |
+| 34 | volume-limit.md | Data amount restriction | — | 📝 |
+| 35 | logging-notification.md | Must log or notify | — | 📝 |
+| 36 | deletion-after-use.md | Post-processing deletion | — | 📝 |
+| 37 | time-window-access.md | Temporal restriction | — | 📝 |
 
 ---
 
-## Protocol (50-51) 📝
+## Hohfeldian Completeness (38-42)
 
-| # | File | Pattern | Gap Filled |
-|---|------|---------|------------|
-| 50 | runtime-evaluation | Evaluation trace | `rl2p:Requirement` |
-| 51 | fulfillment-evidence | Audit trail | `rl2p:fulfillmentEvidence` |
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 38 | claim-counterclaim.md | Correlative positions | `Claim` | 📝 |
+| 39 | immunity-from-termination.md | Protection from power | `Immunity` | 📝 |
+| 40 | power-to-grant.md | Authority to create | `Power` | 📝 |
+| 41 | liability-exposure.md | Exposure to power | — | 📝 |
+| 42 | no-claim-inference.md | Privilege correlative | — | 📝 |
+
+---
+
+## Vocabulary Completeness (43-49)
+
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 43 | exclusive-license.md | Exactly-one choice | `xone` | 📝 |
+| 44 | multi-certification.md | All required | `isAllOf` | 📝 |
+| 45 | negated-condition.md | Unless clause | `not` | 📝 |
+| 46 | role-hierarchy.md | Type-based access | `isA` | 📝 |
+| 47 | asset-collection-access.md | Bulk dataset | `AssetCollection` | 📝 |
+| 48 | compliance-attestation.md | Status declaration | `Assertion` | 📝 |
+| 49 | policy-versioning.md | Generation tracking | `policyGeneration` | 📝 |
+
+---
+
+## Protocol (50-51)
+
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 50 | runtime-evaluation.md | Evaluation trace | `rl2p:Requirement` | 📝 |
+| 51 | fulfillment-evidence.md | Audit trail | `rl2p:fulfillmentEvidence` | 📝 |
 
 ---
 
