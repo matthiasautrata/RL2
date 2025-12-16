@@ -27,39 +27,7 @@ Add `owl:imports <http://www.w3.org/ns/odrl/2/>` before publication
 
 ## Use Cases
 
-**Inventory:** See [usecases/README.md](usecases/README.md)
-
-| Category | Count | Status |
-|----------|-------|--------|
-| Core Patterns (1-17) | 17 | ✅ Complete |
-| External Data Licenses (18-23) | 6 | 📝 Draft |
-| Data Contract Patterns (24-31) | 8 | 📝 Draft |
-| EU Data Spaces (32-37) | 6 | 📝 Draft |
-| Hohfeldian (38-42) | 5 | 📝 Draft |
-| Vocabulary (43-49) | 7 | 📝 Draft |
-| Protocol (50-51) | 2 | 📝 Draft |
-| **Total** | **51** | **17 complete, 34 draft** |
-
-### Priority: Vocabulary Gaps
-
-These demonstrate vocabulary not yet shown in any use case:
-
-| # | Use Case | Demonstrates |
-|---|----------|--------------|
-| 24 | purpose-restriction | `isAnyOf` |
-| 25 | geo-restriction | `isNoneOf` |
-| 43 | exclusive-license | `xone` |
-| 44 | multi-certification | `isAllOf` |
-| 45 | negated-condition | `not` |
-| 46 | role-hierarchy | `isA` |
-| 38 | claim-counterclaim | `Claim` |
-| 27, 40 | approval-revocation, power-to-grant | `Power` |
-| 39 | immunity-from-termination | `Immunity` |
-| 26 | legal-review-gate | `Offer`/`Agreement` |
-| 47 | asset-collection-access | `AssetCollection` |
-| 48 | compliance-attestation | `Assertion` |
-| 49 | policy-versioning | `policyGeneration` |
-| 50 | runtime-evaluation | `rl2p:Requirement` |
+**51 use cases, 17 complete.** See [usecases/README.md](usecases/README.md) for details.
 
 ---
 
