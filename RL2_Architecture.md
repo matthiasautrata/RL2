@@ -1,14 +1,14 @@
 ---
 title: "RL2 Architecture"
-subtitle: "Evaluation Pipeline, Layer Separation, and Design Rationale"
-version: "0.5"
+subtitle: "Functional Model, Evaluation Pipeline, and Design Rationale"
+version: "0.6"
 status: "Draft"
-date: 2025-12-09
+date: 2025-12-17
 ---
 
 # RL2 Architecture
 
-This document describes the architectural design of RL2 — the evaluation pipeline, layer separation, and design rationale.
+This document describes the architectural design of RL2 — the functional interfaces, evaluation pipeline, layer separation, and design rationale.
 
 For formal semantics, see **RL2_Semantics.md**. For protocol details, see **RL2_Protocol.md**.
 
@@ -185,6 +185,378 @@ This wrapping is **evaluator responsibility**, not semantic concern.
 
 ---
 
+## Functional Model
+
+This section specifies the **functional interfaces** for RL2 policy compilation and evaluation — what functions exist, their signatures, and how they compose. Implementation is opaque; only contracts and data flows are specified.
+
+### Overview
+
+RL2 processing divides into two phases:
+
+| Phase | Functions | Artifacts |
+|-------|-----------|-----------|
+| **Compile-time** | `compile` | IR, ContextManifest, TargetIndex |
+| **Runtime** | `lookup`, `manifest`, `resolve`, `evaluate` | Decision, Requirements |
+
+```
+                    Compile-Time
+                    ════════════
+                         │
+    Policy*              │
+       │                 │
+       ▼                 │
+  ┌─────────┐            │
+  │ compile │            │
+  └─────────┘            │
+       │                 │
+       ├──────────────────┼──────────────────┐
+       │                 │                   │
+       ▼                 ▼                   ▼
+      IR          ContextManifest       TargetIndex
+       │                 │                   │
+═══════╪═════════════════╪═══════════════════╪═══════════
+       │                 │                   │
+       │            Runtime                  │
+       │            ═══════                  │
+       │                 │                   │
+       │                 │         Request   │
+       │                 │            │      │
+       │                 │            ▼      │
+       │                 │       ┌────────┐  │
+       │                 │       │ lookup │◀─┘
+       │                 │       └────────┘
+       │                 │            │
+       │                 │            ▼
+       │                 │       PolicyRef*
+       │                 │            │
+       │                 ▼            │
+       │            ┌──────────┐      │
+       │            │ manifest │◀─────┘
+       │            └──────────┘
+       │                 │
+       │                 ▼
+       │            OperandSpec*
+       │                 │
+       │                 ▼
+       │            ┌─────────┐
+       │            │ resolve │◀─── Sources
+       │            └─────────┘
+       │                 │
+       │                 ├─────────────┐
+       │                 │             │
+       │                 ▼             ▼
+       │             Context       Missing*
+       │                 │             │
+       │                 │      (if non-empty:
+       │                 │       return to requester)
+       │                 │
+       ▼                 ▼
+  ┌──────────────────────────┐
+  │        evaluate          │
+  └──────────────────────────┘
+             │
+             ▼
+    (Decision, Requirements)
+```
+
+---
+
+## Compile-Time Functions
+
+### compile
+
+```
+compile : Policy* → (IR, ContextManifest, TargetIndex)
+```
+
+**Input:**
+- `Policy*` — Set of RL2 policies (RDF/Turtle)
+
+**Output:**
+- `IR` — Intermediate representation for evaluation
+- `ContextManifest` — Operands required per policy/norm
+- `TargetIndex` — Mapping from targets to applicable policies
+
+**Contract:**
+- Semantics-preserving: `evaluate(IR, ...) ≡ eval(Policy*, ...)`
+- Total: Always produces output for valid policies
+- Deterministic: Same policies → same artifacts
+
+**Implementation:** Opaque.
+
+---
+
+## Compile-Time Artifacts
+
+### IR (Intermediate Representation)
+
+Executable representation of compiled policies.
+
+**Structure:** TBD.
+
+**Properties:**
+- Closed-form: No external references requiring resolution at evaluation time
+- Indexed: Efficient lookup by policy reference
+- Semantics-preserving: Evaluation equivalence with source policies
+
+### ContextManifest
+
+Declares which operands each policy/norm requires for evaluation.
+
+```
+ContextManifest : PolicyRef → NormRef → OperandSpec*
+```
+
+**OperandSpec:**
+
+| Field | Description |
+|-------|-------------|
+| `operand` | The left operand (e.g., `ex:department`, `rl2:currentDateTime`) |
+| `subject` | What it applies to: `agent`, `asset`, or `environment` |
+| `required` | Whether evaluation can proceed without it |
+
+**Purpose:** Enables pre-flight context discovery without parsing policies at runtime.
+
+### TargetIndex
+
+Maps targets to applicable policies.
+
+```
+TargetIndex : Target → PolicyRef*
+```
+
+**Target matching modes** (TBD — design must accommodate all):
+
+| Mode | Request | Policy Target | Example |
+|------|---------|---------------|---------|
+| **Direct** | URI | Same URI | `ex:LoanPortfolio` → policy targets `ex:LoanPortfolio` |
+| **Classification** | URI | Classification tag | `ex:dataset123` → policy targets `tag:sensitive` |
+| **Sub-asset** | URI + attribute | Attribute classification | `ex:dataset123.ssn` → policy targets `tag:PII` |
+| **Subsumption** | URI with class | Superclass policy | `tag:top-secret` asset → policy targets `tag:sensitive` (if sensitive ⊇ top-secret) |
+
+**Subsumption reasoning:** TBD. Options include:
+- Closed-world: Only explicit classifications match
+- Open-world with declared hierarchy: `tag:sensitive rdfs:subClassOf tag:confidential`
+- Inference rules: Evaluator configuration
+
+**Design constraint:** The `lookup` function must handle all modes; index structure is implementation-dependent.
+
+---
+
+## Runtime Functions
+
+### lookup
+
+```
+lookup : (TargetIndex, Target) → PolicyRef*
+```
+
+**Input:**
+- `TargetIndex` — Compiled target index
+- `Target` — Requested target (URI, classification, or attribute path)
+
+**Output:**
+- `PolicyRef*` — References to applicable policies
+
+**Contract:**
+- **Complete**: Returns all policies that could apply to the target
+- **Sound**: Only returns policies whose target constraints are satisfied
+- **Mode-agnostic**: Handles direct, classification, sub-asset, and subsumption matching
+
+**Implementation:** Opaque.
+
+### manifest
+
+```
+manifest : (ContextManifest, PolicyRef*) → OperandSpec*
+```
+
+**Input:**
+- `ContextManifest` — Compiled context requirements
+- `PolicyRef*` — Applicable policies (from `lookup`)
+
+**Output:**
+- `OperandSpec*` — Union of operands required by all applicable policies
+
+**Contract:**
+- Returns minimal sufficient set (no duplicates)
+- Aggregates across all norms in all applicable policies
+
+**Implementation:** Opaque.
+
+### resolve
+
+```
+resolve : (OperandSpec*, Request, Sources) → (Context, Missing*)
+```
+
+**Input:**
+- `OperandSpec*` — Required operands (from `manifest`)
+- `Request` — The evaluation request (agent, action, target, supplied context)
+- `Sources` — External context sources (identity provider, asset catalog, etc.)
+
+**Output:**
+- `Context` — Resolved operand values
+- `Missing*` — Operands that could not be resolved
+
+**Contract:**
+- **Best-effort**: Resolves what it can from available sources
+- **Transparent**: Reports what's missing (not silent failure)
+- **Idempotent**: Same inputs → same outputs
+
+**Interaction modes** (TBD):
+
+| Mode | Description |
+|------|-------------|
+| **In-band** | Evaluator calls external sources directly |
+| **Out-of-band** | Requester supplies all context with request |
+| **Hybrid** | Evaluator resolves some; requester supplies rest |
+
+**Implementation:** Opaque.
+
+### evaluate
+
+```
+evaluate : (IR, PolicyRef*, Context) → (Decision, Requirements)
+```
+
+**Input:**
+- `IR` — Compiled policy representation
+- `PolicyRef*` — Applicable policies (from `lookup`)
+- `Context` — Resolved operand values (from `resolve`)
+
+**Output:**
+- `Decision` — One of: `Permit`, `PermitWithObligations`, `Deny`, `Indeterminate`, `NotApplicable`
+- `Requirements` — Active duties/promises/claims (if decision permits with obligations)
+
+**Contract:**
+- **Deterministic**: Same inputs → same outputs
+- **Total**: Always produces a decision
+- **Semantics-preserving**: Equivalent to RL2_Semantics.md evaluation rules
+
+**Precondition:** `Context` should cover all operands from `manifest`. If incomplete:
+- Return `Indeterminate` with `Missing*` indicating what's needed, OR
+- Evaluate with available context (some conditions may be indeterminate)
+
+TBD: Specify normative behavior for incomplete context.
+
+**Implementation:** Executes the evaluation pipeline (§Evaluation Pipeline). Opaque beyond that.
+
+---
+
+## Request Processing
+
+### Interaction Sequence
+
+```
+Requester                              Evaluator
+─────────                              ─────────
+    │                                      │
+    │  Request                             │
+    │  (target, action, agent, context?)   │
+    ├─────────────────────────────────────▶│
+    │                                      │
+    │                             lookup(target)
+    │                                      │
+    │                             manifest(policies)
+    │                                      │
+    │                             resolve(operands, request, sources)
+    │                                      │
+    │         ┌────────────────────────────┤
+    │         │ if Missing* non-empty      │
+    │         ▼                            │
+    │  NeedContext(Missing*)               │
+    │◀─────────────────────────────────────│
+    │                                      │
+    │  SupplyContext(values)               │
+    ├─────────────────────────────────────▶│
+    │                                      │
+    │                             evaluate(IR, policies, context)
+    │                                      │
+    │  Result(Decision, Requirements)      │
+    │◀─────────────────────────────────────│
+    │                                      │
+```
+
+### Interaction Modes
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **Single-shot** | Requester supplies all context upfront; evaluator returns decision or `Indeterminate` | Batch processing, known context |
+| **Iterative** | Evaluator returns `NeedContext`; requester supplies; repeat until decision | Interactive flows, progressive disclosure |
+| **Pre-flight** | Requester calls `manifest` first to discover requirements before full request | UI pre-population, access previews |
+
+TBD: Specify which modes are normative vs optional.
+
+### Protocol Mapping
+
+The functional model maps to Protocol artifacts:
+
+| Function | Protocol Input | Protocol Output |
+|----------|----------------|-----------------|
+| `lookup` | `rl2p:Request.requestedAsset` | (internal) |
+| `manifest` | (internal) | `rl2p:NeedContext` (TBD) |
+| `resolve` | `rl2p:ContextAssertion*` | (internal) |
+| `evaluate` | (internal) | `rl2p:EvaluationResult` |
+
+---
+
+## Composition Invariants
+
+The functions compose with these guarantees:
+
+**1. Lookup Completeness**
+
+```
+∀ target, policy ∈ Policy* :
+  applies(policy, target) ⟹ policy ∈ lookup(TargetIndex, target)
+```
+
+All policies that could affect the target are returned.
+
+**2. Manifest Sufficiency**
+
+```
+∀ policies, context :
+  manifest(policies) ⊆ dom(context) ⟹ evaluate returns definite Decision
+```
+
+If all required operands are provided, evaluation does not return `Indeterminate` due to missing context.
+
+**3. Evaluation Equivalence**
+
+```
+evaluate(compile(P).IR, lookup(...), resolve(...)) ≡ semanticEval(P, ...)
+```
+
+Compiled evaluation is equivalent to direct semantic evaluation per RL2_Semantics.md.
+
+**4. Determinism**
+
+```
+compile(P₁) = compile(P₂) ⟹ P₁ ≡ P₂ (up to blank node renaming)
+evaluate(IR, policies, ctx₁) = evaluate(IR, policies, ctx₂) ⟹ ctx₁ = ctx₂
+```
+
+Same inputs always produce same outputs.
+
+---
+
+## Open Design Questions
+
+| Topic | Status | Notes |
+|-------|--------|-------|
+| IR structure | TBD | Internal representation; semantics-preserving |
+| Target matching algorithm | TBD | Must handle direct, classification, sub-asset, subsumption |
+| Subsumption reasoning | TBD | Closed-world vs declared hierarchy vs inference |
+| Attribute-level policies | TBD | How sub-asset targets are represented and matched |
+| Context resolution mode | TBD | In-band vs out-of-band vs hybrid |
+| Incomplete context behavior | TBD | `Indeterminate` vs partial evaluation |
+| Pre-flight API | TBD | Whether `manifest` is exposed to requesters |
+| NeedContext protocol | TBD | How missing context is communicated |
+
+---
+
 ## Expressive Characterization
 
 RL2's expressive power:
@@ -317,15 +689,15 @@ The `rl2p` Protocol is the interoperability contract:
 
 Any system that can produce Requests and consume Cases can integrate with RL2 evaluators. The Protocol is serialization-flexible (RDF/Turtle, JSON-LD) and implementation-agnostic.
 
-### Future: Compiled Execution Format
+### Compilation and IR
 
-A future phase may introduce a **Policy Normal Form (PNF)** — a closed, compiled execution format for high-performance evaluation. PNF would be:
+The Functional Model (§Functional Model) defines `compile` as producing an **Intermediate Representation (IR)** along with auxiliary artifacts (`ContextManifest`, `TargetIndex`). This separation enables:
 
-* An internal optimization (compile RL2 → PNF before execution)
-* Not an interoperability format (the Protocol remains the external boundary)
-* Propositional + bounded transitive closure (decidable, verifiable)
+* **Pre-computed policy indexing** — Target matching without runtime policy parsing
+* **Pre-computed context requirements** — Know what's needed before evaluation
+* **Optimized evaluation** — IR can be tuned for performance
 
-PNF is deferred until the core semantics and reference evaluator are stable. The Protocol serves all interoperability needs in the interim.
+IR structure is TBD. The Protocol remains the external interoperability boundary; IR is internal to evaluator implementations.
 
 ---
 
