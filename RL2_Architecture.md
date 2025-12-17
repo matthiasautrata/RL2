@@ -1,7 +1,7 @@
 ---
 title: "RL2 Architecture"
 subtitle: "Functional Model, Evaluation Pipeline, and Design Rationale"
-version: "0.6"
+version: "0.7"
 status: "Draft"
 date: 2025-12-17
 ---
@@ -120,6 +120,8 @@ Benefits:
 - Auditability (all matching norms visible before resolution)
 - Verifiability (transformer can be formally verified)
 
+**Scope of formal guarantees:** Formal proofs (S1–S6 in RL2_Semantics.md) apply to derivation and state transitions. Resolution strategies are constrained by stated invariants but are not themselves subject to semantic completeness proofs — they are procedural algorithms parameterized by configuration.
+
 ---
 
 ## Conflict Resolution Strategies
@@ -182,6 +184,18 @@ This wrapping is **evaluator responsibility**, not semantic concern.
 | Prohibition | "Cannot Do" | Decision = Deny |
 | Power | "Can Change" | Decision = Permit (state change action) |
 | Immunity | "Cannot Be Changed" | Decision = Deny (state change action) |
+
+### State Ownership and Scope
+
+The evaluation state Σ has specific ownership and lifecycle semantics:
+
+- **Owned by the evaluator** — Σ is managed by the policy engine, not by external systems
+- **Scoped per Case** — Each Case maintains its own state; there is no global shared state across Cases
+- **Persisted across evaluations** — Within a Case, state persists across re-evaluations (e.g., duty fulfillment tracking)
+- **Reconstructible from history** — Σ can be reconstructed from the Case's ContextAssertion history (event sourcing)
+- **Not omniscient** — Σ contains only facts explicitly asserted; the evaluator does not have access to external state unless provided via ContextAssertions
+
+This scoping ensures evaluations are reproducible and auditable without requiring global coordination.
 
 ---
 
@@ -629,6 +643,8 @@ RL2 semantics are designed to be:
 5. **Operational** — Policies evolve through events and actions
 6. **Analytically useful** — Supports reasoning about compliance and violations
 
+**Normative implementation:** The reference evaluator is implemented and verified in Why3/WhyML, with extracted OCaml constituting the normative execution model. Alternative implementations must produce equivalent results for all valid inputs.
+
 ---
 
 ## Enforcement Boundary
@@ -688,6 +704,8 @@ The `rl2p` Protocol is the interoperability contract:
 * **Output**: `rl2p:EvaluationResult` + `rl2p:Case`
 
 Any system that can produce Requests and consume Cases can integrate with RL2 evaluators. The Protocol is serialization-flexible (RDF/Turtle, JSON-LD) and implementation-agnostic.
+
+**One-way data flow:** Protocol artifacts (Requirements, Cases, EvaluationResults) are outputs only — they do not feed back into derivation. The evaluator reads policies and context; it writes protocol artifacts. This prevents circular dependencies and ensures derivation remains a pure function of policy and context.
 
 ### Compilation and IR
 
