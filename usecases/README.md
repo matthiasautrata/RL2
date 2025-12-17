@@ -113,6 +113,53 @@
 
 ---
 
+## Sources
+
+Use case selection informed by:
+- [W3C ODRL Use Cases and Requirements](https://w3c.github.io/poe/ucr/) (27 patterns)
+- [IDS Policy Patterns for Usage Control in Data Spaces](https://ceur-ws.org/Vol-3510/paper_sem4tra_1.pdf)
+- [ODRL Temporal Profile](https://w3c.github.io/odrl/profile-temporal/)
+- Bloomberg, LSEG, CME, ICE license terms (external data patterns)
+
+---
+
+## Vocabulary Coverage
+
+Core patterns (1-17) demonstrate:
+
+| Construct | Use Cases |
+|-----------|-----------|
+| `Privilege` | All |
+| `Duty` | 1, 2, 7, 8, 9, 10, 11, 12, 13 |
+| `Prohibition` | 15 |
+| `Promise` | 8, 11 |
+| `Liability` | 3 |
+| `Event` | 3, 4, 12, 15 |
+| `obligationStateOperand` | 1, 2, 10, 13 |
+| `dutyPerformerOperand` | 1, 5, 6 |
+
+Draft use cases (18-51) fill remaining vocabulary gaps:
+
+| Construct | Use Case |
+|-----------|----------|
+| `Claim` | 38 |
+| `Power` | 27, 40 |
+| `Immunity` | 39 |
+| `Offer`/`Agreement` | 26 |
+| `Assertion` | 48 |
+| `AssetCollection` | 47 |
+| `isAnyOf` | 24 |
+| `isNoneOf` | 25 |
+| `isAllOf` | 44 |
+| `xone` | 43 |
+| `not` | 45 |
+| `isA` | 46 |
+| `policyGeneration` | 49 |
+| `rl2p:Requirement` | 50 |
+| `rl2p:fulfillmentEvidence` | 51 |
+
+---
+
 ## Next Steps
 
 Work through drafts in batches to add RL2 models. Priority:
