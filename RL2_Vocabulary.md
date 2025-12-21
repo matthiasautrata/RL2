@@ -1,7 +1,7 @@
 ---
 title: "RL2 Vocabulary Reference"
 subtitle: "Complete Class and Property Definitions"
-version: "0.6"
+version: "0.5"
 status: "Draft"
 date: 2025-12-08
 purpose: "Reference documentation for all RL2 ontology and protocol terms"

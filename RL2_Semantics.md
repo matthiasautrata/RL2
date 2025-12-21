@@ -1511,7 +1511,7 @@ Under these constraints, `Eval` is **total**: it terminates for all well-formed 
 
 ## Proof scope and normative artifact
 
-RL2's formal guarantees are established by proving properties of the **reference evaluator written in WhyML and extracted to OCaml**. The extracted evaluator is the **normative realization** of RL2 semantics for implementation purposes. Proof obligations (S1–S6 and successors) apply to this evaluator and its extracted code, not to an open class of independent implementations.
+RL2's formal guarantees are established by proving properties of the **reference evaluator written in Dafny and extracted to Go**. The extracted evaluator is the **normative realization** of RL2 semantics for implementation purposes. Proof obligations (S1–S6 and successors) apply to this evaluator and its extracted code, not to an open class of independent implementations.
 
 ---
 
@@ -1519,37 +1519,42 @@ RL2's formal guarantees are established by proving properties of the **reference
 
 *This section is non-normative.*
 
-RL2's semantics are explicitly designed for mechanization in Why3/WhyML, with the extracted OCaml evaluator as the endorsed runtime artifact. The abstract syntax maps cleanly to inductive datatypes, and the operational rules are syntax-directed.
+RL2's semantics are explicitly designed for mechanization in Dafny, with the extracted Go evaluator as the endorsed runtime artifact. The abstract syntax maps cleanly to algebraic datatypes, and the operational rules are syntax-directed.
 
 ## Target Platforms
 
 | Platform | Strengths | Status |
 |----------|-----------|--------|
-| **Why3/WhyML + OCaml extraction** | Algebraic types, multiple backend provers (Alt-Ergo, Z3), extracted reference evaluator | Primary (normative) |
+| **Dafny + Go extraction** | Algebraic types, Z3 backend, compiles to Go/Java/C#, cloud-native ecosystem | Primary (normative) |
 | **K Framework** | Executable semantics, automatic interpreter generation | Optional independent validation |
 | **Lean 4** | Dependent types, code extraction, AI-assisted proofs | Optional independent validation |
 | **Coq** | Mature ecosystem, CompCert precedent | Optional independent validation |
 
-## Why3 Example
+## Dafny Example
 
-```why3
-type agent
-type action
-type asset
+```dafny
+datatype Condition =
+  | AtomicConstraint(op: Operand, cmp: Operator, val: Value)
+  | And(left: Condition, right: Condition)
+  | Or(left: Condition, right: Condition)
+  | Not(inner: Condition)
+  | Temporal(start: Time, end: Time)
+  | Context(path: Path, cmp: Operator, val: Value)
 
-type condition =
-  | AtomicConstraint operand operator value
-  | And condition condition
-  | Or  condition condition
-  | Not condition
-  | Temporal time time
-  | Context path operator value
-  | Dynamic path
-
-function eval_condition (c: condition) (env: env) : bool = ...
+function EvalCondition(c: Condition, env: Env): bool
+  requires ValidEnv(env)
+  ensures EvalCondition(c, env) ==> ConditionSatisfied(c, env)
+{
+  match c
+    case AtomicConstraint(op, cmp, val) => Apply(cmp, Resolve(op, env), val)
+    case And(l, r) => EvalCondition(l, env) && EvalCondition(r, env)
+    case Or(l, r) => EvalCondition(l, env) || EvalCondition(r, env)
+    case Not(inner) => !EvalCondition(inner, env)
+    // ...
+}
 ```
 
-Transition rules are expressed as inductive predicates.
+Transition rules are expressed as Dafny lemmas with pre/post-conditions verified by Z3.
 
 ## Proof Obligations
 

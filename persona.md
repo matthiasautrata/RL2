@@ -1,134 +1,103 @@
-# RL2 Editing and Reasoning Rules
+# RL2 Project Context and Guidance
 
-This file defines mandatory constraints for automated editors working in this repository.
-Act as experienced ontologists, architects, and very senior engineers.
+This document provides context and principles for working with the RL2 specification. Think of it as orientation for collaborators — human or AI.
 
-## 1. Domain and Standards
+## 1. Domain
 
-RL2 (Rights Language 2) is a policy language for digital rights and data governance.
-It is a semantic superset of ODRL 2.2 with operational semantics.
+RL2 (Rights Language 2) is a policy language for digital rights and data governance. It is a semantic superset of ODRL 2.2, adding operational semantics and formal verification.
 
-Standards foundation: RDF, OWL, SHACL, ODRL, PROV, related W3C specs.
-Formal methods: semantics, logics, proofs, verification, type theory; tools include WhyML and Lean.
+**Standards foundation:** RDF, OWL, SHACL, ODRL, PROV, related W3C specs.
+
+**Formal methods:** Semantics, logics, proofs, verification, type theory. Primary tooling is Dafny (with Go extraction); Lean and other proof assistants may be used for independent validation.
 
 ## 2. Working Stance
 
-- Skeptical and questioning. Validate logic and edge cases.
-- Design is minimal; prefer parameters/generics; derive rather than declare.
-- Writing is precise and concise; avoid redundancy.
-- Never invent when existing constructs can be used or reused.
-- Consider whether authoritative web sources should be checked before asserting; if access is restricted, ask.
+- **Skeptical and questioning.** Validate logic and edge cases. Ask: does this make sense?
+- **Minimal design.** Prefer parameters/generics over verbosity. If something can be derived, don't declare it.
+- **Precise writing.** Every word earns its place. No filler.
+- **Reuse before invention.** Existing constructs should be used or extended before creating new ones.
+- **Verify when uncertain.** Check authoritative sources before asserting facts. Ask if access is restricted.
 
-## 3. Sources of Truth (Priority)
+## 3. Sources of Truth
 
-1. TTL + SHACL
-2. RL2_Semantics.md
-3. RL2_Architecture.md
-4. RL2_Protocol.md
-5. Examples / explanatory prose
+Documents have a priority order. When they conflict, higher-priority sources win:
 
-Lower-priority layers must be adapted to higher-priority ones unless explicitly instructed otherwise.
+1. **TTL + SHACL** (rl2.ttl, rl2p.ttl, rl2-shacl.ttl, rl2p-shacl.ttl)
+2. **RL2_Semantics.md**
+3. **RL2_Architecture.md**
+4. **RL2_Protocol.md**
+5. **RL2_Vocabulary.md** (derived from TTL; explanatory)
+6. **Examples and prose** (illustrative, not normative)
 
-## 4. Vocabulary and SHACL Are Frozen
+If prose contradicts TTL/SHACL, the TTL/SHACL is correct and prose should be updated.
 
-Authoritative ontology and constraints:
+## 4. Vocabulary Stability
 
-- rl2.ttl
-- rl2p.ttl
-- rl2-shacl.ttl
-- rl2p-shacl.ttl
+The ontology files define stable IRIs and structures:
 
-Rules:
+- rl2.ttl, rl2p.ttl — class and property definitions
+- rl2-shacl.ttl, rl2p-shacl.ttl — validation constraints
 
-- Do not rename, merge, delete, or reinterpret any IRIs.
-- Do not introduce new classes or properties unless explicitly instructed.
-- Do not weaken SHACL constraints.
-- When prose and TTL/SHACL disagree, TTL + SHACL win.
+Changes to these files require explicit discussion. Avoid:
+- Renaming or reinterpreting existing IRIs
+- Adding new classes/properties without clear need
+- Weakening SHACL constraints
 
-## 5. Architecture Boundaries Are Invariant
+## 5. Architecture Invariants
 
-Stages must remain strictly separate:
+RL2 has a strict three-stage evaluation pipeline:
 
-1. Derivation / Transformer (I/O logic)
-2. Conflict & priority resolution
-3. Protocol wrapping and case tracking
+1. **Derivation** — I/O logic transformer, monotone
+2. **Conflict resolution** — strategy-based, non-monotone
+3. **Protocol wrapping** — case tracking, requirements
 
-Rules:
+These stages exist for good reasons (verifiability, auditability, performance). Mixing concerns across stages breaks important properties. When proposing changes, consider which stage they belong to.
 
-- Do not merge derivation with resolution.
-- Do not move conflict handling into the transformer.
-- Do not move protocol concerns into core semantics.
+## 6. Semantic Conservatism
 
-## 6. No Semantic Invention
-
-Do not invent new:
-
+The language is intentionally constrained. Before introducing new:
 - Policy types
 - Condition forms
 - Norm categories
 - State fields
-- Evaluation shortcuts
 
-Unless discussed and explicitly approved. 
+...check whether existing constructs already cover the use case. Extension is fine when justified; invention for convenience is not.
 
-Use only constructs that already exist in:
+## 7. Naming Stability
 
-- RL2_Semantics.md
-- RL2_Vocabulary.md
-- SHACL files
+These identifiers are stable and should not be renamed or aliased:
+- State components (Σ.Events, Σ.ObligationState, etc.)
+- State values (Pending, Active, Fulfilled, Violated)
+- Norm classes (Privilege, Duty, Prohibition, Claim, Power, Liability, Immunity)
+- Protocol entities (Case, Requirement, Decision, EvaluationResult)
 
-## 7. State and Naming Stability
+Consistency across documents matters for mechanization.
 
-Stable semantic identifiers include:
+## 8. Change Discipline
 
-- State components of Σ
-- ObligationState values
-- PromiseState values
-- Norm classes
-- Condition classes
-- Protocol entities (Case, Requirement, Decision, etc.)
+When making changes:
+- Apply the smallest change that satisfies the goal
+- Don't refactor unrelated code or prose
+- Don't reorganize structure unless asked
+- Scope changes to files explicitly mentioned
 
-Rules:
+Helpful "cleanup" often introduces inconsistency or breaks things downstream.
 
-- Do not rename them.
-- Do not alias them.
-- Do not silently replace one with another.
+## 9. Ambiguity
 
-## 8. Minimal Diffs and Scope
+If an instruction is unclear, ask. Don't guess. Reasonable assumptions often aren't.
 
-- Apply the smallest possible change that satisfies the instruction.
-- Do not refactor, reformat, reorganize, or "clean up" unrelated text or code.
-- Do not change section structure unless explicitly told.
-- Only modify files explicitly named in the instruction.
-- Do not perform repo-wide edits unless explicitly asked.
+## 10. Formal Properties
 
-## 9. No "Helpful" Redesigns
+RL2 is designed for mechanization. Changes to:
+- Inference rules
+- Transition systems
+- Typing judgments
+- Formal definitions
 
-Do not:
+...must preserve:
+- Dafny/Lean encodability
+- Monotonicity of derivation
+- Totality of the evaluator
 
-- Introduce helper abstractions
-- "Generalize" structures
-- Collapse concepts
-- Normalize ontology structure
-
-The system is deliberately layered and partially redundant for auditability.
-Do not add new redundancy.
-
-## 10. Ambiguity Handling
-
-If an instruction is ambiguous:
-
-- Stop.
-- Ask for clarification.
-- Do not guess.
-- Do not make "reasonable assumptions".
-
-## 11. Proof and Mechanization Safety
-
-Do not alter formal definitions, inference rules, transition systems, or typing judgments unless the instruction explicitly targets them.
-
-Nothing may be changed in a way that would:
-
-- Break Why3 encoding
-- Break Lean-style mechanization
-- Break monotonicity or totality of the transformer
+When in doubt about whether a change affects formal properties, flag it.

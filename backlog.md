@@ -35,11 +35,11 @@ Add `owl:imports <http://www.w3.org/ns/odrl/2/>` before publication
 
 ### Phase 1: Core Evaluator
 
-- [ ] Why3/WhyML core modules
+- [ ] Dafny core modules
 - [ ] Prove S1 (Determinism), S4 (Duty-state consistency), S6 (Totality)
-- [ ] OCaml extraction
+- [ ] Go extraction
 - [ ] CLI: `rl2-eval --policy p.ttl --request r.json`
-- [ ] Property-based tests (qcheck)
+- [ ] Property-based tests
 - [ ] Validate against use cases 1–17
 
 ### Phase 2: Extended Features
@@ -58,18 +58,18 @@ Add `owl:imports <http://www.w3.org/ns/odrl/2/>` before publication
 
 ## Toolchain
 
-**Primary:** Why3/WhyML → OCaml extraction
+**Primary:** Dafny → Go extraction
 
-**Rationale:** WhyML ≈ OCaml (clean extraction), multiple provers, escape hatch to Isabelle/Coq
+**Rationale:** C-family syntax, Z3 backend, compiles to Go/Java/C#/Python, cloud-native ecosystem, accessible talent pool
 
-**Normative artifact:** Extracted OCaml evaluator is the reference implementation
+**Normative artifact:** Extracted Go evaluator is the reference implementation
 
 ---
 
 ## Success Criteria
 
-- [ ] S1, S4, S6 discharged in Why3
-- [ ] OCaml reference evaluator tested
+- [ ] S1, S4, S6 discharged in Dafny
+- [ ] Go reference evaluator tested
 - [ ] Test suite covers use cases 1–17
 - [ ] Vocabulary 100% demonstrated
 - [ ] One production implementation tested against reference

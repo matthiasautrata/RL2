@@ -1,7 +1,7 @@
 ---
 title: "RL2 Architecture"
 subtitle: "Functional Model, Evaluation Pipeline, and Design Rationale"
-version: "0.7"
+version: "0.5"
 status: "Draft"
 date: 2025-12-17
 ---
@@ -228,7 +228,7 @@ RL2 processing divides into two phases:
        ▼                 ▼                   ▼
       IR          ContextManifest       TargetIndex
        │                 │                   │
-═══════╪═════════════════╪═══════════════════╪═══════════
+═══════╪═════════════════╪═══════════════════╪══════════
        │                 │                   │
        │            Runtime                  │
        │            ═══════                  │
@@ -253,7 +253,7 @@ RL2 processing divides into two phases:
        │                 │
        │                 ▼
        │            ┌─────────┐
-       │            │ resolve │◀─── Sources
+       │            │ resolve │◀──── Sources
        │            └─────────┘
        │                 │
        │                 ├─────────────┐
@@ -480,7 +480,7 @@ Requester                              Evaluator
     │         │ if Missing* non-empty      │
     │         ▼                            │
     │  NeedContext(Missing*)               │
-    │◀─────────────────────────────────────│
+    │◀──────────────────────────────────────┤
     │                                      │
     │  SupplyContext(values)               │
     ├─────────────────────────────────────▶│
@@ -488,7 +488,7 @@ Requester                              Evaluator
     │                             evaluate(IR, policies, context)
     │                                      │
     │  Result(Decision, Requirements)      │
-    │◀─────────────────────────────────────│
+    │◀──────────────────────────────────────┤
     │                                      │
 ```
 
@@ -586,11 +586,11 @@ Where:
 
 ### What RL2 Can Express
 
-- Single-deadline obligations ✓
-- Conditional activation ("duty activates when X") ✓
-- Sequential dependencies ("A before B") ✓
-- Dynamic policy applicability (events activate policies) ✓
-- Compensatory obligations via Power/Liability ✓
+- Single-deadline obligations ✔
+- Conditional activation ("duty activates when X") ✔
+- Sequential dependencies ("A before B") ✔
+- Dynamic policy applicability (events activate policies) ✔
+- Compensatory obligations via Power/Liability ✔
 - Contrary-to-duty ("if violated, then Y") — partial via sanctions
 
 ### Known Limitations
@@ -628,7 +628,7 @@ Gaps addressed:
 - Unified semantics (prior work separated P, F, O)
 - Implementation-independent (not tied to Jena)
 - Hohfeldian coverage (Claims, Powers, Immunities)
-- Mechanization path (Why3/WhyML with OCaml extraction; other assistants optional validation)
+- Mechanization path (Dafny with Go extraction; other proof assistants for optional validation)
 
 ---
 
@@ -638,12 +638,12 @@ RL2 semantics are designed to be:
 
 1. **Precise** — Every construct has clear formal meaning
 2. **Modular** — Norms, conditions, roles, events are independent but composable
-3. **Mechanizable** — Maps directly to Why3/WhyML; other assistants are optional cross-checks
+3. **Mechanizable** — Maps directly to Dafny; other proof assistants are optional cross-checks
 4. **Standalone** — Self-contained, no external standard dependencies
 5. **Operational** — Policies evolve through events and actions
 6. **Analytically useful** — Supports reasoning about compliance and violations
 
-**Normative implementation:** The reference evaluator is implemented and verified in Why3/WhyML, with extracted OCaml constituting the normative execution model. Alternative implementations must produce equivalent results for all valid inputs.
+**Normative implementation:** The reference evaluator is implemented and verified in Dafny, with extracted Go constituting the normative execution model. Alternative implementations must produce equivalent results for all valid inputs.
 
 ---
 
