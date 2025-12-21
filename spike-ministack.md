@@ -9,9 +9,10 @@
 
 ## Overview
 
-Implement a trivial stack VM in both:
+Implement a trivial stack VM in all three:
 1. **Dafny** → extract to Go
 2. **Stainless** → native Scala/JVM
+3. **Why3/WhyML** → extract to OCaml
 
 Compare: proof ergonomics, code clarity, output quality, tooling.
 
@@ -277,21 +278,29 @@ expected: Ok({ stack: [VBool(true)], fuel: 14 })
 3. `sbt compile` — Verify and compile
 4. `target/` — JVM bytecode
 
+### Why3/WhyML Implementation
+
+1. `MiniStack.mlw` — VM implementation with Why3 contracts
+2. Test module included in same file
+3. `make verify` — Prove with Alt-Ergo/Z3/CVC4
+4. `make extract` — Extract to OCaml
+
 ---
 
 ## Evaluation Criteria
 
 Score 1-5 for each:
 
-| Criterion | Dafny | Stainless | Notes |
-|-----------|-------|-----------|-------|
-| **Code clarity** | | | Can you read it cold in 5 min? |
-| **Proof annotations** | | | How much ceremony for P1-P5? |
-| **Error messages** | | | When proof fails, debuggable? |
-| **IDE experience** | | | Autocomplete, inline errors? |
-| **Build friction** | | | Setup, dependencies, compile time? |
-| **Output quality** | | | (Dafny) Is Go idiomatic? |
-| **Ecosystem fit** | | | Libraries, community, docs? |
+| Criterion | Dafny | Stainless | WhyML | Notes |
+|-----------|-------|-----------|-------|-------|
+| **Code clarity** | | | | Can you read it cold in 5 min? |
+| **Proof annotations** | | | | How much ceremony for P1-P5? |
+| **Error messages** | | | | When proof fails, debuggable? |
+| **IDE experience** | | | | Autocomplete, inline errors? |
+| **Build friction** | | | | Setup, dependencies, compile time? |
+| **Output quality** | | | | Is extracted code idiomatic? |
+| **Prover flexibility** | | | | Multiple provers, fallback options? |
+| **Ecosystem fit** | | | | Libraries, community, docs? |
 
 ### Decision Rubric
 
@@ -299,9 +308,11 @@ Score 1-5 for each:
 |---------|----------------|
 | Dafny wins clearly | Use Dafny → Go |
 | Stainless wins clearly | Use Stainless, JVM deployment |
+| WhyML wins clearly | Use Why3 → OCaml |
 | Tie, Go preferred | Use Dafny |
 | Tie, JVM acceptable | Use Stainless (no extraction) |
-| Both unacceptable | Revisit Why3 or Go+testing |
+| Tie, OCaml acceptable | Use WhyML |
+| All three unacceptable | Go + property testing (sacrifice formal guarantees) |
 
 ---
 
@@ -313,8 +324,10 @@ Score 1-5 for each:
 | Dafny proofs + extraction | 2 hours |
 | Stainless setup + implementation | 2 hours |
 | Stainless proofs | 2 hours |
+| WhyML setup + implementation | 2 hours |
+| WhyML proofs + extraction | 2 hours |
 | Comparison writeup | 1 hour |
-| **Total** | ~1 day |
+| **Total** | ~1.5 days |
 
 ---
 

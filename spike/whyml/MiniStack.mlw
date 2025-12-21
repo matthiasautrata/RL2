@@ -1,0 +1,338 @@
+(** MiniStack: Verified Stack VM Spike
+    Purpose: Evaluate Why3/WhyML for RL2 kernel
+    See: spike-ministack.md for specification *)
+
+module MiniStack
+
+  use int.Int
+  use list.List
+  use list.Length
+
+  (** ============================================================
+      Values
+      ============================================================ *)
+
+  type value =
+    | VBool bool
+    | VInt int
+
+  (** ============================================================
+      Instructions
+      ============================================================ *)
+
+  type instr =
+    | Push value
+    | Dup
+    | Drop
+    | Swap
+    | Eq
+    | Lte
+    | And
+    | Or
+    | Not
+    | IfElse (list instr) (list instr)
+
+  (** ============================================================
+      Result Type
+      ============================================================ *)
+
+  type result 'a =
+    | Ok 'a
+    | Err
+
+  predicate is_ok (r: result 'a) =
+    match r with
+    | Ok _ -> true
+    | Err -> false
+    end
+
+  (** ============================================================
+      VM State
+      ============================================================ *)
+
+  type vm = {
+    stack: list value;
+    fuel: int;
+  }
+  invariant { fuel >= 0 }
+  by { stack = Nil; fuel = 0 }
+
+  (** ============================================================
+      Step Function
+      ============================================================ *)
+
+  let rec function run (vm: vm) (program: list instr) : result vm
+    requires { vm.fuel >= 0 }
+    variant { vm.fuel, length program }
+    ensures { match result with
+              | Ok vm' -> vm'.fuel <= vm.fuel
+              | Err -> true
+              end }
+  =
+    match program with
+    | Nil -> Ok vm
+    | Cons i rest ->
+        if vm.fuel = 0 then
+          Err
+        else
+          match step vm i with
+          | Err -> Err
+          | Ok vm' -> run vm' rest
+          end
+    end
+
+  with function step (vm: vm) (instr: instr) : result vm
+    requires { vm.fuel > 0 }
+    variant { vm.fuel, 0 }
+    ensures { match result with
+              | Ok vm' -> vm'.fuel < vm.fuel /\ vm'.fuel >= 0
+              | Err -> true
+              end }
+    ensures { match result with
+              | Ok vm' -> length vm'.stack <= length vm.stack + 1
+              | Err -> true
+              end }
+  =
+    let fuel' = vm.fuel - 1 in
+    match instr with
+    | Push v ->
+        Ok { stack = Cons v vm.stack; fuel = fuel' }
+
+    | Dup ->
+        match vm.stack with
+        | Nil -> Err
+        | Cons a _ -> Ok { stack = Cons a vm.stack; fuel = fuel' }
+        end
+
+    | Drop ->
+        match vm.stack with
+        | Nil -> Err
+        | Cons _ rest -> Ok { stack = rest; fuel = fuel' }
+        end
+
+    | Swap ->
+        match vm.stack with
+        | Cons a (Cons b rest) ->
+            Ok { stack = Cons b (Cons a rest); fuel = fuel' }
+        | _ -> Err
+        end
+
+    | Eq ->
+        match vm.stack with
+        | Cons (VBool x) (Cons (VBool y) rest) ->
+            Ok { stack = Cons (VBool (x = y)) rest; fuel = fuel' }
+        | Cons (VInt x) (Cons (VInt y) rest) ->
+            Ok { stack = Cons (VBool (x = y)) rest; fuel = fuel' }
+        | Cons _ (Cons _ _) -> Err  (* type mismatch *)
+        | _ -> Err  (* underflow *)
+        end
+
+    | Lte ->
+        match vm.stack with
+        | Cons (VInt a) (Cons (VInt b) rest) ->
+            Ok { stack = Cons (VBool (b <= a)) rest; fuel = fuel' }
+        | Cons _ (Cons _ _) -> Err
+        | _ -> Err
+        end
+
+    | And ->
+        match vm.stack with
+        | Cons (VBool a) (Cons (VBool b) rest) ->
+            Ok { stack = Cons (VBool (a && b)) rest; fuel = fuel' }
+        | Cons _ (Cons _ _) -> Err
+        | _ -> Err
+        end
+
+    | Or ->
+        match vm.stack with
+        | Cons (VBool a) (Cons (VBool b) rest) ->
+            Ok { stack = Cons (VBool (a || b)) rest; fuel = fuel' }
+        | Cons _ (Cons _ _) -> Err
+        | _ -> Err
+        end
+
+    | Not ->
+        match vm.stack with
+        | Cons (VBool a) rest ->
+            Ok { stack = Cons (VBool (not a)) rest; fuel = fuel' }
+        | Cons _ _ -> Err
+        | Nil -> Err
+        end
+
+    | IfElse thn els ->
+        match vm.stack with
+        | Cons (VBool cond) rest ->
+            let vm' = { stack = rest; fuel = fuel' } in
+            if cond then run vm' thn else run vm' els
+        | Cons _ _ -> Err
+        | Nil -> Err
+        end
+    end
+
+  (** ============================================================
+      Property Lemmas
+      ============================================================ *)
+
+  (** P1: Termination - every step decreases fuel *)
+  lemma termination_lemma:
+    forall vm: vm, instr: instr.
+      vm.fuel > 0 ->
+      match step vm instr with
+      | Ok vm' -> vm'.fuel < vm.fuel
+      | Err -> true
+      end
+
+  (** P3: Stack bounds - stack grows by at most 1 *)
+  lemma stack_bounds_lemma:
+    forall vm: vm, instr: instr.
+      vm.fuel > 0 ->
+      match step vm instr with
+      | Ok vm' -> length vm'.stack <= length vm.stack + 1
+      | Err -> true
+      end
+
+  (** P5: Zero fuel always fails for non-empty programs *)
+  lemma fuel_exhaustion_lemma:
+    forall vm: vm, program: list instr.
+      vm.fuel = 0 ->
+      program <> Nil ->
+      run vm program = Err
+
+end
+
+(** ============================================================
+    Test Module
+    ============================================================ *)
+
+module MiniStackTest
+
+  use MiniStack
+  use list.List
+
+  (** Helper to create initial VM *)
+  let function make_vm (fuel: int) : vm
+    requires { fuel >= 0 }
+    ensures { result.stack = Nil /\ result.fuel = fuel }
+  =
+    { stack = Nil; fuel = fuel }
+
+  (** T1: Basic Arithmetic Comparison *)
+  let function test_t1 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 3)) (Cons (Push (VInt 5)) (Cons Lte Nil)) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    match result with
+    | Ok vm' ->
+        assert { vm'.stack = Cons (VBool true) Nil };
+        assert { vm'.fuel = 7 }
+    | Err -> absurd
+    end
+
+  (** T2: Boolean Logic *)
+  let function test_t2 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VBool true)) (Cons (Push (VBool false)) (Cons And Nil)) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    match result with
+    | Ok vm' -> assert { vm'.stack = Cons (VBool false) Nil }
+    | Err -> absurd
+    end
+
+  (** T3: Stack Manipulation *)
+  let function test_t3 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 1)) (Cons (Push (VInt 2)) (Cons Swap (Cons Drop Nil))) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    match result with
+    | Ok vm' -> assert { vm'.stack = Cons (VInt 2) Nil }
+    | Err -> absurd
+    end
+
+  (** T4: Conditional *)
+  let function test_t4 () : unit
+    ensures { true }
+  =
+    let thn = Cons (Push (VInt 1)) Nil in
+    let els = Cons (Push (VInt 2)) Nil in
+    let program = Cons (Push (VBool true)) (Cons (IfElse thn els) Nil) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    match result with
+    | Ok vm' -> assert { vm'.stack = Cons (VInt 1) Nil }
+    | Err -> absurd
+    end
+
+  (** T5: Type Error *)
+  let function test_t5 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 1)) (Cons (Push (VBool true)) (Cons And Nil)) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    assert { result = Err }
+
+  (** T6: Underflow *)
+  let function test_t6 () : unit
+    ensures { true }
+  =
+    let program = Cons Drop Nil in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    assert { result = Err }
+
+  (** T7: Fuel Exhaustion *)
+  let function test_t7 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 1)) (Cons (Push (VInt 2)) (Cons (Push (VInt 3)) Nil)) in
+    let vm = make_vm 2 in
+    let result = run vm program in
+    assert { result = Err }
+
+  (** T8: Equality Same Type *)
+  let function test_t8 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 5)) (Cons (Push (VInt 5)) (Cons Eq Nil)) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    match result with
+    | Ok vm' -> assert { vm'.stack = Cons (VBool true) Nil }
+    | Err -> absurd
+    end
+
+  (** T9: Equality Different Types *)
+  let function test_t9 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 1)) (Cons (Push (VBool true)) (Cons Eq Nil)) in
+    let vm = make_vm 10 in
+    let result = run vm program in
+    assert { result = Err }
+
+  (** T10: Compound Expression - (3 <= 5) AND (NOT false) *)
+  let function test_t10 () : unit
+    ensures { true }
+  =
+    let program = Cons (Push (VInt 3))
+                 (Cons (Push (VInt 5))
+                 (Cons Lte
+                 (Cons (Push (VBool false))
+                 (Cons Not
+                 (Cons And Nil))))) in
+    let vm = make_vm 20 in
+    let result = run vm program in
+    match result with
+    | Ok vm' ->
+        assert { vm'.stack = Cons (VBool true) Nil };
+        assert { vm'.fuel = 14 }
+    | Err -> absurd
+    end
+
+end
