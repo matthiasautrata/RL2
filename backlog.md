@@ -23,6 +23,12 @@
 Add `owl:imports <http://www.w3.org/ns/odrl/2/>` before publication  
 **Status:** Deferred until namespace decision
 
+### First-class Temporal Arithmetic in Core Evaluator
+
+**Problem:** Current "Offload to Resolution" pattern requires profile-defined operands for relative time (e.g., `daysSinceEvent`).  
+**Options:** Support `xsd:duration` arithmetic natively in the core evaluator (e.g., `currentDateTime - eventTime < P30D`).  
+**Status:** Deferred. Current workaround is sufficient; native support would increase kernel complexity.
+
 ---
 
 ## Use Cases
