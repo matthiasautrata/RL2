@@ -342,7 +342,7 @@ privacy:transfer a rl2:Action ;
     rdfs:comment "Transfer personal data to third party." .
 
 privacy:transferInternational a rl2:Action ;
-    rdfs:subClassOf privacy:transfer ;
+    rl2:includedIn privacy:transfer ;
     rdfs:label "International Transfer" ;
     rdfs:comment "Transfer personal data across borders." .
 

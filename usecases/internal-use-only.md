@@ -142,12 +142,10 @@ Most "internal use only" licenses include exceptions:
 @prefix license: <https://example.org/profile/license#> .
 
 license:internalUse a rl2:Action ;
-    rdfs:subClassOf rl2:Action ;
     rdfs:label "Internal Use" ;
     rdfs:comment "Use within the licensee organization." .
 
 license:externalUse a rl2:Action ;
-    rdfs:subClassOf rl2:Action ;
     rdfs:label "External Use" ;
     rdfs:comment "Use involving third parties outside the organization." .
 

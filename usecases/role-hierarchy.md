@@ -41,8 +41,8 @@ Policy: "Managers may access any InternalDocument (including subtypes)."
 |--------|-------------|
 | Operator | Type membership check |
 | Inheritance | Includes subtypes |
-| Hierarchy | Uses rdfs:subClassOf or similar |
-| Semantic | Requires reasoning |
+| Hierarchy | `rdfs:subClassOf` for classes (roles, assets); `rl2:includedIn` for actions |
+| Semantic | Requires reasoning or transitive traversal |
 
 ## Normative Structure
 
@@ -129,14 +129,25 @@ document.type isAnyOf {InternalDocument, ConfidentialDocument, RestrictedDocumen
 
 ## Semantic Requirements
 
-`isA` requires type hierarchy to be defined:
+`isA` requires a type hierarchy to be defined. The mechanism depends on the kind of entity:
+
+- **Asset/Role hierarchies** use `rdfs:subClassOf` (assets and roles are classes):
 
 ```turtle
 ex:ConfidentialDocument rdfs:subClassOf ex:InternalDocument .
 ex:InternalDocument rdfs:subClassOf ex:Document .
 ```
 
-The evaluator must support subclass reasoning (or pre-compute transitive closure).
+- **Action hierarchies** use `rl2:includedIn` (actions are individuals):
+
+```turtle
+ex:Create a rl2:Action ; rl2:includedIn ex:Write .
+ex:Update a rl2:Action ; rl2:includedIn ex:Write .
+ex:Delete a rl2:Action ; rl2:includedIn ex:Write .
+ex:Write  a rl2:Action .
+```
+
+The evaluator must support transitive traversal (or pre-compute transitive closure).
 
 ## Profile Requirements
 

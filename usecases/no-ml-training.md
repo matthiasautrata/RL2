@@ -110,10 +110,12 @@ ai:trainModel a rl2:Action ;
     rdfs:comment "Use data to train, fine-tune, or improve ML/AI systems." .
 
 ai:createEmbeddings a rl2:Action ;
-    rdfs:subClassOf ai:trainModel .
+    rdfs:label "Create Embeddings" ;
+    rl2:includedIn ai:trainModel .
 
 ai:fineTune a rl2:Action ;
-    rdfs:subClassOf ai:trainModel .
+    rdfs:label "Fine-tune" ;
+    rl2:includedIn ai:trainModel .
 
 ai:modelTypeOperand a rl2:LeftOperand ;
     rl2:resolutionPath "context.targetSystem.type" .

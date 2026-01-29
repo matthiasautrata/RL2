@@ -88,6 +88,7 @@ Both operands require `rl2:targetNorm` pointing to the duty being queried.
 | Inline query strings for collections | Profile-specific; use AssetCollection + member |
 | Duty starts Active | Duties start Pending; activation is explicit |
 | Promise has Active state | Promises skip Active — Pending means already binding |
+| Using `rdfs:subClassOf` for action hierarchies | Use `rl2:includedIn` — actions are individuals, not classes |
 
 ---
 

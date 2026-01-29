@@ -545,7 +545,7 @@ contentHolds : PromiseContent × State → Boolean
 
 contentHolds(content, Σ) =
     case content of
-        Action(a, x, s)  → Σ.Performed(a, x, s)
+        Action(a, x, s)  → performed(a, x, s, Σ)
         Duty(d)          → Σ.ObligationState(d) = Fulfilled
         Condition(c)     → ⟦c⟧(mkEnv(nullRequest, Σ, emptyContext))
 ```
@@ -651,7 +651,24 @@ Where:
 - `x_req ⊑ x` indicates action subsumption (e.g., `read ⊑ access`)
 - `members(s)` returns collection members if `s` is an AssetCollection
 
-**RDF grounding**: In RDF/OWL, `x_req ⊑ x` follows subclass (or SKOS broader/narrower) relations on `rl2:Action` individuals; `members(s)` is the closure over `rl2:member` when `s` is an `rl2:AssetCollection`; and `roles(a_req)` derives from the agent's RDF typing/role assignments as defined in the Agent and role classes in the Vocabulary.
+Action subsumption is defined by the transitive closure of `rl2:includedIn`:
+
+```
+x' ⊑ x  :=  reachable(x', rl2:includedIn, x)
+```
+
+Evaluators MUST support transitive traversal of `rl2:includedIn`. In SPARQL, this is `ASK { ?x' rl2:includedIn* ?x }`. Usage of `rdfs:subClassOf` for action refinement is non-normative in RL2.
+
+Action subsumption applies uniformly across all norm types: request matching, duty fulfillment, and prohibition violation checks. The subsumption-aware performed check is:
+
+```
+performed(a, x, s, Σ) :=
+    ∃x' : Σ.Performed(a, x', s) ∧ (x' = x ∨ x' ⊑ x)
+```
+
+`Σ.Performed` records exact actions as they occur. `performed()` is the query-time subsumption check used in all fulfillment and violation rules. This is the same bounded graph traversal as request matching — no additional reasoning complexity.
+
+**RDF grounding**: Actions are individuals of `rl2:Action`. Action subsumption (`x' ⊑ x`) follows the transitive closure of `rl2:includedIn`; `members(s)` is the closure over `rl2:member` when `s` is an `rl2:AssetCollection`; and `roles(a_req)` derives from the agent's RDF typing/role assignments as defined in the Agent and role classes in the Vocabulary.
 
 ### Norm Denotations
 
@@ -925,11 +942,11 @@ Env = mkEnv(R, Σ, Ctx)
 
 ### Duty Fulfillment
 
-An active duty is fulfilled when the required action is performed. The performing agent is recorded in `DutyPerformer`:
+An active duty is fulfilled when the required action (or a narrower action subsumed by it) is performed. The performing agent is recorded in `DutyPerformer`:
 
 ```
 Σ.ObligationState(Duty(a,x,s,c)) = Active
-Σ.Performed(a,x,s) = true
+performed(a,x,s,Σ) = true
 performer = R.agent  -- Agent who performed the action
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, DutyActive(a,x,s,c)) →
@@ -950,7 +967,7 @@ An active duty is violated when its deadline passes without fulfillment:
 ```
 Env = mkEnv(R, Σ, Ctx)
 Σ.ObligationState(Duty(a,x,s,c)) = Active
-Σ.Performed(a,x,s) = false
+performed(a,x,s,Σ) = false
 timeout(c, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, DutyActive(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Violated], DutyViolated(a,x,s,c))
@@ -1085,11 +1102,11 @@ matches(Prohibition(a,x,s,c), R) = true
 ProhibitionActive(a, x, s, c)
 ```
 
-A prohibition is violated when the prohibited action is performed while active:
+A prohibition is violated when the prohibited action (or a narrower action subsumed by it) is performed while active:
 
 ```
 ProhibitionActive(a, x, s, c)
-Σ.Performed(a, x, s) = true
+performed(a, x, s, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Prohibition(a,x,s,c)) → (Σ, ProhibitionViolated(a, x, s, c))
 ```
@@ -1267,24 +1284,24 @@ Activation is **condition-driven**: when the duty's condition first evaluates to
 **Rule D-FULFILL** (Active → Fulfilled):
 ```
 Σ.ObligationState(d) = Active
-Σ.Performed(d.subject, d.action, d.object) = true
+performed(d.subject, d.action, d.object, Σ) = true
 ─────────────────────────────────────────────────────────
 Σ' = Σ[ObligationState(d) ↦ Fulfilled,
        DutyPerformer(d) ↦ performer]
 ```
 
-Fulfillment is **event-driven**: when `Performed` records show the required action was done, the duty is fulfilled. The performing agent is recorded for identity binding.
+Fulfillment is **event-driven**: when a performed action matches the duty's required action (including narrower actions via `rl2:includedIn` subsumption), the duty is fulfilled. The performing agent is recorded for identity binding.
 
 **Rule D-VIOLATE** (Active → Violated):
 ```
 Σ.ObligationState(d) = Active
-Σ.Performed(d.subject, d.action, d.object) = false
+performed(d.subject, d.action, d.object, Σ) = false
 timeout(d.condition, Σ) = true
 ─────────────────────────────────────────────────────────
 Σ' = Σ[ObligationState(d) ↦ Violated]
 ```
 
-Violation is **time-driven**: when the deadline passes without fulfillment, the duty is violated.
+Violation is **time-driven**: when the deadline passes without fulfillment (no exact or subsumed action performed), the duty is violated.
 
 **Algorithmic form** (for implementation):
 
@@ -1295,7 +1312,7 @@ updateDutyStates(duties, Env, Σ) =
 updateOneDuty(Env)(Σ, d) =
     case Σ.ObligationState(d) of
         Pending → if ⟦d.condition⟧(Env) then Σ[ObligationState(d) ↦ Active] else Σ
-        Active  → if Σ.Performed(d.subject, d.action, d.object)
+        Active  → if performed(d.subject, d.action, d.object, Σ)
                   then Σ[ObligationState(d) ↦ Fulfilled, DutyPerformer(d) ↦ performer]
                   else if timeout(d.condition, Σ)
                   then Σ[ObligationState(d) ↦ Violated]

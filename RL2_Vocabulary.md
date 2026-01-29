@@ -456,15 +456,21 @@ ex:DataPlatform a rl2:Agent .
 
 **Notes**:
 - RL2 Core does not define specific action instances
-- Actions are provided by domain profiles
+- Actions are provided by domain profiles as **individuals** of this class
+- Action hierarchies are expressed using `rl2:includedIn`, not `rdfs:subClassOf`
 - Examples: `play`, `use`, `distribute`, `delete`, `modify`
 
 **Example**:
 ```turtle
-# Profile-defined actions
+# Profile-defined actions (flat)
 ex:use a rl2:Action .
 ex:distribute a rl2:Action .
 ex:delete a rl2:Action .
+
+# Action hierarchy via includedIn
+ex:fineTune a rl2:Action ;
+    rl2:includedIn ex:trainModel .
+ex:trainModel a rl2:Action .
 ```
 
 ---
@@ -974,6 +980,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:counterparty` | Norm | Agent | Agent in correlative position |
 | `rl2:action` | Norm | Action | Action specified in the norm |
 | `rl2:prohibitedAction` | Prohibition | Action | Action that is forbidden (subproperty of action) |
+| `rl2:includedIn` | Action | Action | Action taxonomy: narrower action included in broader (transitive) |
 | `rl2:object` | Norm | Asset | Asset the norm concerns |
 | `rl2:condition` | Norm, Policy | Condition | Activation condition |
 | `rl2:correlativeTo` | Norm | Norm | Links correlative Hohfeldian positions |

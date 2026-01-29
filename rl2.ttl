@@ -291,6 +291,16 @@ rl2:currentAgent a rl2:RuntimeReference ;
     rightOperandRef SHOULD be a RuntimeReference like currentAgent, not a static IRI.
     This prevents hardcoded identity checks that bypass dynamic binding.""" .
 
+rl2:includedIn a owl:ObjectProperty, owl:TransitiveProperty ;
+    rdfs:domain rl2:Action ;
+    rdfs:range rl2:Action ;
+    rdfs:label "Included In" ;
+    rdfs:comment """Action taxonomy: A includedIn B means A is a narrower action
+    included within B. Transitive: if A includedIn B and B includedIn C,
+    then A includedIn C. Used for action subsumption in norm matching.
+    Profiles define action hierarchies using this property.
+    Do NOT use rdfs:subClassOf for action hierarchies.""" .
+
 rl2:action a owl:ObjectProperty ;
     rdfs:domain rl2:Norm ;
     rdfs:range rl2:Action ;
