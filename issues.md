@@ -315,6 +315,41 @@ code fences. A real ontology bug was also fixed: `rl2:EventPathTypeShape`'s SPAR
 `\.` (invalid SPARQL string escape), which crashed validation for **any** policy using a
 `state.Events.*` resolution path — now double-escaped to `\\.`.
 
+### VALID-3 — Spec-doc examples should validate too
+**Status:** Partially resolved · **Severity:** S3 · **Source:** validation harness · **Tags:** [COV]
+**Files:** `RL2_Semantics.md` ✅, `RL2_Primer.md` ✅, `RL2_Vocabulary.md` ✅, `RL2_Protocol.md` ⏳
+
+The same "every example validates or is empty" standard applies to the spec docs, not
+just the use cases. The harness gained a **`--per-fence`** mode for this: each
+```turtle``` fence is validated as its own graph (ontology merged in), because a
+reference doc's fences are *independent* illustrations — a shared example IRI reused
+across sections must not merge into one graph (whole-file mode would force false
+cardinality conflicts). Use cases keep whole-file mode (their fences build on each
+other). Run: `uv run tools/validate.py --per-fence <doc>.md`.
+
+**Done:** Semantics, Primer, Vocabulary all pass per-fence. Fixes were of two kinds:
+(1) demote genuine narration fragments (state-machine transition triples, bare
+predicate snippets) to plain code fences; (2) complete labeled examples so each is
+valid standalone (define the Power/Duty/Promise/Policy an example references; use
+`xsd:anyURI` literals for `policyGeneration`, not IRIs).
+
+**Remaining — `RL2_Protocol.md`.** 9 fences still fail per-fence
+(`fence@189, 311, 320, 356, 553, 703, 738, 762, 805`). They develop a shared
+loan-access / data-contract scenario, so each fence references entities defined only
+in *other* fences (`ex:request1`, `ex:req1/req2`, `ex:loanAccessPolicy`,
+`ex:managerApprovalDuty`, `ex:dataQualityPromise`, `ex:dataContract`, `ex:case1`,
+`ex:eval1`, `ex:fulfillment1/2`). Under `rdfs` inference the referenced IRIs get typed
+via property ranges (e.g. `evaluatedRequest` range `Request`), so the shapes then
+demand their required fields. Note whole-file mode is *not* a fallback here: it has
+genuine merge conflicts (`ex:eval1` is defined twice with two decisions/explanations;
+a Request ends up with two requestors) — confirming per-fence is the correct model.
+
+**Fix (same recipe as Primer/Vocabulary):** make each of the 9 fences self-contained —
+define the source norm/promise (typed), its source Policy (with ≥1 clause), the
+referenced Request (action/asset/agent/time), and, for `requirementFulfilled`
+assertions, the performer. Then `uv run tools/validate.py --per-fence RL2_Protocol.md`
+should report all fences OK.
+
 ---
 
 ## Band 4 — Implementation
