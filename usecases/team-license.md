@@ -57,7 +57,7 @@ ex:teamAccessPrivilege a rl2:Privilege ;
         rl2:targetNorm ex:teamPaymentDuty ;
         rl2:leftOperand rl2:obligationStateOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand rl2:Fulfilled
+        rl2:rightOperandRef rl2:Fulfilled
     ] .
 ```
 

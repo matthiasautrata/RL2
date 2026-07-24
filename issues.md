@@ -270,17 +270,21 @@ Power-to-revoke exists but there is no explicit revocation event. Consider `rl2:
 > **Tooling now exists.** `tools/validate.py` (pySHACL via `uv`, PEP-723) validates
 > the embedded-Turtle use cases against `rl2.ttl` + `rl2-shacl.ttl`. First-ever
 > machine-check baseline (2026-07-24): **PASS 0 · WARN-ONLY 17 · FAIL 34 · SKIP 1.**
-> No file was fully clean of even warnings; the CANON-migrated data-stewardship and
-> data-freshness now conform (warn-only). Run: `uv run tools/validate.py`.
+> After the CANON migration and the state-enum `rightOperandRef` sweep, the corpus
+> stands at **WARN-ONLY 24 · FAIL 27 · SKIP 1** (2026-07-24). No file is yet fully
+> clean of even warnings. Run: `uv run tools/validate.py`.
 
 ### VALID-1 — Systemic use-case modeling defects
 **Status:** Open · **Severity:** S2 · **Source:** validation harness · **Tags:** [COV]
 **Files:** `usecases/*`
 
 The corpus was never validated before. Recurring, mechanical defects:
-- **State-enum as `rightOperand`.** ~7 files write `rl2:rightOperand rl2:Fulfilled`
-  (an IRI where a literal is required); the correct form is `rl2:rightOperandRef`.
-  Fixed in the two CANON-migrated files; remainder open.
+- **State-enum as `rightOperand`.** ✅ RESOLVED (2026-07-24). Files wrote
+  `rl2:rightOperand rl2:Fulfilled` (an IRI where a literal is required); the correct
+  form is `rl2:rightOperandRef`. Swept across all 7 use-case occurrences
+  (pay-to-play, wire-transfer-sod, team-license, audit-trail ×2, check-signing-sod)
+  plus the doc examples (Primer ×3, Vocabulary ×2). All five affected use cases now
+  conform (warn-only). Corpus: FAIL 32 → 27.
 - **Non-canonical `resolutionPath` roots.** e.g. `"contract.sla…"` — must start with
   `agent`/`asset`/`state`/`context`/`request`. Caught by `ResolutionPathRootShape`.
 - **Missing `rl2p:Requirement` fields** (`sourcePolicy`, `imposedTime`) in fragments.

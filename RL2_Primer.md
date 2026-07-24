@@ -774,7 +774,7 @@ ex:accessPrivilege a rl2:Privilege ;
         rl2:targetNorm ex:paymentDuty ;
         rl2:leftOperand rl2:obligationStateOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand rl2:Fulfilled
+        rl2:rightOperandRef rl2:Fulfilled
     ] .
 ```
 
@@ -796,7 +796,7 @@ ex:accessPrivilege a rl2:Privilege ;
             rl2:targetNorm ex:paymentDuty ;
             rl2:leftOperand rl2:obligationStateOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand rl2:Fulfilled
+            rl2:rightOperandRef rl2:Fulfilled
         ] ;
         rl2:operand [
             # Check: Did I fulfill it?
@@ -828,7 +828,7 @@ ex:approvalPrivilege a rl2:Privilege ;
             rl2:targetNorm ex:preparationDuty ;
             rl2:leftOperand rl2:obligationStateOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand rl2:Fulfilled
+            rl2:rightOperandRef rl2:Fulfilled
         ] ;
         rl2:operand [
             # NOT EQUAL: A different agent must have fulfilled
