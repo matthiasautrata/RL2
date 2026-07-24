@@ -455,6 +455,10 @@ When the manager exercises this power, new privileges may be created for employe
 An **Immunity** protects against position changes:
 
 ```turtle
+ex:firingPower a rl2:Power ;
+    rl2:subject ex:Dean ;
+    rl2:affectsNorm ex:employmentPrivilege .
+
 ex:tenureImmunity a rl2:Immunity ;
     rl2:subject ex:Professor ;
     rl2:immuneFrom ex:firingPower .
@@ -501,6 +505,11 @@ The distinction is relevant for:
 ### Structure
 
 ```turtle
+ex:DataStewardshipDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:steward ;
+    rl2:object ex:Dataset .
+
 ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;       # Maker of the promise
     rl2:promisee ex:DataOwner ;        # Recipient
@@ -872,7 +881,12 @@ privacy:dataOwnerOperand a rl2:LeftOperand ;
 **Usage in Policy**:
 
 ```turtle
+@prefix privacy: <https://example.org/profile/privacy#> .
+
 ex:gdprPrivilege a rl2:Privilege ;
+    rl2:subject ex:DataSubject ;
+    rl2:action ex:requestErasure ;
+    rl2:object ex:PersonalData ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:leftOperand privacy:dataOwnerOperand ;
@@ -991,7 +1005,9 @@ Policies evolve over time. RL2 tracks this via **policy generations**—immutabl
 
 ```turtle
 ex:dataPolicy a rl2:Agreement ;
-    rl2:policyGeneration <https://example.org/generations/2025-Q1> ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Researcher ;
+    rl2:policyGeneration "https://example.org/generations/2025-Q1"^^xsd:anyURI ;
     rl2:clause ex:accessPrivilege .
 ```
 
@@ -1081,7 +1097,7 @@ The duty exists in Pending state, awaiting activation.
 
 An event occurs: the researcher accesses the dataset on January 15. The system evaluates the duty's condition. If the condition is tied to access:
 
-```turtle
+```
 rl2:condition [
     a rl2:EventConstraint ;
     rl2:expectsEvent [ a ex:AccessEvent ]
@@ -1090,7 +1106,7 @@ rl2:condition [
 
 With access having occurred, the condition is satisfied. The duty transitions to Active.
 
-```turtle
+```
 ex:deletionDuty rl2:obligationState rl2:Active .
 ```
 
@@ -1111,7 +1127,7 @@ On March 1, the researcher performs the deletion. The system evaluates:
 
 The duty transitions to Fulfilled.
 
-```turtle
+```
 ex:deletionDuty rl2:obligationState rl2:Fulfilled .
 ```
 
@@ -1124,7 +1140,7 @@ Alternatively, if March 16 arrives without deletion:
 
 The duty transitions to Violated.
 
-```turtle
+```
 ex:deletionDuty rl2:obligationState rl2:Violated .
 ```
 
@@ -1203,7 +1219,7 @@ ex:ResearchDataset a rl2:Asset .
 ex:dataAccessAgreement a rl2:Agreement ;
     rl2:grantor ex:ResearchInstitution ;
     rl2:grantee ex:ExternalResearcher ;
-    rl2:policyGeneration <https://example.org/generations/2025-v1> ;
+    rl2:policyGeneration "https://example.org/generations/2025-v1"^^xsd:anyURI ;
     rl2:clause ex:usePrivilege ;
     rl2:clause ex:reportDuty ;
     rl2:clause ex:deletionDuty ;
