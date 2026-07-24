@@ -93,7 +93,7 @@ RL2 defines policy semantics and evaluation protocols. For deployments requiring
 
 ## Status
 
-Draft v0.5 — Under active development.
+Draft v0.6 — Under active development.
 
 ## License
 

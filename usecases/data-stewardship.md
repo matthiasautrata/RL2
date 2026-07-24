@@ -55,7 +55,8 @@ governance:promiseStateOperand a rl2:LeftOperand ;
 ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
-    rl2:promiseContent ex:DataStewardshipCommitment ;
+    rl2:promisedAction ex:steward ;      # Tun-sollen: commit to stewarding the data
+    rl2:object ex:SensitiveData ;
     rl2:promiseState rl2:Pending .
 
 ex:dataAccessPrivilege a rl2:Privilege ;
@@ -70,7 +71,7 @@ ex:dataAccessPrivilege a rl2:Privilege ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand governance:promiseStateOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand rl2:Fulfilled
+            rl2:rightOperandRef rl2:Fulfilled   # state enum is an IRI → rightOperandRef
         ] ;
         rl2:operand [
             # Check 2: Am I the promisor?

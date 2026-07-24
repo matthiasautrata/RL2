@@ -10,8 +10,8 @@
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A unified normative, descriptive, and operational rights language." ;
-  owl:versionInfo "0.5" ;
-  owl:versionIRI <https://rl2.example/ontology/0.5> .
+  owl:versionInfo "0.6" ;
+  owl:versionIRI <https://rl2.example/ontology/0.6> .
 
 ############################################################
 # 1. Normative Layer (DPCL)
@@ -68,15 +68,11 @@ rl2:correlativeTo a owl:ObjectProperty, owl:SymmetricProperty ;
     Note: Privilege correlates with No-Right, but No-Right is not modeled in RL2
     as it represents absence of claim rather than a positive normative position.""" .
 
-rl2:claimHolder a owl:ObjectProperty ;
-    rdfs:domain rl2:Claim ;
-    rdfs:range rl2:Agent ;
-    rdfs:comment "Agent who holds the claim (the right-holder)." .
-
-rl2:claimAgainst a owl:ObjectProperty ;
-    rdfs:domain rl2:Claim ;
-    rdfs:range rl2:Agent ;
-    rdfs:comment "Agent against whom the claim is held (the duty-bearer)." .
+# Claim roles use the uniform rl2:subject / rl2:counterparty properties (see §3):
+#   rl2:subject      = the right-holder (claim-holder)
+#   rl2:counterparty = the duty-bearer (agent the claim is held against)
+# Correlative alignment with the paired Duty:
+#   Duty.subject = Claim.counterparty  and  Duty.counterparty = Claim.subject
 
 rl2:affectsNorm a owl:ObjectProperty ;
     rdfs:domain rl2:Power ;
@@ -119,26 +115,37 @@ rl2:promisee a owl:ObjectProperty ;
     rdfs:range rl2:Agent ;
     rdfs:comment "Agent receiving the benefit of the promise." .
 
-rl2:PromiseContent a owl:Class ;
-    owl:unionOf (rl2:Action rl2:Duty rl2:Condition) ;
-    rdfs:label "Promise Content" ;
-    rdfs:comment """Union of types that may constitute the content of a promise.
-    Note: A promise references one of these types to describe what is promised.
-    The promisor commits to performing an Action, fulfilling a Duty, or ensuring
-    a Condition holds. This is a pragmatic modeling choice; the promise is
-    'about' the content, not identical to it.
+# Promise content is expressed by exactly one of three disjoint properties,
+# each with distinct semantics. This replaces the former polymorphic
+# rl2:promiseContent (a union of Action/Duty/Condition), which allowed the same
+# intent to be encoded multiple ways. Canonical form: one property per promise.
 
-    IMPORTANT: When promise content references a Duty, the promisor does NOT
-    automatically become the dutyHolder of that Duty. The promise merely
-    expresses intent regarding the Duty; legal assignment of duty holders
-    requires explicit rl2:dutyHolder assertions on the Duty itself. A promise
-    is a voluntary commitment (Promise Theory) distinct from legal obligation
-    (Hohfeldian Duty).""" .
-
-rl2:promiseContent a owl:ObjectProperty ;
+rl2:promisedAction a owl:ObjectProperty ;
     rdfs:domain rl2:Promise ;
-    rdfs:range rl2:PromiseContent ;
-    rdfs:comment "Content of the promise: action, duty, or condition." .
+    rdfs:range rl2:Action ;
+    rdfs:label "Promised Action" ;
+    rdfs:comment """Tun-sollen (ought-to-do): the promisor commits to performing
+    this action on rl2:object. Fulfilled when the promisor has performed it
+    (subsumption-aware, per the performed() helper in RL2_Semantics).""" .
+
+rl2:promisedState a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Condition ;
+    rdfs:label "Promised State" ;
+    rdfs:comment """Sein-sollen (ought-to-be): the promisor commits to a state of
+    affairs holding. Fulfilled when the condition evaluates true; violated when it
+    fails or its deadline passes unmet.""" .
+
+rl2:promisedDuty a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Duty ;
+    rdfs:label "Promised Duty" ;
+    rdfs:comment """Suretyship: the promisor commits to seeing that this Duty is
+    fulfilled. The promisor does NOT thereby become the Duty's rl2:subject;
+    legal assignment of the duty-bearer requires an explicit rl2:subject on the
+    Duty itself. Fulfilled when the Duty's ObligationState reaches Fulfilled.
+    A promise (voluntary commitment, Promise Theory) is distinct from the
+    Hohfeldian Duty it references.""" .
 
 ############################################################
 # 3. Agents and Roles
@@ -313,9 +320,9 @@ rl2:prohibitedAction a owl:ObjectProperty ;
     rdfs:comment "Action prohibited by the norm. Subproperty of rl2:action for uniform norm queries." .
 
 rl2:object a owl:ObjectProperty ;
-    rdfs:domain rl2:Norm ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
     rdfs:range rl2:Asset ;
-    rdfs:comment "Asset specified in a norm." .
+    rdfs:comment "Asset specified in a norm, or the asset a promisedAction acts upon." .
 
 rl2:member a owl:ObjectProperty ;
     rdfs:domain rl2:AssetCollection ;

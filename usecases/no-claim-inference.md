@@ -55,8 +55,8 @@ Given:
 
 Inferred:
   # No Claim exists where:
-  #   claimHolder = (anyone)
-  #   claimAgainst = ex:Employee
+  #   subject      = (anyone)     # right-holder
+  #   counterparty = ex:Employee  # duty-bearer
   #   content = "refrain from personalUse of CompanyComputer"
 ```
 

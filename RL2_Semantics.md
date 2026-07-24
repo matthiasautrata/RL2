@@ -1,9 +1,9 @@
 ---
 title: "RL2 Formal Semantics"
 subtitle: "A Unified Normative, Operational, and Semantic Framework for Rights and Data Policies"
-version: "0.5"
+version: "0.6"
 status: "Draft"
-date: 2025-12-08
+date: 2026-07-24
 abstract: |
   RL2 is a normative and operational policy language designed as a rigorous successor to legacy rights languages, integrating deontic logic, promise theory, constraint algebra, and small-step operational semantics into a single, unified, formally grounded framework.
 ---
@@ -52,7 +52,7 @@ Norm ::=
     Privilege(Agent, Action, Asset, Condition)
   | Duty(Agent, Action, Asset, Condition)
   | Prohibition(Agent, Action, Asset, Condition)
-  | Claim(AgentHolder, AgentAgainst, Right)
+  | Claim(Agent subject, Agent counterparty, Right)   -- subject = right-holder, counterparty = duty-bearer
   | Power(Agent, Norm)
   | Liability(Agent, Norm)
   | Immunity(Agent, Norm)
@@ -62,9 +62,18 @@ Norm ::=
 
 ```
 Promise ::= Promise(Agent promisor, Agent promisee, PromiseContent)
+
+PromiseContent ::=
+    PromisedAction(Action, Asset)   -- Tun-sollen; from rl2:promisedAction + rl2:object
+  | PromisedState(Condition)        -- Sein-sollen; from rl2:promisedState
+  | PromisedDuty(Duty)              -- suretyship;  from rl2:promisedDuty
 ```
 
-where `PromiseContent ∈ {Action, Duty, Condition}` (matching the `rl2:PromiseContent` union class in the ontology).
+`PromiseContent` is a metalanguage tagged union mapping 1:1 to the three disjoint
+ontology properties (`rl2:promisedAction`, `rl2:promisedState`, `rl2:promisedDuty`).
+A well-formed Promise carries exactly one. (This replaces the former polymorphic
+`rl2:promiseContent`/`rl2:PromiseContent` union, which allowed one intent to be
+encoded several ways — see the canonical-form invariant.)
 
 #### Conditions
 
@@ -536,18 +545,20 @@ valueMatches(actual, expected) =
         Any          → true
 ```
 
-#### contentHolds : PromiseContent × State → Boolean
+#### contentHolds : Agent × PromiseContent × State → Boolean
 
-The function `contentHolds(content, Σ)` checks if promise content is satisfied:
+The function `contentHolds(promisor, content, Σ)` checks if promise content is
+satisfied. The action case is evaluated against the promisor (the committed
+actor) and reuses the subsumption-aware `performed()` helper:
 
 ```
-contentHolds : PromiseContent × State → Boolean
+contentHolds : Agent × PromiseContent × State → Boolean
 
-contentHolds(content, Σ) =
+contentHolds(promisor, content, Σ) =
     case content of
-        Action(a, x, s)  → performed(a, x, s, Σ)
-        Duty(d)          → Σ.ObligationState(d) = Fulfilled
-        Condition(c)     → ⟦c⟧(mkEnv(nullRequest, Σ, emptyContext))
+        PromisedAction(x, s)  → performed(promisor, x, s, Σ)
+        PromisedState(c)      → ⟦c⟧(mkEnv(nullRequest, Σ, emptyContext))
+        PromisedDuty(d)       → Σ.ObligationState(d) = Fulfilled
 ```
 
 #### timeout : Condition → Boolean
@@ -580,9 +591,9 @@ deadline : PromiseContent × State → TimeBound?
 
 deadline(content, Σ) =
     case content of
-        Action(a, x, s)  → None                        -- Raw actions have no inherent deadline
-        Duty(d)          → extractDeadline(d.condition)
-        Condition(c)     → extractDeadline(c)
+        PromisedAction(x, s)  → None                        -- Raw actions have no inherent deadline
+        PromisedDuty(d)       → extractDeadline(d.condition)
+        PromisedState(c)      → extractDeadline(c)
 ```
 
 `TimeBound` values are obtained from temporal comparisons in conditions (e.g., `currentDateTime lte t`) or profile-specific temporal properties that reduce to the same structure.
@@ -700,7 +711,7 @@ Promise status:
 
 ```
 ⟦Promise(p,q,content)⟧(Env) =
-    Fulfilled if contentHolds(content, Env.Σ)
+    Fulfilled if contentHolds(p, content, Env.Σ)
     Pending   otherwise
 ```
 
@@ -717,21 +728,39 @@ RL2 supports the full Hohfeldian framework. The correlatives are:
 | Power | Liability |
 | Immunity | Disability |
 
+**Prohibition in the Hohfeldian square.** RL2 keeps `Prohibition` as a distinct
+class for authoring ergonomics, but semantically a `Prohibition(s, x, o, c)` **is a
+duty to refrain** — a Duty whose action is the omission of `x`. Its Hohfeldian
+correlative is therefore a **Claim**: the `counterparty` of the prohibition holds a
+claim that `s` not perform `x` on `o`. When no `rl2:counterparty` is asserted on the
+prohibition, the correlative claim is held by the policy grantor.
+
+```
+∀ Prohibition(s, x, o, c) : ∃ Claim(h, s, ¬x@o) where
+    h = counterparty(Prohibition) if present, else grantor(policyOf(Prohibition)) ∧
+    correlatesTo(Claim, Prohibition)
+```
+
+The correlative Claim is **derived**, not authored: policy authors write only the
+`Prohibition`. Violation of a prohibition uses the subsumption-aware `performed()`
+helper (so performing a narrower action `x′ ⊑ x` violates a prohibition on `x`).
+
 ### Claim Denotation
 
 A Claim expresses that one agent holds a right against another agent for some content:
 
 ```
-⟦Claim(holder, against, right)⟧(Env) =
-    ClaimActive(holder, against, right)  if claimCondition(right, Env) = true
-    ClaimInactive                        otherwise
+⟦Claim(subject, counterparty, right)⟧(Env) =
+    ClaimActive(subject, counterparty, right)  if claimCondition(right, Env) = true
+    ClaimInactive                              otherwise
 ```
 
-A Claim correlates with a Duty: if agent H has a Claim against agent A for X, then A has a Duty to H regarding X.
+A Claim correlates with a Duty: if agent H (the Claim's `subject`, the right-holder) has a Claim against agent A (the Claim's `counterparty`, the duty-bearer) for X, then A has a Duty to H regarding X. Correlative roles cross over:
 
 ```
 ∀ Claim(h, a, x) : ∃ Duty(a, x_action, x_asset, c) where
-    subject(Duty) = a ∧
+    subject(Duty) = a = counterparty(Claim) ∧
+    counterparty(Duty) = h = subject(Claim) ∧
     correlatesTo(Claim, Duty)
 ```
 
@@ -893,7 +922,7 @@ We use the notation `Σ[f ↦ v]` to denote state update:
 
 ### Promise State Derivation
 
-Let `linkedDuty(p)` be `d` when `rl2:promiseContent(p) = d` and `d` is a `Duty`; otherwise `⊥`. Promise state is derived (not guessed) from Σ as:
+Let `linkedDuty(p)` be `d` when `p` has `rl2:promisedDuty = d` (i.e. `content = PromisedDuty(d)`); otherwise `⊥`. Promise state is derived (not guessed) from Σ as:
 
 ```
 PromiseState(p, Σ) =
@@ -913,7 +942,7 @@ evidencePromiseState(p, Σ) =
 ```
 
 Where:
-- `fulfilledEvidence(p, Σ)` holds when Σ contains an event or assertion establishing the promise content holds (e.g., `contentHolds(content, Σ)`).
+- `fulfilledEvidence(p, Σ)` holds when Σ contains an event or assertion establishing the promise content holds (e.g., `contentHolds(promisor(p), content, Σ)`).
 - `violatedEvidence(p, Σ)` holds when Σ contains an event or assertion establishing the promise content is violated, including deadline/timeout (`deadlinePassed(content, Σ)` with unmet content).
 - Default is `Pending` until evidence moves it to a terminal value.
 
@@ -980,7 +1009,7 @@ For promises without a linked duty (`linkedDuty(Promise(p,q,content)) = ⊥`), e
 ```
 PromiseState(Promise(p,q,content), Σ) = Pending
 linkedDuty(Promise(p,q,content)) = ⊥
-contentHolds(content, Σ) = true
+contentHolds(p, content, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Promise(p,q,content)) →
     (Σ[PromiseState(Promise(p,q,content)) ↦ Fulfilled],
@@ -994,7 +1023,7 @@ For promises without a linked duty, evidence of non-fulfillment (including timeo
 ```
 PromiseState(Promise(p,q,content), Σ) = Pending
 linkedDuty(Promise(p,q,content)) = ⊥
-contentHolds(content, Σ) = false
+contentHolds(p, content, Σ) = false
 deadlinePassed(content, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Promise(p,q,content)) →
@@ -1019,7 +1048,7 @@ When a Promise enters the `Violated` state, a remedial Requirement is generated:
 
 ```
 PromiseState(Promise(p, q, content), Σ) = Violated
-d = RemedialDuty(p, restoreAction(content), content.object)
+d = RemedialDuty(p, restoreAction(content), objectOf(content))
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, PromiseViolated(p, q, content)) →
     (Σ[ObligationState(d) ↦ Active,
@@ -1027,10 +1056,20 @@ d = RemedialDuty(p, restoreAction(content), content.object)
      RemedialDutyGenerated(d))
 ```
 
-Where:
-- `restoreAction(content)` is an abstract, implementation-defined function that maps the violated content to a remedial Action. (Note: The core semantics do not prescribe *how* this mapping occurs; implementations may use lookup tables, policy metadata, or manual intervention).
-- The generated `Requirement` tracks `sourceNorm = Promise(p,q,content)` and `counterparty = q` (the promisee)
-- The promisee `q` holds the correlative Claim
+Where `restoreAction` and `objectOf` are total over the three content forms:
+
+```
+restoreAction(content) =                      objectOf(content) =
+    case content of                               case content of
+        PromisedAction(x, s) → x                      PromisedAction(x, s) → s
+        PromisedDuty(d)      → d.action               PromisedDuty(d)      → d.object
+        PromisedState(c)     → remedialActionOf(c)    PromisedState(c)     → objectOf(c)
+```
+
+- `PromisedAction`: retry the promised action `x`. `PromisedDuty`: perform the promised duty's action. These are canonical — no annotation needed.
+- `PromisedState`: restoring an arbitrary state is not a single canonical action; `remedialActionOf(c)` resolves to an explicit `rl2:remedialAction` annotation on the promise (see issue SEM-1). Absent that annotation the remedial Duty is generated with an undefined action and the case is surfaced as an ambiguity, not silently guessed.
+- The generated `Requirement` tracks `sourceNorm = Promise(p,q,content)` and `counterparty = q` (the promisee).
+- The promisee `q` holds the correlative Claim.
 
 **Runtime Representation**:
 

@@ -1,7 +1,7 @@
 # Use Case 38: Claim and Duty Correlation
 
 **Pattern:** Correlative normative positions  
-**Vocabulary Demonstrated:** `Claim`, `correlativeTo`, `claimHolder`, `claimAgainst`  
+**Vocabulary Demonstrated:** `Claim`, `correlativeTo`, `subject`, `counterparty`  
 **Category:** Hohfeldian Relations, Data Contracts  
 **Status:** DRAFT
 
@@ -47,8 +47,8 @@ Modeling only duties is incomplete:
 
 | Question | Duty-only model | Claim-aware model |
 |----------|-----------------|-------------------|
-| Who can demand performance? | Unclear | claimHolder |
-| Who must answer demands? | Unclear | claimAgainst |
+| Who can demand performance? | Unclear | subject (right-holder) |
+| Who must answer demands? | Unclear | counterparty (duty-bearer) |
 | Can claims be transferred? | N/A | Yes, via assignment |
 | Can claims be waived? | N/A | Yes, explicit waiver |
 
@@ -184,7 +184,7 @@ The `counterparty` field on `rl2p:Requirement` captures who holds the correlativ
 
 ```turtle
 # Placeholder for RL2 implementation
-# Will demonstrate: Claim, claimHolder, claimAgainst, correlativeTo
+# Will demonstrate: Claim, subject, counterparty, correlativeTo
 ```
 
 ---

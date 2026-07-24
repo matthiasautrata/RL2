@@ -1,9 +1,9 @@
 ---
 title: "RL2 Vocabulary Reference"
 subtitle: "Complete Class and Property Definitions"
-version: "0.5"
+version: "0.6"
 status: "Draft"
-date: 2025-12-08
+date: 2026-07-24
 purpose: "Reference documentation for all RL2 ontology and protocol terms"
 ---
 
@@ -72,8 +72,8 @@ The conventional prefix is `rl2:`.
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A unified normative, descriptive, and operational rights language." ;
-  owl:versionInfo "0.5" ;
-  owl:versionIRI <https://rl2.example/ontology/0.5> .
+  owl:versionInfo "0.6" ;
+  owl:versionIRI <https://rl2.example/ontology/0.6> .
 ```
 
 ### Conformance
@@ -129,7 +129,6 @@ Alphabetical listing of all RL2 classes with brief descriptions.
 | `rl2:Privilege` | Normative | Absence of duty not to perform an action |
 | `rl2:Prohibition` | Normative | Prohibition on performing an action |
 | `rl2:Promise` | Promise | Voluntary commitment between agents |
-| `rl2:PromiseContent` | Promise | Union type for promise content |
 | `rl2:PromiseState` | Operational | State enumeration for promises |
 | `rl2:Set` | Policy | Unilateral policy declaration |
 | `rl2:StateTransition` | Operational | Transition in system state |
@@ -270,8 +269,8 @@ ex:distributionBan a rl2:Prohibition ;
 **Superclass**: `rl2:Norm`
 
 **Required Properties**:
-- `rl2:claimHolder` — Agent who holds the claim (the right-holder)
-- `rl2:claimAgainst` — Agent against whom the claim is held (the duty-bearer)
+- `rl2:subject` — Agent who holds the claim (the right-holder)
+- `rl2:counterparty` — Agent against whom the claim is held (the duty-bearer)
 
 **Optional Properties**:
 - `rl2:correlativeTo` — The corresponding Duty
@@ -282,8 +281,8 @@ ex:distributionBan a rl2:Prohibition ;
 **Example**:
 ```turtle
 ex:bobClaim a rl2:Claim ;
-    rl2:claimHolder ex:Bob ;
-    rl2:claimAgainst ex:Alice ;
+    rl2:subject ex:Bob ;          # right-holder
+    rl2:counterparty ex:Alice ;   # duty-bearer
     rl2:correlativeTo ex:aliceDuty .
 ```
 
@@ -380,7 +379,10 @@ ex:tenureImmunity a rl2:Immunity ;
 **Required Properties**:
 - `rl2:promisor` — Agent making the promise
 - `rl2:promisee` — Agent receiving the promise
-- `rl2:promiseContent` — What is promised (Action, Duty, or Condition)
+- **Exactly one** of the three disjoint content properties:
+  - `rl2:promisedAction` — Tun-sollen: an Action the promisor will perform (with `rl2:object`)
+  - `rl2:promisedState` — Sein-sollen: a Condition the promisor will keep true
+  - `rl2:promisedDuty` — suretyship: a Duty the promisor will see fulfilled
 
 **Optional Properties**:
 - `rl2:promiseState` — Current state of the promise
@@ -392,7 +394,7 @@ ex:tenureImmunity a rl2:Immunity ;
 ex:dataPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
-    rl2:promiseContent ex:dataStewardshipDuty ;
+    rl2:promisedDuty ex:dataStewardshipDuty ;   # suretyship
     rl2:promiseState rl2:Pending .
 ```
 
@@ -403,15 +405,22 @@ ex:dataPromise a rl2:Promise ;
 
 ---
 
-### rl2:PromiseContent
+### Promise Content Properties
 
-**Definition**: Union type for what may constitute the content of a promise.
+**Definition**: What a promise commits to, expressed by **exactly one** of three
+disjoint properties. This replaces the former polymorphic `rl2:promiseContent`
+(a union of Action/Duty/Condition), which let one intent be encoded several ways.
+Canonical form requires a single shape per proposition.
 
-**Type**: `owl:Class` (union)
+| Property | Range | Deontic sense | Fulfilled when |
+|----------|-------|---------------|----------------|
+| `rl2:promisedAction` | `rl2:Action` (+ `rl2:object`) | Tun-sollen ("I will do X") | the promisor has performed the action (subsumption-aware) |
+| `rl2:promisedState` | `rl2:Condition` | Sein-sollen ("X will hold") | the condition evaluates true |
+| `rl2:promisedDuty` | `rl2:Duty` | Suretyship ("I will see D fulfilled") | the Duty's ObligationState reaches Fulfilled |
 
-**Members**: `rl2:Action`, `rl2:Duty`, `rl2:Condition`
-
-**Notes**: This is a union class used as the range of `rl2:promiseContent`. The promisor commits to performing an Action, fulfilling a Duty, or ensuring a Condition holds.
+**Notes**: `promisedDuty` does **not** make the promisor the Duty's `rl2:subject`;
+the duty-bearer is assigned explicitly on the Duty. A promise (voluntary commitment,
+Promise Theory) remains distinct from the Hohfeldian Duty it references.
 
 ---
 
@@ -981,11 +990,11 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:action` | Norm | Action | Action specified in the norm |
 | `rl2:prohibitedAction` | Prohibition | Action | Action that is forbidden (subproperty of action) |
 | `rl2:includedIn` | Action | Action | Action taxonomy: narrower action included in broader (transitive) |
-| `rl2:object` | Norm | Asset | Asset the norm concerns |
+| `rl2:object` | Norm, Promise | Asset | Asset the norm concerns, or that a promisedAction acts upon |
 | `rl2:condition` | Norm, Policy | Condition | Activation condition |
 | `rl2:correlativeTo` | Norm | Norm | Links correlative Hohfeldian positions |
-| `rl2:claimHolder` | Claim | Agent | Agent who holds a claim |
-| `rl2:claimAgainst` | Claim | Agent | Agent against whom claim is held |
+| `rl2:subject` | Norm | Agent | Position-bearer; on a Claim, the right-holder |
+| `rl2:counterparty` | Norm | Agent | Correlative party; on a Claim, the duty-bearer |
 | `rl2:affectsNorm` | Power | Norm | Norm that the power can affect |
 | `rl2:exposedTo` | Liability | Power | Power to which liability is exposed |
 | `rl2:immuneFrom` | Immunity | Power | Power from which immunity protects |
@@ -997,7 +1006,9 @@ ex:complianceAssertion a rl2:Assertion ;
 |----------|--------|-------|-------------|
 | `rl2:promisor` | Promise | Agent | Agent making the promise |
 | `rl2:promisee` | Promise | Agent | Agent receiving the promise |
-| `rl2:promiseContent` | Promise | PromiseContent | What is promised |
+| `rl2:promisedAction` | Promise | Action | Tun-sollen content (with `rl2:object`) |
+| `rl2:promisedState` | Promise | Condition | Sein-sollen content |
+| `rl2:promisedDuty` | Promise | Duty | Suretyship content |
 | `rl2:promiseState` | Promise | PromiseState | Current promise state |
 
 ### Policy Properties
@@ -1133,7 +1144,7 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:DutyShape` | rl2:Duty | Requires subject, action, object |
 | `rl2:DutyStateShape` | rl2:Duty | Valid obligationState values |
 | `rl2:ProhibitionShape` | rl2:Prohibition | Requires subject, prohibitedAction, object |
-| `rl2:ClaimShape` | rl2:Claim | Requires claimHolder, claimAgainst |
+| `rl2:ClaimShape` | rl2:Claim | Requires subject, counterparty |
 | `rl2:PowerShape` | rl2:Power | Requires subject, affectsNorm |
 | `rl2:LiabilityShape` | rl2:Liability | Requires subject, exposedTo |
 | `rl2:ImmunityShape` | rl2:Immunity | Requires subject, immuneFrom |
@@ -1142,7 +1153,7 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 
 | Shape | Target | Validates |
 |-------|--------|-----------|
-| `rl2:PromiseShape` | rl2:Promise | Requires promisor, promisee, promiseContent |
+| `rl2:PromiseShape` | rl2:Promise | Requires promisor, promisee, and exactly one of promisedAction/promisedState/promisedDuty |
 | `rl2:PromiseStateShape` | rl2:Promise | Valid promiseState values |
 
 ### Condition Shapes
@@ -1291,4 +1302,4 @@ For complete bibliography and glossary, see **RL2_References.md**.
 
 ---
 
-*This vocabulary reference covers RL2 version 0.5 (Core) and rl2p version 0.5 (Protocol). The normative definitions are in rl2.ttl, rl2-shacl.ttl, rl2p.ttl, and rl2p-shacl.ttl.*
+*This vocabulary reference covers RL2 version 0.6 (Core) and rl2p version 0.5 (Protocol, unchanged). The normative definitions are in rl2.ttl, rl2-shacl.ttl, rl2p.ttl, and rl2p-shacl.ttl.*

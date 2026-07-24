@@ -123,8 +123,8 @@ The original vendor typically retains rights against the entire chain:
 ```turtle
 # Vendor can enforce against any party in chain
 ex:vendorEnforcementRight a rl2:Claim ;
-    rl2:claimHolder ex:Vendor ;
-    rl2:claimAgainst ex:Licensee ;  # Direct
+    rl2:subject ex:Vendor ;          # right-holder
+    rl2:counterparty ex:Licensee ;   # duty-bearer (direct)
     rdfs:comment "Licensee liable for downstream violations" .
 ```
 

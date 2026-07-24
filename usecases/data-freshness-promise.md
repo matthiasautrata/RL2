@@ -25,7 +25,7 @@ ODRL struggles to model obligations *on the Provider*. Its permission/prohibitio
 
 RL2 explicitly models:
 - `Promise` states (`Pending` → `Fulfilled` / `Violated`)
-- `PromiseContent` with temporal bounds
+- `promisedState` (Sein-sollen) with a temporal freshness bound
 - State transitions on deadline expiry
 - Triggered duties on violation
 
@@ -46,7 +46,13 @@ datacontract:lastRefreshTimeOperand a rl2:LeftOperand ;
 datacontract:refreshIntervalOperand a rl2:LeftOperand ;
     rdfs:label "Refresh Interval" ;
     rdfs:comment "Maximum allowed time between refreshes." ;
-    rl2:resolutionPath "contract.sla.refreshInterval" ;
+    rl2:resolutionPath "context.sla.refreshInterval" ;
+    rdfs:range xsd:duration .
+
+datacontract:datasetAgeOperand a rl2:LeftOperand ;
+    rdfs:label "Dataset Age" ;
+    rdfs:comment "Elapsed time since the dataset was last refreshed." ;
+    rl2:resolutionPath "asset.metadata.datasetAge" ;
     rdfs:range xsd:duration .
 
 datacontract:promiseStateOperand a rl2:LeftOperand ;
@@ -73,16 +79,20 @@ datacontract:createIncidentTicket a rl2:Action ;
 @prefix datacontract: <https://example.org/profile/datacontract#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-# The Promise: Provider commits to freshness SLA
+# The Promise: Provider commits to a freshness SLA.
+# Sein-sollen (ought-to-be): the promised *state* is that the dataset stays fresh
+# (age ≤ 6h). The refresh action is merely the means; the commitment is the state.
+# On violation, ex:escalationDuty below is the remedial response.
 ex:freshnessPromise a rl2:Promise ;
     rl2:promisor ex:DataProvider ;
     rl2:promisee ex:DataConsumer ;
-    rl2:promiseContent [
-        a rl2:PromiseContent ;
-        rl2:action datacontract:refreshData ;
-        rl2:object ex:CustomerDataset ;
-        rl2:recurrence "PT6H"^^xsd:duration
-    ] .
+    rl2:promisedState ex:datasetIsFresh ;
+    rl2:object ex:CustomerDataset .
+
+ex:datasetIsFresh a rl2:AtomicConstraint ;
+    rl2:leftOperand datacontract:datasetAgeOperand ;
+    rl2:constraintOperator rl2:lte ;
+    rl2:rightOperand "PT6H"^^xsd:duration .
 
 # Duty triggered on violation: create incident ticket
 ex:escalationDuty a rl2:Duty ;
@@ -94,7 +104,7 @@ ex:escalationDuty a rl2:Duty ;
         rl2:targetNorm ex:freshnessPromise ;
         rl2:leftOperand datacontract:promiseStateOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand rl2:Violated
+        rl2:rightOperandRef rl2:Violated   # state enum is an IRI → rightOperandRef
     ] .
 ```
 

@@ -101,3 +101,22 @@ RL2 is designed for mechanization. Changes to:
 - Totality of the evaluator
 
 When in doubt about whether a change affects formal properties, flag it.
+
+## 11. Canonical Form
+
+RL2 targets automated policy generation and verification. It therefore holds a
+**canonical-form invariant**: for any normative proposition the language can
+express, there is exactly one valid RDF shape. Two graphs that differ
+structurally must differ semantically.
+
+When adding or changing vocabulary, check it against this invariant:
+- No polymorphic property whose range is a union of semantically distinct types —
+  split into distinct properties (e.g. `promisedAction` / `promisedState` /
+  `promisedDuty`, not one `promiseContent`).
+- No property expressible at multiple container levels with the same effect —
+  pick the narrowest canonical location; conjoin-and-normalize the rest.
+- No two structural encodings of the same proposition — pick one; reject the
+  other in SHACL or rewrite it during compilation.
+
+If a proposed construct creates a second way to say the same thing, that is a
+defect, not a convenience. See `RL2_Architecture.md` §Canonical Form.

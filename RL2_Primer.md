@@ -1,9 +1,9 @@
 ---
 title: "RL2 Primer"
 subtitle: "A Practical Introduction to Rights Language 2"
-version: "0.5"
+version: "0.6"
 status: "Draft"
-date: 2025-12-09
+date: 2026-07-24
 audience: "Students, practitioners, and implementers new to RL2"
 prerequisites: "Basic familiarity with RDF and policy concepts"
 ---
@@ -425,8 +425,8 @@ ex:aliceDuty a rl2:Duty ;
     rl2:counterparty ex:Bob .
 
 ex:bobClaim a rl2:Claim ;
-    rl2:claimHolder ex:Bob ;
-    rl2:claimAgainst ex:Alice ;
+    rl2:subject ex:Bob ;          # right-holder
+    rl2:counterparty ex:Alice ;   # duty-bearer
     rl2:correlativeTo ex:aliceDuty .
 ```
 
@@ -504,8 +504,8 @@ The distinction is relevant for:
 ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;       # Maker of the promise
     rl2:promisee ex:DataOwner ;        # Recipient
-    rl2:promiseContent ex:DataStewardshipDuty ;  # Content of promise
-    rl2:promiseState rl2:Pending .                # Current state
+    rl2:promisedDuty ex:DataStewardshipDuty ;  # Suretyship: see the duty fulfilled
+    rl2:promiseState rl2:Pending .              # Current state
 ```
 Pending/Active/Fulfilled/Violated are shared state individuals; promises never use `Active`.
 
@@ -1409,7 +1409,7 @@ For definitions of terms used in this document, see **RL2_References.md**.
 
 ---
 
-*This primer covers RL2 version 0.5. For updates and errata, see the RL2 repository.*
+*This primer covers RL2 version 0.6. For updates and errata, see the RL2 repository.*
 
 ---
 

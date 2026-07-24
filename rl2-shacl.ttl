@@ -103,13 +103,14 @@ rl2:ProhibitionShape a sh:NodeShape ;
     sh:property [ sh:path rl2:prohibitedAction ; sh:minCount 1 ; sh:class rl2:Action ] ;
     sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
 
-# Claim shape (Hohfeldian correlative to Duty)
+# Claim shape (Hohfeldian correlative to Duty).
+# Claims use the uniform norm roles: subject = right-holder, counterparty = duty-bearer.
 rl2:ClaimShape a sh:NodeShape ;
     sh:targetClass rl2:Claim ;
-    sh:property [ sh:path rl2:claimHolder ; sh:minCount 1 ; sh:class rl2:Agent ;
-        sh:message "A Claim must identify a claimHolder (the right-holder)." ] ;
-    sh:property [ sh:path rl2:claimAgainst ; sh:minCount 1 ; sh:class rl2:Agent ;
-        sh:message "A Claim must identify a claimAgainst (the duty-bearer)." ] .
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "A Claim must identify a subject (the right-holder)." ] ;
+    sh:property [ sh:path rl2:counterparty ; sh:minCount 1 ; sh:class rl2:Agent ;
+        sh:message "A Claim must identify a counterparty (the duty-bearer)." ] .
 
 # Power shape (ability to alter normative relations)
 rl2:PowerShape a sh:NodeShape ;
@@ -140,16 +141,12 @@ rl2:PromiseShape a sh:NodeShape ;
     sh:targetClass rl2:Promise ;
     sh:property [ sh:path rl2:promisor ; sh:minCount 1 ; sh:class rl2:Agent ] ;
     sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:class rl2:Agent ] ;
-    sh:property [
-        sh:path rl2:promiseContent ;
-        sh:minCount 1 ;
-        sh:xone (
-            [ sh:class rl2:Action ]
-            [ sh:class rl2:Duty ]
-            [ sh:class rl2:Condition ]
-        ) ;
-        sh:message "Promise content must be an Action, Duty, or Condition."
-    ] .
+    sh:xone (
+        [ sh:property [ sh:path rl2:promisedAction ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ]
+        [ sh:property [ sh:path rl2:promisedState  ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Condition ] ]
+        [ sh:property [ sh:path rl2:promisedDuty   ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Duty ] ]
+    ) ;
+    sh:message "A Promise must have exactly one of promisedAction, promisedState, or promisedDuty." .
 
 ############################################################
 # Condition Shapes

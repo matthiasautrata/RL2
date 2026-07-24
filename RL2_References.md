@@ -1,9 +1,9 @@
 ---
 title: "RL2 References and Glossary"
 subtitle: "Companion Document for the RL2 Specification Suite"
-version: "0.5"
+version: "0.6"
 status: "Draft"
-date: 2025-12-09
+date: 2026-07-24
 ---
 
 # RL2 References and Glossary

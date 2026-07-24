@@ -1,9 +1,9 @@
 ---
 title: "RL2 Architecture"
 subtitle: "Functional Model, Evaluation Pipeline, and Design Rationale"
-version: "0.5"
+version: "0.6"
 status: "Draft"
-date: 2025-12-17
+date: 2026-07-24
 ---
 
 # RL2 Architecture
@@ -300,6 +300,35 @@ compile : Policy* → (IR, ContextManifest, TargetIndex)
 
 ---
 
+## Canonical Form
+
+RL2 enforces a **canonical-form invariant**: *for any normative proposition the
+language can express, there is exactly one valid RDF shape that expresses it.*
+Two graphs that differ structurally must differ semantically; where they would
+not, one shape is canonical and the alternatives are rejected (by SHACL) or
+rewritten (by compile-time normalization).
+
+This is the property that makes RL2 suited to automated generation and
+verification. A generator has one target shape per intent — no authoring-
+convenience variation to learn or normalize. Semantic equivalence of two policies
+reduces to graph comparison after normalization, with no bespoke normalizer (the
+place ODRL-style flexibility hides bugs).
+
+Instances in the current vocabulary:
+
+- **Promise content** — exactly one of `rl2:promisedAction` / `rl2:promisedState`
+  / `rl2:promisedDuty`, not a polymorphic union. Enforced by `rl2:PromiseShape`.
+- **Claim roles** — the uniform `rl2:subject` / `rl2:counterparty`; there are no
+  Claim-specific `claimHolder` / `claimAgainst` properties.
+- **Negative duties** — expressed solely as `rl2:Prohibition`; there is no
+  competing "Duty with a negated action" encoding.
+- **Conditions** — authored at the narrowest scope they apply to (on the Norm
+  when they gate a single norm). A policy-level condition conjoins with norm
+  conditions and is pushed down during IR normalization, so the IR carries
+  conditions only on norms.
+
+Every new construct is checked against this invariant before it is added.
+
 ## Compile-Time Artifacts
 
 ### IR (Intermediate Representation)
@@ -312,6 +341,9 @@ Executable representation of compiled policies.
 - Closed-form: No external references requiring resolution at evaluation time
 - Indexed: Efficient lookup by policy reference
 - Semantics-preserving: Evaluation equivalence with source policies
+- Canonical: policy-level conditions are pushed down into each norm's
+  `effectiveCondition` = `And(P.condition, n.condition)`, so the IR holds
+  conditions only on norms — one shape per proposition (see Canonical Form)
 
 ### ContextManifest
 

@@ -11,11 +11,11 @@ Read **persona.md** first — it defines working stance, source-of-truth hierarc
 | `Privilege` | May do X | subject, action, object |
 | `Duty` | Must do X | subject, action, object |
 | `Prohibition` | Must not do X | subject, prohibitedAction, object |
-| `Claim` | Right to demand X from Y | claimHolder, claimAgainst, correlativeTo |
+| `Claim` | Right to demand X from Y | subject (right-holder), counterparty (duty-bearer), correlativeTo |
 | `Power` | Can change Y's position | subject, affectsNorm |
 | `Liability` | Exposed to power | subject, exposedTo |
 | `Immunity` | Protected from power | subject, immuneFrom |
-| `Promise` | Voluntary commitment | promisor, promisee, promiseContent |
+| `Promise` | Voluntary commitment | promisor, promisee, exactly one of promisedAction / promisedState / promisedDuty |
 
 ---
 
@@ -89,6 +89,8 @@ Both operands require `rl2:targetNorm` pointing to the duty being queried.
 | Duty starts Active | Duties start Pending; activation is explicit |
 | Promise has Active state | Promises skip Active — Pending means already binding |
 | Using `rdfs:subClassOf` for action hierarchies | Use `rl2:includedIn` — actions are individuals, not classes |
+| Using `promiseContent` (removed in 0.6) | Use exactly one of `promisedAction` (Tun-sollen) / `promisedState` (Sein-sollen) / `promisedDuty` (suretyship) |
+| Using `claimHolder` / `claimAgainst` (removed in 0.6) | Use `subject` (right-holder) / `counterparty` (duty-bearer) — uniform across all norms |
 
 ---
 
