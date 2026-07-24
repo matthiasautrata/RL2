@@ -80,27 +80,37 @@ Request: User with accountStatus = Suspended
 ## Combining NOT with Other Operators
 
 ```turtle
-# Access if (has role) AND NOT(suspended) AND NOT(in maintenance)
-rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [ ... role check ... ] ;
-    rl2:operand [
+@prefix account: <https://example.org/profile/account#> .
+
+# Access if NOT(suspended) AND NOT(terminated)
+ex:combinedAccess a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Platform ;
+    rl2:condition [
         a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:not ;
+        rl2:constraintOperator rl2:and ;
         rl2:operand [
-            a rl2:AtomicConstraint ;
-            rl2:leftOperand ex:accountStatusOperand ;
-            rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand ex:Suspended
+            a rl2:LogicalConstraint ;
+            rl2:constraintOperator rl2:not ;
+            rl2:operand [
+                a rl2:AtomicConstraint ;
+                rl2:leftOperand account:accountStatusOperand ;
+                rl2:constraintOperator rl2:eq ;
+                rl2:rightOperandRef account:Suspended
+            ]
+        ] ;
+        rl2:operand [
+            a rl2:LogicalConstraint ;
+            rl2:constraintOperator rl2:not ;
+            rl2:operand [
+                a rl2:AtomicConstraint ;
+                rl2:leftOperand account:accountStatusOperand ;
+                rl2:constraintOperator rl2:eq ;
+                rl2:rightOperandRef account:Terminated
+            ]
         ]
-    ] ;
-    rl2:operand [
-        a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:not ;
-        rl2:operand [ ... maintenance window check ... ]
-    ]
-] .
+    ] .
 ```
 
 ## NOT Cardinality
@@ -119,20 +129,37 @@ Unlike `and`/`or`/`xone` which take multiple operands, `not` takes exactly one:
 Simple inequality can use `neq` instead of `not`:
 
 ```turtle
-# These are equivalent for simple cases:
+@prefix account: <https://example.org/profile/account#> .
 
-# Using NOT
-rl2:constraintOperator rl2:not ;
-rl2:operand [
-    rl2:leftOperand ex:status ;
-    rl2:constraintOperator rl2:eq ;
-    rl2:rightOperand ex:Suspended
-]
+# These two privileges are equivalent for simple cases.
 
-# Using NEQ (simpler)
-rl2:leftOperand ex:status ;
-rl2:constraintOperator rl2:neq ;
-rl2:rightOperand ex:Suspended
+# Using NOT(status = Suspended)
+ex:accessViaNot a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Platform ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:not ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand account:accountStatusOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef account:Suspended
+        ]
+    ] .
+
+# Using status != Suspended (simpler)
+ex:accessViaNeq a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Platform ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand account:accountStatusOperand ;
+        rl2:constraintOperator rl2:neq ;
+        rl2:rightOperandRef account:Suspended
+    ] .
 ```
 
 Use `not` when negating complex conditions; use `neq` for simple inequality.
@@ -154,10 +181,25 @@ account:Terminated a account:AccountStatus .
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+The canonical form: access is permitted unless the account is suspended.
 
 ```turtle
-# Placeholder - will demonstrate not operator
+@prefix account: <https://example.org/profile/account#> .
+
+ex:platformAccess a rl2:Privilege ;
+    rl2:subject ex:User ;
+    rl2:action ex:access ;
+    rl2:object ex:Platform ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:not ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand account:accountStatusOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef account:Suspended
+        ]
+    ] .
 ```
 
 ---

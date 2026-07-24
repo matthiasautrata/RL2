@@ -39,7 +39,7 @@ ODRL has no event model to evaluate changes as they occur.
 datacontract:isBackwardCompatibleOperand a rl2:LeftOperand ;
     rdfs:label "Is Backward Compatible" ;
     rdfs:comment "Whether a schema change is backward compatible." ;
-    rl2:resolutionPath "event.schemaChange.isBackwardCompatible" ;
+    rl2:resolutionPath "state.Events.SchemaChangeEvent.isBackwardCompatible" ;
     rdfs:range xsd:boolean .
 
 datacontract:noticeGivenDateOperand a rl2:LeftOperand ;
@@ -114,7 +114,7 @@ ex:breakingChangeAfterNoticePrivilege a rl2:Privilege ;
             # Notice period HAS elapsed (30+ days)
             a rl2:AtomicConstraint ;
             rl2:leftOperand datacontract:daysSinceNoticeOperand ;
-            rl2:constraintOperator rl2:gteq ;
+            rl2:constraintOperator rl2:gte ;
             rl2:rightOperand 30
         ]
     ] .
@@ -123,7 +123,7 @@ ex:breakingChangeAfterNoticePrivilege a rl2:Privilege ;
 # Note: No priority needed - conditions are mutually exclusive with privilege above
 ex:breakingChangeProhibition a rl2:Prohibition ;
     rl2:subject ex:DataProvider ;
-    rl2:action datacontract:modifySchema ;
+    rl2:prohibitedAction datacontract:modifySchema ;
     rl2:object ex:CustomerDataset ;
     rl2:condition [
         a rl2:LogicalConstraint ;

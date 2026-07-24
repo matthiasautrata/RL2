@@ -39,13 +39,13 @@ ODRL can express "MFA required" but cannot model:
 auth:authLevelOperand a rl2:LeftOperand ;
     rdfs:label "Authentication Level" ;
     rdfs:comment "Current session authentication level." ;
-    rl2:resolutionPath "session.authenticationLevel" ;
+    rl2:resolutionPath "context.session.authenticationLevel" ;
     rdfs:range auth:AuthLevel .
 
 auth:sessionMfaCompletedOperand a rl2:LeftOperand ;
     rdfs:label "MFA Completed" ;
     rdfs:comment "Whether MFA was completed in this session." ;
-    rl2:resolutionPath "session.mfaCompleted" ;
+    rl2:resolutionPath "context.session.mfaCompleted" ;
     rdfs:range xsd:boolean .
 
 auth:requestedResourceRiskLevelOperand a rl2:LeftOperand ;
@@ -109,7 +109,7 @@ ex:stepUpAuthDuty a rl2:Duty ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand auth:requestedResourceRiskLevelOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand auth:HighRisk
+            rl2:rightOperandRef auth:HighRisk
         ] ;
         rl2:operand [
             # But MFA not yet completed

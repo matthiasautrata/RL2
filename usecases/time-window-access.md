@@ -112,7 +112,8 @@ Good practice includes warning before expiration:
 ex:expiryWarningDuty a rl2:Duty ;
     rl2:subject ex:System ;
     rl2:action ex:notifyExpiry ;
-    rl2:counterparty ex:Researcher ;
+    rl2:object ex:Researcher ;
+    rl2:obligationState rl2:Pending ;
     rl2:condition [
         # 30 days before expiry
         a rl2:AtomicConstraint ;
@@ -124,26 +125,39 @@ ex:expiryWarningDuty a rl2:Duty ;
 
 ## Profile Requirements
 
-```turtle
-@prefix temporal: <https://example.org/profile/temporal#> .
-
-temporal:effectiveFromOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "policy.effectiveFrom" .
-
-temporal:effectiveToOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "policy.effectiveTo" .
-
-# rl2:currentDateTime is a core LeftOperand
-```
+A time window needs **no profile-declared operands**: `rl2:currentDateTime` is a
+core `LeftOperand`, and the window bounds are literal `xsd:dateTime` values on the
+condition. (If a deployment prefers to resolve the bounds dynamically rather than
+inline them, it may declare `context.`-rooted operands, but the canonical form
+inlines the bounds.)
 
 ---
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+The window is an `and` of two comparisons against the current time.
 
 ```turtle
-# Placeholder - will demonstrate currentDateTime with gte/lt operators
+ex:researchDataAccess a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:access ;
+    rl2:object ex:HealthcareDataset ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand rl2:currentDateTime ;
+            rl2:constraintOperator rl2:gte ;
+            rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand rl2:currentDateTime ;
+            rl2:constraintOperator rl2:lt ;
+            rl2:rightOperand "2027-01-01T00:00:00Z"^^xsd:dateTime
+        ]
+    ] .
 ```
 
 ---

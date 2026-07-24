@@ -134,12 +134,16 @@ research:approvalCountOperand a rl2:LeftOperand ;
 
 Policy usage:
 ```turtle
-rl2:condition [
-    a rl2:AtomicConstraint ;
-    rl2:leftOperand research:approvalCountOperand ;
-    rl2:constraintOperator rl2:gte ;
-    rl2:rightOperand 2
-] .
+ex:multiApprovalAccess a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action research:access ;
+    rl2:object ex:SensitiveDataset ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand research:approvalCountOperand ;
+        rl2:constraintOperator rl2:gte ;
+        rl2:rightOperand 2
+    ] .
 ```
 
 The `countApprovalsForAgent` function is implementation-specific but its interface is declared in the profile.

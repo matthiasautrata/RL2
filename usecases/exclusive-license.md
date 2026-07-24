@@ -115,35 +115,33 @@ licensing:Personal a licensing:UseCategory .
 ## RL2 Model Pattern
 
 ```turtle
-rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:xone ;
-    rl2:operand [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:useCategoryOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand licensing:Advertising
-    ] ;
-    rl2:operand [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:useCategoryOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand licensing:Editorial
-    ] ;
-    rl2:operand [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:useCategoryOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand licensing:Personal
-    ]
-] .
+ex:musicTrackLicense a rl2:Privilege ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:use ;
+    rl2:object ex:MusicTrack ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:xone ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand licensing:useCategoryOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef licensing:Advertising
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand licensing:useCategoryOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef licensing:Editorial
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand licensing:useCategoryOperand ;
+            rl2:constraintOperator rl2:eq ;
+            rl2:rightOperandRef licensing:Personal
+        ]
+    ] .
 ```
-
----
-
-## RL2 Model
-
-*To be added after pattern documentation is approved.*
 
 ---
 

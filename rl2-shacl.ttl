@@ -358,7 +358,7 @@ rl2:EventPathTypeShape a sh:NodeShape ;
                 $this rl2:resolutionPath ?path .
                 FILTER(STRSTARTS(?path, "state.Events."))
                 FILTER(?path != "state.Events.*" && !STRSTARTS(?path, "state.Events.*."))
-                BIND(REPLACE(?path, "^state\\.Events\\.([^\\.]+).*$", "$1") AS ?etypeLex)
+                BIND(REPLACE(?path, "^state\\\\.Events\\\\.([^\\\\.]+).*$", "$1") AS ?etypeLex)
                 FILTER NOT EXISTS {
                     ?etype a rl2:Event .
                     FILTER(STR(?etype) = ?etypeLex || STRAFTER(STR(?etype), "#") = ?etypeLex || STRENDS(STR(?etype), ?etypeLex))

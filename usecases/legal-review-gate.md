@@ -104,7 +104,15 @@ ex:legalReviewEvent a rl2:Event ;
 The Agreement formation is conditioned on this event:
 
 ```turtle
+ex:vendorAccessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Vendor ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerData .
+
 ex:vendorAgreement a rl2:Agreement ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Vendor ;
+    rl2:clause ex:vendorAccessPrivilege ;
     rl2:condition [
         a rl2:EventConstraint ;
         rl2:expectsEvent [
@@ -141,22 +149,26 @@ Request → Manager Review → Legal Review → Compliance Review → Agreement
 Each stage can be an Event with its own approver:
 
 ```turtle
-rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [
-        a rl2:EventConstraint ;
-        rl2:expectsEvent [ rl2:approver ex:Manager ]
-    ] ;
-    rl2:operand [
-        a rl2:EventConstraint ;
-        rl2:expectsEvent [ rl2:approver ex:LegalTeam ]
-    ] ;
-    rl2:operand [
-        a rl2:EventConstraint ;
-        rl2:expectsEvent [ rl2:approver ex:Compliance ]
-    ]
-] .
+ex:multiReviewAgreement a rl2:Agreement ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Vendor ;
+    rl2:clause ex:vendorAccessPrivilege ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:EventConstraint ;
+            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Manager ]
+        ] ;
+        rl2:operand [
+            a rl2:EventConstraint ;
+            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:LegalTeam ]
+        ] ;
+        rl2:operand [
+            a rl2:EventConstraint ;
+            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Compliance ]
+        ]
+    ] .
 ```
 
 ## Real-World Examples
@@ -204,12 +216,12 @@ contract:submitRequest a rl2:Action ;
 
 contract:acceptTerms a rl2:Action ;
     rdfs:label "Accept Terms" .
-
-contract:policyStatusOperand a rl2:LeftOperand ;
-    rdfs:label "Policy Status" ;
-    rl2:resolutionPath "policy.rdf:type" ;
-    rdfs:comment "Distinguishes Offer from Agreement." .
 ```
+
+> **Note:** The Offer-vs-Agreement distinction is *structural* — it is carried by
+> the norm's class (`rl2:Offer` vs `rl2:Agreement`) and handled by the evaluation
+> pipeline (an Offer's clauses are not derived as active permits). It is therefore
+> not gated by a runtime condition operand.
 
 ## Audit Requirements
 
@@ -224,11 +236,25 @@ Track the full lifecycle:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+The lifecycle is two policies over the same clause: an `Offer` (not binding) that
+becomes an `Agreement` once the legal-review event has occurred.
 
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Offer, Agreement, EventConstraint for approval
+# Stage 1 — Offer: terms proposed, not yet binding
+ex:accessOffer a rl2:Offer ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Vendor ;
+    rl2:clause ex:vendorAccessPrivilege .
+
+# Stage 2 — Agreement: formed after the legal-review event
+ex:accessAgreement a rl2:Agreement ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Vendor ;
+    rl2:clause ex:vendorAccessPrivilege ;
+    rl2:condition [
+        a rl2:EventConstraint ;
+        rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:LegalTeam ]
+    ] .
 ```
 
 ---

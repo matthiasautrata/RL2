@@ -193,12 +193,21 @@ Note that `privacy:purposeOperand` shows how ODRL's built-in `odrl:purpose` beco
 #   odrl:purpose "research"
 
 # RL2 uses a declared, resolvable operand:
-rl2:condition [
-    a rl2:AtomicConstraint ;
-    rl2:leftOperand privacy:purposeOperand ;
-    rl2:constraintOperator rl2:eq ;
-    rl2:rightOperand privacy:Research
-] .
+privacy:purposeOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "context.purpose" .
+
+privacy:Research a privacy:ProcessingPurpose .
+
+ex:researchUsePrivilege a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:process ;
+    rl2:object ex:PersonalData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand privacy:purposeOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef privacy:Research
+    ] .
 ```
 
 This generalizes: **all contextual data access is uniform**, whether it's purpose, jurisdiction, consent status, or data ownership.

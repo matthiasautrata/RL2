@@ -151,7 +151,7 @@ governance:revoke a rl2:Action ;
 
 governance:grantorOperand a rl2:LeftOperand ;
     rdfs:label "Original Grantor" ;
-    rl2:resolutionPath "targetNorm.grantedBy" ;
+    rl2:resolutionPath "state.grantedBy" ;
     rdfs:comment "Resolves to the agent who originally granted the privilege." .
 ```
 

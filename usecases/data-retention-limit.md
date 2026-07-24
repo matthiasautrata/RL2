@@ -126,7 +126,7 @@ Deletion duties often require proof:
 
 retention:retentionDeadlineOperand a rl2:LeftOperand ;
     rdfs:label "Retention Deadline" ;
-    rl2:resolutionPath "agreement.retentionDeadline" .
+    rl2:resolutionPath "context.agreement.retentionDeadline" .
 
 retention:deletionStatusOperand a rl2:LeftOperand ;
     rdfs:label "Deletion Status" ;

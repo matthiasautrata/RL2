@@ -77,12 +77,15 @@ Assertions don't directly grant access but may be preconditions:
 
 ```turtle
 ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Processor ;
+    rl2:action ex:process ;
+    rl2:object ex:PersonalData ;
     rl2:condition [
         # Processor must have GDPR assertion on file
         a rl2:AtomicConstraint ;
         rl2:leftOperand ex:processorComplianceAssertionOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand ex:GDPRCompliant
+        rl2:rightOperandRef ex:GDPRCompliant
     ] .
 ```
 
@@ -130,7 +133,7 @@ Participants assert capabilities and compliance.
 @prefix compliance: <https://example.org/profile/compliance#> .
 
 compliance:complianceStatusOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "party.complianceAssertions" .
+    rl2:resolutionPath "agent.complianceAssertions" .
 
 compliance:GDPRCompliant a compliance:ComplianceStatus .
 compliance:SOC2TypeII a compliance:ComplianceStatus .

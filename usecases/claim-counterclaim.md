@@ -168,8 +168,31 @@ Consumer2 holds Claim C2 correlative to D
 When a Claim exists, the protocol can represent the Consumer's position:
 
 ```turtle
+# The data contract carries both sides of the relationship.
+ex:dataContract a rl2:Agreement ;
+    rl2:grantor ex:Provider ;
+    rl2:grantee ex:Consumer ;
+    rl2:clause ex:freshnessDuty, ex:freshnessClaim .
+
+# Provider's Duty (ought-to-do)
+ex:freshnessDuty a rl2:Duty ;
+    rl2:subject ex:Provider ;
+    rl2:action ex:maintainFreshness ;
+    rl2:object ex:Dataset ;
+    rl2:counterparty ex:Consumer ;
+    rl2:obligationState rl2:Active .
+
+# Consumer's correlative Claim (right to demand performance)
+ex:freshnessClaim a rl2:Claim ;
+    rl2:subject ex:Consumer ;        # right-holder
+    rl2:counterparty ex:Provider ;   # duty-bearer
+    rl2:correlativeTo ex:freshnessDuty .
+
+# Protocol view: the Consumer's requirement derived from the duty
 ex:freshnessRequirement a rl2p:Requirement ;
     rl2p:sourceNorm ex:freshnessDuty ;
+    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:imposedTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
     rl2p:counterparty ex:Consumer ;  # The claim holder
     rl2p:requirementStatus rl2:Active .
 ```

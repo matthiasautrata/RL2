@@ -78,7 +78,7 @@ ex:PublicationEvent a rl2:Event ;
 # Note: No priority needed - conditions are mutually exclusive with privilege (Draft vs Published)
 ex:researchEmbargo a rl2:Prohibition ;
     rl2:subject ex:InvestmentBanker ;
-    rl2:action finance:read ;
+    rl2:prohibitedAction finance:read ;
     rl2:object ex:ResearchReport ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -88,14 +88,14 @@ ex:researchEmbargo a rl2:Prohibition ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand finance:agentDepartmentOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand finance:InvestmentBanking
+            rl2:rightOperandRef finance:InvestmentBanking
         ] ;
         rl2:operand [
             # Research is still in draft
             a rl2:AtomicConstraint ;
             rl2:leftOperand finance:researchStatusOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand finance:Draft
+            rl2:rightOperandRef finance:Draft
         ]
     ] .
 
@@ -109,7 +109,7 @@ ex:publishedResearchAccess a rl2:Privilege ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand finance:researchStatusOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand finance:Published
+        rl2:rightOperandRef finance:Published
     ] .
 
 # Research analysts can always access their own work
@@ -166,7 +166,7 @@ finance:publicationEventOccurredOperand a rl2:LeftOperand ;
 # Embargo active until publication event received
 ex:researchEmbargoEventBased a rl2:Prohibition ;
     rl2:subject ex:InvestmentBanker ;
-    rl2:action finance:read ;
+    rl2:prohibitedAction finance:read ;
     rl2:object ex:ResearchReport ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -175,7 +175,7 @@ ex:researchEmbargoEventBased a rl2:Prohibition ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand finance:agentDepartmentOperand ;
             rl2:constraintOperator rl2:eq ;
-            rl2:rightOperand finance:InvestmentBanking
+            rl2:rightOperandRef finance:InvestmentBanking
         ] ;
         rl2:operand [
             # Publication event has NOT occurred

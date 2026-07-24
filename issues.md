@@ -271,35 +271,49 @@ Power-to-revoke exists but there is no explicit revocation event. Consider `rl2:
 > the embedded-Turtle use cases against `rl2.ttl` + `rl2-shacl.ttl`. First-ever
 > machine-check baseline (2026-07-24): **PASS 0 · WARN-ONLY 17 · FAIL 34 · SKIP 1.**
 > After the CANON migration and the state-enum `rightOperandRef` sweep, the corpus
-> stands at **WARN-ONLY 24 · FAIL 27 · SKIP 1** (2026-07-24). No file is yet fully
-> clean of even warnings. Run: `uv run tools/validate.py`.
+> stood at **WARN-ONLY 24 · FAIL 27 · SKIP 1**. After the full corpus repair
+> (2026-07-24) every use case validates: **WARN-ONLY 51 · FAIL 0 · SKIP 1** (the
+> skip is `usecases/README.md`, the catalog index, which has no Turtle). The lone
+> remaining warning class is the advisory `OperandResolutionRecommendationShape`.
+> Run: `uv run tools/validate.py`.
 
-### VALID-1 — Systemic use-case modeling defects
-**Status:** Open · **Severity:** S2 · **Source:** validation harness · **Tags:** [COV]
+### VALID-1 — Systemic use-case modeling defects ✅ RESOLVED (2026-07-24)
+**Status:** Resolved · **Severity:** S2 · **Source:** validation harness · **Tags:** [COV]
 **Files:** `usecases/*`
 
-The corpus was never validated before. Recurring, mechanical defects:
-- **State-enum as `rightOperand`.** ✅ RESOLVED (2026-07-24). Files wrote
-  `rl2:rightOperand rl2:Fulfilled` (an IRI where a literal is required); the correct
-  form is `rl2:rightOperandRef`. Swept across all 7 use-case occurrences
-  (pay-to-play, wire-transfer-sod, team-license, audit-trail ×2, check-signing-sod)
-  plus the doc examples (Primer ×3, Vocabulary ×2). All five affected use cases now
-  conform (warn-only). Corpus: FAIL 32 → 27.
-- **Non-canonical `resolutionPath` roots.** e.g. `"contract.sla…"` — must start with
-  `agent`/`asset`/`state`/`context`/`request`. Caught by `ResolutionPathRootShape`.
-- **Missing `rl2p:Requirement` fields** (`sourcePolicy`, `imposedTime`) in fragments.
-- **Un-typed action/asset individuals** referenced but not declared `a rl2:Action`.
+The corpus was never validated before. All recurring defects are now swept and every
+use case conforms:
+- **State-enum as `rightOperand`.** `rl2:rightOperand rl2:X` (IRI where a literal is
+  required) → `rl2:rightOperandRef`. Also applied to IRI-valued right operands in
+  chinese-wall, compliance-attestation, no-claim-inference, step-up-auth.
+- **Non-canonical `resolutionPath` roots.** Mapped every path to a canonical root
+  (`agent`/`asset`/`state`/`context`/`request`) — e.g. `license.*` → `state.License.*`,
+  `session.*` → `context.session.*`, `event.schemaChange.*` →
+  `state.Events.SchemaChangeEvent.*`, `party.*` → `agent.*`.
+- **Nonexistent operators.** `rl2:gteq`/`rl2:lteq` → `rl2:gte`/`rl2:lte`.
+- **Prohibition using `rl2:action`** → `rl2:prohibitedAction` (chinese-wall,
+  concurrent-seats, quality-circuit-breaker, schema-evolution, trial-period).
+- **Incomplete `rl2p:Requirement`/`Case`/`EvaluationResult`** — completed all required
+  fields (`sourceNorm` typed, `sourcePolicy`, `imposedTime`, `requirementStatus`;
+  `evaluatedRequest`/`evaluationTime`; Case scaffolding) in runtime-evaluation,
+  claim-counterclaim; fixed wrong property names (`request`→`evaluatedRequest`,
+  `evaluatedAt`→`evaluationTime`) and RDF-list-as-range mis-typing (use repeated
+  values, not `( )`).
+- **Missing required norm props** — added `subject` to a `Power`, `object` to a `Duty`,
+  completed a bare `Privilege`, unwrapped a single-operand `and`.
+- **Set membership** now uses the canonical `AssetCollection` + `member` referenced by
+  `rightOperandRef` (geo-restriction, multi-certification), never an inline RDF list.
 
-Not blocking, but the corpus is the vocabulary's proof — it should validate.
-Recommend a sweep once Band 2 coverage work begins (author/repair in canonical form).
+### VALID-2 — Draft use cases contain non-parseable pseudo-Turtle ✅ RESOLVED (2026-07-24)
+**Status:** Resolved · **Severity:** S3 · **Source:** validation harness · **Tags:** [COV]
+**Files:** was ~11 `usecases/*.md`
 
-### VALID-2 — Draft use cases contain non-parseable pseudo-Turtle
-**Status:** Open · **Severity:** S3 · **Source:** validation harness · **Tags:** [COV]
-**Files:** ~11 `usecases/*.md` (break-glass, chinese-wall, ethics-approval, exclusive-license, gdpr-erasure, geo-restriction, legal-review-gate, multi-certification, multi-level-approval, negated-condition, policy-versioning)
-
-These use `...`/`…` elisions or placeholder blocks inside ```` ```turtle ````
-fences, so they don't parse as Turtle. Either complete them or move the illustrative
-elisions out of `turtle`-tagged fences. Overlaps HOHF-4 (draft use cases).
+All draft use cases are now self-contained and complete: subjectless `rl2:condition [...]`
+fragments were promoted to full norms, `...`/`…` elisions removed, and foreign-vocabulary
+illustrations (ODRL `tpl:`/`pav:`/`odrl:`) moved out of `turtle`-tagged fences into plain
+code fences. A real ontology bug was also fixed: `rl2:EventPathTypeShape`'s SPARQL used
+`\.` (invalid SPARQL string escape), which crashed validation for **any** policy using a
+`state.Events.*` resolution path — now double-escaped to `\\.`.
 
 ---
 

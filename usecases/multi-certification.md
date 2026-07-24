@@ -85,11 +85,12 @@ Request: Agent with certs {A, B, D}
 Each certification may have validity constraints:
 
 ```turtle
-ex:certification [
-    ex:type ex:SecurityClearance ;
+@prefix certification: <https://example.org/profile/certification#> .
+
+ex:aliceSecurityClearance a ex:Certification ;
+    ex:type certification:SecurityClearance ;
     ex:validUntil "2026-01-01"^^xsd:dateTime ;
-    ex:status ex:Active
-] .
+    ex:status ex:Active .
 ```
 
 The `isAllOf` check must also verify each is valid, not just present.
@@ -127,10 +128,29 @@ certification:NeedToKnow a certification:CertificationType .
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+The required certifications form an asset collection; `isAllOf` holds when the
+agent's certifications include every member.
 
 ```turtle
-# Placeholder - will demonstrate isAllOf operator
+@prefix certification: <https://example.org/profile/certification#> .
+
+certification:RequiredCertifications a rl2:AssetCollection ;
+    rdfs:label "Required Certifications" ;
+    rl2:member certification:SecurityClearance,
+               certification:ProjectAccess,
+               certification:EthicsTraining,
+               certification:NeedToKnow .
+
+ex:classifiedAccess a rl2:Privilege ;
+    rl2:subject ex:Contractor ;
+    rl2:action ex:access ;
+    rl2:object ex:ClassifiedProjectData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand certification:agentCertificationsOperand ;
+        rl2:constraintOperator rl2:isAllOf ;
+        rl2:rightOperandRef certification:RequiredCertifications
+    ] .
 ```
 
 ---

@@ -125,6 +125,7 @@ Request: Licensor attempts to terminate Researcher's access
 
 protection:terminationPower a rl2:Power ;
     rdfs:label "Power to Terminate License" ;
+    rl2:subject ex:Licensor ;
     rl2:affectsNorm ex:usePrivilege .
 
 protection:irrevocableImmunity a rl2:Immunity ;

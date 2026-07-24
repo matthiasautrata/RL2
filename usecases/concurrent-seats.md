@@ -45,7 +45,7 @@ licensing:activeSessionCountOperand a rl2:LeftOperand ;
 licensing:maxSeatsOperand a rl2:LeftOperand ;
     rdfs:label "Maximum Seats" ;
     rdfs:comment "Maximum concurrent sessions allowed." ;
-    rl2:resolutionPath "license.maxConcurrentSeats" ;
+    rl2:resolutionPath "state.License.maxConcurrentSeats" ;
     rdfs:range xsd:integer .
 
 licensing:userHasActiveSessionOperand a rl2:LeftOperand ;
@@ -98,7 +98,7 @@ ex:loginPrivilege a rl2:Privilege ;
 ex:capacityProhibition a rl2:Prohibition ;
     rl2:priority 100 ;
     rl2:subject ex:LicensedUser ;
-    rl2:action ex:login ;
+    rl2:prohibitedAction ex:login ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:LogicalConstraint ;
@@ -114,7 +114,7 @@ ex:capacityProhibition a rl2:Prohibition ;
             # At capacity
             a rl2:AtomicConstraint ;
             rl2:leftOperand licensing:activeSessionCountOperand ;
-            rl2:constraintOperator rl2:gteq ;
+            rl2:constraintOperator rl2:gte ;
             rl2:rightOperand 50
         ]
     ] .
@@ -166,7 +166,7 @@ ex:joinWaitlistDuty a rl2:Duty ;
         rl2:operand [
             a rl2:AtomicConstraint ;
             rl2:leftOperand licensing:activeSessionCountOperand ;
-            rl2:constraintOperator rl2:gteq ;
+            rl2:constraintOperator rl2:gte ;
             rl2:rightOperand 50
         ] ;
         rl2:operand [

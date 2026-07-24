@@ -101,14 +101,18 @@ If all present and ordered correctly → PERMIT
 ### Parallel Example
 
 ```turtle
-rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [ rl2:expectsEvent [ rl2:approver ex:Legal ] ] ;
-    rl2:operand [ rl2:expectsEvent [ rl2:approver ex:Compliance ] ] ;
-    rl2:operand [ rl2:expectsEvent [ rl2:approver ex:Security ] ]
-    # No ordering constraint - all must exist but order doesn't matter
-] .
+# No ordering constraint - all must exist but order doesn't matter
+ex:parallelApprovalAccess a rl2:Privilege ;
+    rl2:subject ex:Employee ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerTransactionData ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Legal ] ] ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Compliance ] ] ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Security ] ]
+    ] .
 ```
 
 ## Approval Expiration
@@ -137,11 +141,16 @@ If an approver doesn't respond within SLA:
 ```turtle
 @prefix approval: <https://example.org/profile/approval#> .
 
+# Approval events are read from the state event log; the segment after
+# state.Events must name a declared Event type.
+ex:ApprovalEvent a rl2:Event ;
+    rdfs:comment "An approval decision carrying approver, level and validity." .
+
 approval:approvalLevelOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "event.approvalLevel" .
+    rl2:resolutionPath "state.Events.ApprovalEvent.approvalLevel" .
 
 approval:approvalValidUntilOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "event.validUntil" .
+    rl2:resolutionPath "state.Events.ApprovalEvent.validUntil" .
 
 approval:Manager a approval:ApproverRole .
 approval:DataOwner a approval:ApproverRole .
@@ -153,10 +162,23 @@ approval:Security a approval:ApproverRole .
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+All four approval events must be present. (Ordering, when required, is enforced
+by comparing event timestamps via a profile-declared operand; the base pattern
+below requires only presence.)
 
 ```turtle
-# Placeholder - will demonstrate multiple EventConstraints with ordering
+ex:sensitiveDataAccess a rl2:Privilege ;
+    rl2:subject ex:Employee ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerTransactionData ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Manager ] ] ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:DataOwner ] ] ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Compliance ] ] ;
+        rl2:operand [ a rl2:EventConstraint ; rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Security ] ]
+    ] .
 ```
 
 ---

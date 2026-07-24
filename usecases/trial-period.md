@@ -39,19 +39,19 @@ ODRL can express "valid until date X" but cannot model:
 licensing:trialStartDateOperand a rl2:LeftOperand ;
     rdfs:label "Trial Start Date" ;
     rdfs:comment "Date when the trial period began." ;
-    rl2:resolutionPath "license.trialStartDate" ;
+    rl2:resolutionPath "state.License.trialStartDate" ;
     rdfs:range xsd:dateTime .
 
 licensing:trialDaysRemainingOperand a rl2:LeftOperand ;
     rdfs:label "Trial Days Remaining" ;
     rdfs:comment "Days remaining in trial period." ;
-    rl2:resolutionPath "license.trialDaysRemaining" ;
+    rl2:resolutionPath "state.License.trialDaysRemaining" ;
     rdfs:range xsd:integer .
 
 licensing:licenseTypeOperand a rl2:LeftOperand ;
     rdfs:label "License Type" ;
     rdfs:comment "Current license type (trial, basic, pro)." ;
-    rl2:resolutionPath "license.type" ;
+    rl2:resolutionPath "state.License.type" ;
     rdfs:range licensing:LicenseType .
 
 # License types
@@ -99,12 +99,12 @@ ex:readOnlyAccess a rl2:Privilege ;
 # Note: No priority needed - conditions are mutually exclusive (daysRemaining > 0 vs ≤ 0)
 ex:expiredTrialProhibition a rl2:Prohibition ;
     rl2:subject ex:TrialUser ;
-    rl2:action licensing:execute ;
+    rl2:prohibitedAction licensing:execute ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:lteq ;
+        rl2:constraintOperator rl2:lte ;
         rl2:rightOperand 0
     ] .
 
@@ -159,14 +159,10 @@ ex:premiumFeaturesTrial a rl2:Privilege ;
     rl2:action ex:usePremiumFeature ;
     rl2:object ex:Application ;
     rl2:condition [
-        a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:and ;
-        rl2:operand [
-            a rl2:AtomicConstraint ;
-            rl2:leftOperand licensing:trialDaysRemainingOperand ;
-            rl2:constraintOperator rl2:gt ;
-            rl2:rightOperand 7  # Only first 7 days
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand licensing:trialDaysRemainingOperand ;
+        rl2:constraintOperator rl2:gt ;
+        rl2:rightOperand 7  # Only first 7 days
     ] .
 
 # Basic features: full 14 days
@@ -193,7 +189,7 @@ ex:upgradePromptDuty a rl2:Duty ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:lteq ;
+        rl2:constraintOperator rl2:lte ;
         rl2:rightOperand 0
     ] .
 ```

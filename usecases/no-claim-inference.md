@@ -116,7 +116,7 @@ ex:personalUsePrivilege a rl2:Privilege ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand ex:workPeriodOperand ;
         rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand ex:Break
+        rl2:rightOperandRef ex:Break
     ] .
 
 # No-Claim is inferred: Employer cannot demand Employee refrain

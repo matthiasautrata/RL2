@@ -82,7 +82,7 @@ ex:dashboardAccessPrivilege a rl2:Privilege ;
         # Only active when data quality is acceptable
         a rl2:AtomicConstraint ;
         rl2:leftOperand dataquality:nullRateOperand ;
-        rl2:constraintOperator rl2:lteq ;
+        rl2:constraintOperator rl2:lte ;
         rl2:rightOperand "0.05"^^xsd:decimal  # 5% threshold
     ] .
 
@@ -90,7 +90,7 @@ ex:dashboardAccessPrivilege a rl2:Privilege ;
 # Note: No priority needed - conditions are mutually exclusive (≤5% vs >5%)
 ex:qualityCircuitBreaker a rl2:Prohibition ;
     rl2:subject ex:Analyst ;
-    rl2:action dataquality:read ;
+    rl2:prohibitedAction dataquality:read ;
     rl2:object ex:SalesDashboard ;
     rl2:condition [
         a rl2:AtomicConstraint ;

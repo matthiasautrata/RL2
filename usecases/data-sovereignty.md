@@ -118,7 +118,7 @@ Data sovereignty requires:
 @prefix sovereignty: <https://example.org/profile/sovereignty#> .
 
 sovereignty:dataProviderOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "agreement.grantor" .
+    rl2:resolutionPath "context.agreement.grantor" .
 
 sovereignty:usageLogOperand a rl2:LeftOperand ;
     rl2:resolutionPath "state.usageLogs" .

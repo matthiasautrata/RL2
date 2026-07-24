@@ -123,7 +123,7 @@ volume:requestedVolumeOperand a rl2:LeftOperand ;
 
 volume:volumeLimitOperand a rl2:LeftOperand ;
     rdfs:label "Volume Limit" ;
-    rl2:resolutionPath "license.volumeLimit" .
+    rl2:resolutionPath "state.License.volumeLimit" .
 
 volume:incrementVolume a rl2:Action ;
     rdfs:label "Increment Volume Counter" .

@@ -68,6 +68,21 @@ A user requests access to a dataset. The evaluation produces:
 ## Requirement Structure
 
 ```turtle
+# The policy under evaluation and the duties it imposes
+ex:dataUsePolicy a rl2:Policy ;
+    rl2:clause ex:loggingDuty, ex:deletionDuty, ex:reportingDuty .
+
+ex:loggingDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ; rl2:action ex:logAccess ; rl2:object ex:Dataset ;
+    rl2:obligationState rl2:Active .
+ex:deletionDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ; rl2:action ex:delete ; rl2:object ex:Dataset ;
+    rl2:obligationState rl2:Pending .
+ex:reportingDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ; rl2:action ex:submitReport ; rl2:object ex:Dataset ;
+    rl2:obligationState rl2:Pending .
+
+# Runtime requirements derived from those duties
 ex:loggingRequirement a rl2p:Requirement ;
     rl2p:sourceNorm ex:loggingDuty ;
     rl2p:sourcePolicy ex:dataUsePolicy ;
@@ -82,6 +97,13 @@ ex:deletionRequirement a rl2p:Requirement ;
     rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime ;
     rl2p:requirementLabel "Delete data" ;
     ex:deadline "2025-02-14T10:00:00Z"^^xsd:dateTime .
+
+ex:reportingRequirement a rl2p:Requirement ;
+    rl2p:sourceNorm ex:reportingDuty ;
+    rl2p:sourcePolicy ex:dataUsePolicy ;
+    rl2p:requirementStatus rl2:Pending ;
+    rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime ;
+    rl2p:requirementLabel "Submit usage report" .
 ```
 
 ## Requirement Lifecycle
@@ -113,12 +135,25 @@ ex:deletionRequirement a rl2p:Requirement ;
 
 ```turtle
 # Duty-sourced requirement
+ex:someDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ; rl2:action ex:access ; rl2:object ex:Dataset .
+
 ex:dutyReq a rl2p:Requirement ;
-    rl2p:sourceNorm ex:someDuty .
+    rl2p:sourceNorm ex:someDuty ;
+    rl2p:sourcePolicy ex:dataUsePolicy ;
+    rl2p:requirementStatus rl2:Active ;
+    rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
 
 # Promise-sourced requirement (with counterparty = claim holder)
+ex:somePromise a rl2:Promise ;
+    rl2:promisor ex:Provider ; rl2:promisee ex:Consumer ;
+    rl2:promisedAction ex:maintainFreshness ; rl2:object ex:Dataset .
+
 ex:promiseReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:somePromise ;
+    rl2p:sourcePolicy ex:dataUsePolicy ;
+    rl2p:requirementStatus rl2:Active ;
+    rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime ;
     rl2p:counterparty ex:Consumer .
 ```
 
@@ -127,16 +162,19 @@ ex:promiseReq a rl2p:Requirement ;
 A complete evaluation response includes:
 
 ```turtle
+ex:accessRequest a rl2p:Request ;
+    rl2p:requestedAction ex:access ;
+    rl2p:requestedAsset ex:Dataset ;
+    rl2p:requestingAgent ex:Researcher ;
+    rl2p:requestTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
+
 ex:evaluationResult a rl2p:EvaluationResult ;
-    rl2p:request ex:accessRequest ;
+    rl2p:evaluatedRequest ex:accessRequest ;
     rl2p:decision rl2p:PermitWithObligations ;
-    rl2p:evaluatedAt "2025-01-15T10:00:05Z"^^xsd:dateTime ;
-    rl2p:policyGeneration <https://example.org/policy/v4> ;
-    rl2p:activeRequirements (
-        ex:loggingRequirement
-        ex:deletionRequirement
-        ex:reportingRequirement
-    ) .
+    rl2p:evaluationTime "2025-01-15T10:00:05Z"^^xsd:dateTime ;
+    rl2p:activeRequirements ex:loggingRequirement,
+                            ex:deletionRequirement,
+                            ex:reportingRequirement .
 ```
 
 ## Profile Requirements
@@ -160,10 +198,16 @@ The protocol vocabulary is defined in `rl2p:` namespace. No additional profile n
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+The `rl2p:Case` is the append-only record that ties the request to its evaluation
+result and the generation under which it was decided.
 
 ```turtle
-# Placeholder - will demonstrate rl2p:Requirement and related properties
+ex:accessCase a rl2p:Case ;
+    rl2p:initialRequest ex:accessRequest ;
+    rl2p:caseStatus rl2p:Approved ;
+    rl2p:caseCreated "2025-01-15T10:00:00Z"^^xsd:dateTime ;
+    rl2p:policyGeneration "https://example.org/policy/gen/2025-Q4"^^xsd:anyURI ;
+    rl2p:evaluationHistory ex:evaluationResult .
 ```
 
 ---

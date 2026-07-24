@@ -98,7 +98,7 @@ license:usageCountOperand a rl2:LeftOperand ;
 
 license:usageLimitOperand a rl2:LeftOperand ;
     rdfs:label "Usage Limit" ;
-    rl2:resolutionPath "license.queryLimit" .
+    rl2:resolutionPath "state.License.queryLimit" .
 
 license:incrementCounter a rl2:Action ;
     rdfs:label "Increment Counter" .

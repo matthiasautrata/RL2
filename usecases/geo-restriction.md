@@ -109,24 +109,30 @@ Multiple sources may determine jurisdiction:
 ## Combining Multiple Sources
 
 ```turtle
-rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [
-        # IP-based check
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand ex:ipJurisdictionOperand ;
-        rl2:constraintOperator rl2:isNoneOf ;
-        rl2:rightOperand (ex:RU ex:KP ex:IR)
-    ] ;
-    rl2:operand [
-        # Declared location check
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand ex:declaredJurisdictionOperand ;
-        rl2:constraintOperator rl2:isNoneOf ;
-        rl2:rightOperand (ex:RU ex:KP ex:IR)
-    ]
-] .
+@prefix compliance: <https://example.org/profile/compliance#> .
+
+ex:multiSignalAccess a rl2:Privilege ;
+    rl2:subject ex:AuthorizedUser ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerData ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            # IP-based check
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand compliance:ipJurisdictionOperand ;
+            rl2:constraintOperator rl2:isNoneOf ;
+            rl2:rightOperandRef compliance:SanctionedCountries
+        ] ;
+        rl2:operand [
+            # Declared location check
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand compliance:declaredJurisdictionOperand ;
+            rl2:constraintOperator rl2:isNoneOf ;
+            rl2:rightOperandRef compliance:SanctionedCountries
+        ]
+    ] .
 ```
 
 ## Real-World Examples
@@ -175,6 +181,7 @@ Geographic constraints are a core IDS policy pattern for ensuring data remains w
 
 ```turtle
 @prefix compliance: <https://example.org/profile/compliance#> .
+@prefix ex: <https://example.org/> .
 
 compliance:jurisdictionOperand a rl2:LeftOperand ;
     rdfs:label "Request Jurisdiction" ;
@@ -185,12 +192,19 @@ compliance:ipJurisdictionOperand a rl2:LeftOperand ;
     rdfs:label "IP-based Jurisdiction" ;
     rl2:resolutionPath "context.ipGeolocation.country" .
 
-# Jurisdiction sets
-compliance:SanctionedCountries a rdf:List ;
-    rdf:first "RU" ; rdf:rest ( "KP" "IR" "SY" "CU" ) .
+compliance:declaredJurisdictionOperand a rl2:LeftOperand ;
+    rdfs:label "Declared Jurisdiction" ;
+    rl2:resolutionPath "context.declaredLocation" .
 
-compliance:EUCountries a rdf:List ;
-    rdf:first "AT" ; rdf:rest ( "BE" "BG" ... "SE" ) .
+# Jurisdiction sets modelled as asset collections (isAnyOf / isNoneOf
+# resolve the rightOperandRef collection to its members).
+compliance:SanctionedCountries a rl2:AssetCollection ;
+    rdfs:label "Sanctioned Countries" ;
+    rl2:member ex:RU, ex:KP, ex:IR, ex:SY, ex:CU .
+
+compliance:ApprovedCountries a rl2:AssetCollection ;
+    rdfs:label "Approved Jurisdictions" ;
+    rl2:member ex:AT, ex:BE, ex:DE, ex:FR, ex:CH, ex:GB .
 ```
 
 ## Audit Requirements
@@ -205,11 +219,32 @@ Geographic access should be logged:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+Both approaches reuse the operands and collections declared in *Profile Requirements*.
 
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: isNoneOf for blacklist, isAnyOf for whitelist
+# Blacklist: prohibit access from sanctioned jurisdictions (isAnyOf sanctioned set)
+ex:sanctionsProhibition a rl2:Prohibition ;
+    rl2:subject ex:AnyUser ;
+    rl2:prohibitedAction ex:access ;
+    rl2:object ex:CustomerData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand compliance:jurisdictionOperand ;
+        rl2:constraintOperator rl2:isAnyOf ;
+        rl2:rightOperandRef compliance:SanctionedCountries
+    ] .
+
+# Whitelist: permit access only from approved jurisdictions (isAnyOf approved set)
+ex:approvedJurisdictionAccess a rl2:Privilege ;
+    rl2:subject ex:AuthorizedUser ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand compliance:jurisdictionOperand ;
+        rl2:constraintOperator rl2:isAnyOf ;
+        rl2:rightOperandRef compliance:ApprovedCountries
+    ] .
 ```
 
 ---
