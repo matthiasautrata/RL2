@@ -334,6 +334,10 @@ ex:grantAccessPower a rl2:Power ;
 
 **Example**:
 ```turtle
+ex:managerPower a rl2:Power ;
+    rl2:subject ex:Manager ;
+    rl2:affectsNorm ex:employeePrivilege .
+
 ex:employeeLiability a rl2:Liability ;
     rl2:subject ex:Employee ;
     rl2:exposedTo ex:managerPower .
@@ -359,6 +363,10 @@ ex:employeeLiability a rl2:Liability ;
 
 **Example**:
 ```turtle
+ex:terminationPower a rl2:Power ;
+    rl2:subject ex:Dean ;
+    rl2:affectsNorm ex:employmentPrivilege .
+
 ex:tenureImmunity a rl2:Immunity ;
     rl2:subject ex:Professor ;
     rl2:immuneFrom ex:terminationPower .
@@ -391,6 +399,11 @@ ex:tenureImmunity a rl2:Immunity ;
 
 **Example**:
 ```turtle
+ex:dataStewardshipDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:steward ;
+    rl2:object ex:Dataset .
+
 ex:dataPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
@@ -1209,6 +1222,13 @@ Design rationale and the Promise-as-generator workflow are described in **RL2_Pr
 
 **Example (Duty-sourced Requirement)**:
 ```turtle
+ex:paymentDuty a rl2:Duty ;
+    rl2:subject ex:Licensee ; rl2:action ex:pay ; rl2:object ex:License .
+
+ex:licenseAgreement a rl2:Agreement ;
+    rl2:grantor ex:Licensor ; rl2:grantee ex:Licensee ;
+    rl2:clause ex:paymentDuty .
+
 ex:paymentReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:paymentDuty ;
     rl2p:sourcePolicy ex:licenseAgreement ;
@@ -1218,6 +1238,14 @@ ex:paymentReq a rl2p:Requirement ;
 
 **Example (Promise-sourced Requirement with Counterparty)**:
 ```turtle
+ex:dataQualityPromise a rl2:Promise ;
+    rl2:promisor ex:DataProvider ; rl2:promisee ex:DataConsumer ;
+    rl2:promisedState ex:qualityThresholdMet .
+
+ex:dataContract a rl2:Agreement ;
+    rl2:grantor ex:DataProvider ; rl2:grantee ex:DataConsumer ;
+    rl2:clause ex:dataQualityPromise .
+
 ex:dataQualityReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:dataQualityPromise ;
     rl2p:sourcePolicy ex:dataContract ;
