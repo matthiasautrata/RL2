@@ -497,7 +497,7 @@ navigate(Events, "*", constraintInScope) =
 **Rationale**: Requiring an `EventConstraint` sibling eliminates ambiguity about which event the wildcard selects. Without this constraint, `state.Events.*.operationalAgent` could return the performer of *any* recent event, creating security vulnerabilities in identity-binding patterns.
 
 This rule ensures that identity binding patterns like:
-```turtle
+```
 rl2:leftOperand emergency:eventPerformerOperand ;  # resolutionPath "state.Events.*.operationalAgent"
 ```
 correctly resolve to the performer of the **triggering event** specified by the accompanying `EventConstraint`.
@@ -1076,6 +1076,16 @@ restoreAction(content) =                      objectOf(content) =
 The Protocol's `rl2p:Requirement` structure captures this:
 
 ```turtle
+ex:dataQualityPromise a rl2:Promise ;
+    rl2:promisor ex:DataProvider ;
+    rl2:promisee ex:DataConsumer ;
+    rl2:promisedState ex:qualityThresholdMet .
+
+ex:dataContract a rl2:Agreement ;
+    rl2:grantor ex:DataProvider ;
+    rl2:grantee ex:DataConsumer ;
+    rl2:clause ex:dataQualityPromise .
+
 ex:remedialReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:dataQualityPromise ;  # The violated Promise
     rl2p:sourcePolicy ex:dataContract ;

@@ -71,6 +71,24 @@ def extract_turtle(md_path: Path) -> tuple[str, bool]:
     return "\n".join(real), (bool(blocks) and not real)
 
 
+def extract_fences(md_path: Path) -> list[tuple[int, str]]:
+    """Return [(start_line, body)] for each non-placeholder ```turtle fence.
+
+    Used by per-fence mode, where each fence is validated as its own graph —
+    the right model for reference docs whose fences are independent, standalone
+    illustrations (a shared IRI reused across sections must not merge).
+    """
+    text = md_path.read_text()
+    out: list[tuple[int, str]] = []
+    for m in TURTLE_FENCE.finditer(text):
+        body = m.group(1)
+        if _looks_placeholder(body):
+            continue
+        start_line = text.count("\n", 0, m.start(1)) + 1
+        out.append((start_line, body))
+    return out
+
+
 def _looks_placeholder(block: str) -> bool:
     code = "\n".join(
         ln for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")
@@ -105,11 +123,106 @@ def build_data_graph(target: Path, ontology: Graph) -> tuple[Graph | None, str]:
     return g, ""
 
 
+def run_shacl(data: Graph, shapes: Graph) -> tuple[int, int, str]:
+    """Validate a data graph; return (violations, warnings, report_text)."""
+    _, _, report_text = validate(
+        data_graph=data,  # ontology already merged in
+        shacl_graph=shapes,
+        inference="rdfs",
+        advanced=True,
+        meta_shacl=False,
+    )
+    return (
+        report_text.count("Severity: sh:Violation"),
+        report_text.count("Severity: sh:Warning"),
+        report_text,
+    )
+
+
+def validate_whole(target: Path, rel, ont: Graph, shapes: Graph, verbose: bool) -> str:
+    """Validate a target as one graph (all fences concatenated). Returns category."""
+    try:
+        data, note = build_data_graph(target, ont)
+    except Exception as exc:  # parse error in the extracted turtle
+        print(f"✗ {rel}\n    PARSE ERROR: {exc}")
+        return "fail"
+    if data is None:
+        print(f"– {rel}  (skipped: {note})")
+        return "skip"
+    try:
+        n, w, report_text = run_shacl(data, shapes)
+    except Exception as exc:  # a bad file must not abort the whole suite
+        print(f"✗ {rel}\n    VALIDATION ERROR: {exc}")
+        return "fail"
+    # SHACL conformance depends only on sh:Violation results; warnings/info do
+    # not break conformance (pyshacl's `conforms` flag is stricter).
+    if n == 0:
+        wtxt = f"  (⚠ {w} warning(s))" if w else ""
+        print(f"✓ {rel}  ({len(data)} triples){wtxt}")
+        return "warn" if w else "pass"
+    wtxt = f", {w} warning(s)" if w else ""
+    print(f"✗ {rel}  ({n} violation(s){wtxt})")
+    if verbose:
+        print("\n".join("    " + ln for ln in report_text.splitlines()))
+    return "fail"
+
+
+def validate_per_fence(target: Path, rel, ont: Graph, shapes: Graph, verbose: bool) -> str:
+    """Validate each ```turtle fence independently. Returns the file's category.
+
+    A file passes when every fence parses and conforms. This is the right model
+    for reference docs: each fence is a standalone illustration, so a shared
+    example IRI reused across sections must not merge into one graph.
+    """
+    fences = extract_fences(target)
+    if not fences:
+        print(f"– {rel}  (skipped: no turtle blocks)")
+        return "skip"
+
+    tot_viol = tot_warn = 0
+    bad: list[str] = []
+    for start_line, body in fences:
+        loc = f"{rel}:{start_line}"
+        g = Graph()
+        g += ont
+        try:
+            g.parse(data=PREAMBLE + body, format="turtle")
+        except Exception as exc:
+            bad.append(f"    ✗ fence@{start_line}: PARSE ERROR: {str(exc).splitlines()[0]}")
+            continue
+        try:
+            n, w, report_text = run_shacl(g, shapes)
+        except Exception as exc:
+            bad.append(f"    ✗ fence@{start_line}: VALIDATION ERROR: {str(exc).splitlines()[0]}")
+            continue
+        tot_warn += w
+        if n:
+            tot_viol += n
+            bad.append(f"    ✗ fence@{start_line}: {n} violation(s)")
+            if verbose:
+                bad.append("\n".join("        " + ln for ln in report_text.splitlines()))
+
+    ok = len(fences) - sum(1 for b in bad if b.lstrip().startswith("✗"))
+    if not bad:
+        wtxt = f"  (⚠ {tot_warn} warning(s))" if tot_warn else ""
+        print(f"✓ {rel}  ({len(fences)} fence(s)){wtxt}")
+        return "warn" if tot_warn else "pass"
+    print(f"✗ {rel}  ({ok}/{len(fences)} fence(s) OK, {tot_viol} violation(s))")
+    print("\n".join(bad))
+    return "fail"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="RL2 SHACL validator")
     ap.add_argument("targets", nargs="*", help="Markdown or Turtle files to validate")
     ap.add_argument("--shapes-only", action="store_true", help="Only load ontology + shapes")
     ap.add_argument("-v", "--verbose", action="store_true", help="Print full SHACL reports")
+    ap.add_argument(
+        "--per-fence",
+        action="store_true",
+        help="Validate each ```turtle fence as its own graph (for reference docs "
+        "whose fences are independent illustrations, not one cumulative scenario)",
+    )
     args = ap.parse_args()
 
     print(f"Loading ontology: {', '.join(ONTOLOGY_FILES)}")
@@ -128,44 +241,12 @@ def main() -> int:
     for t in targets:
         target = ROOT / t if not Path(t).is_absolute() else Path(t)
         rel = target.relative_to(ROOT) if str(target).startswith(str(ROOT)) else target
-        try:
-            data, note = build_data_graph(target, ont)
-        except Exception as exc:  # parse error in the extracted turtle
-            fails.append(rel)
-            print(f"✗ {rel}\n    PARSE ERROR: {exc}")
-            continue
-        if data is None:
-            skipped.append(rel)
-            print(f"– {rel}  (skipped: {note})")
-            continue
 
-        try:
-            _, _, report_text = validate(
-                data_graph=data,  # ontology already merged in
-                shacl_graph=shapes,
-                inference="rdfs",
-                advanced=True,
-                meta_shacl=False,
-            )
-        except Exception as exc:  # a bad file must not abort the whole suite
-            fails.append(rel)
-            print(f"✗ {rel}\n    VALIDATION ERROR: {exc}")
-            continue
-
-        # SHACL conformance depends only on sh:Violation results; warnings/info
-        # do not break conformance (pyshacl's `conforms` flag is stricter).
-        n = report_text.count("Severity: sh:Violation")
-        w = report_text.count("Severity: sh:Warning")
-        if n == 0:
-            (warned if w else passed).append(rel)
-            wtxt = f"  (⚠ {w} warning(s))" if w else ""
-            print(f"✓ {rel}  ({len(data)} triples){wtxt}")
+        if args.per_fence and target.suffix == ".md":
+            outcome = validate_per_fence(target, rel, ont, shapes, args.verbose)
         else:
-            fails.append(rel)
-            wtxt = f", {w} warning(s)" if w else ""
-            print(f"✗ {rel}  ({n} violation(s){wtxt})")
-            if args.verbose:
-                print("\n".join("    " + ln for ln in report_text.splitlines()))
+            outcome = validate_whole(target, rel, ont, shapes, args.verbose)
+        {"pass": passed, "warn": warned, "fail": fails, "skip": skipped}[outcome].append(rel)
 
     print(f"\n{'='*60}")
     print(f"PASS {len(passed)} · WARN-ONLY {len(warned)} · FAIL {len(fails)} · SKIP {len(skipped)}")
