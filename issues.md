@@ -161,7 +161,7 @@ The Vocabulary says No-Claim and Disability are "inferrable" from the absence of
 - **Compiler tested, not verified** (Cedar-style differential testing on the 51 use cases + generated policies), backed by CANON making `Turtle→AST` near-mechanical; condition-compiler is a later verification stretch goal. Precedents: evm-dafny (inner VM), Cedar-spec (test strategy) — `research/verification-toolchain-comparison.md`.
 - **Equivalence obligation** split into (a) normalization theorem (outer), (b) VM-correctness lemma (inner, `EvalBytecode(lower c,env)=⟦c⟧`), (c) effect-soundness lemma (incl. made-vs-demanded crystallization orientation + effect coherence).
 
-**Handoffs:** SEM-5 consumes `CompiledPolicy.targetIndex` (owns the matching algorithm/precedence); SEM-1 owns `PromisedState` maintenance-duty ObligationState wiring; PROM-5 owns `PromisedDuty` suretyship remedy; effect kinds map to PROM-6/SEM-6/SEM-8. **Follow-up (S3):** align RL2_Semantics.md abstract syntax `Policy.clauses : Norm* → Clause*` (PROM-1 residue surfaced by the IR correspondence table).
+**Handoffs:** SEM-5 consumes `CompiledPolicy.targetIndex` (owns the matching algorithm/precedence); SEM-1 owns `PromisedState` maintenance-duty ObligationState wiring; PROM-5 owns `PromisedDuty` suretyship remedy; effect kinds map to PROM-6/SEM-6/SEM-8. **Follow-up (done 2026-07-25):** aligned RL2_Semantics.md abstract syntax to `Policy.clauses : Clause*` (added `Clause ::= Norm | Promise`), matching the ontology and RL2_IR.md. No semantic change — the type-filtered comprehensions in `Out`/`Eval` already exclude Promise clauses from norm matching.
 
 ### SEM-5 — Target matching algorithm
 **Status:** Open · **Severity:** S1 (blocks IMPL) · **Source:** fix P0.2 · **Tags:** [VER]

@@ -111,9 +111,11 @@ StateTransition ::=
 #### Policies
 
 ```
+Clause ::= Norm | Promise      -- mirrors rl2:Clause; only an Offer admits a Promise clause
+
 Policy ::= Policy {
   condition : Condition?,   -- optional policy-level activation condition
-  clauses   : Norm*,
+  clauses   : Clause*,
   meta      : Metadata
 }
 ```

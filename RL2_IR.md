@@ -106,11 +106,12 @@ cases include both `Norm` leaves *and* `Promise` leaves.
 | `rl2:Promise [promisor; promisee; promisedState]` | §923–§1035; §1036 | `PromiseEntry(p, q, PromisedState(c), effCond)` |
 | `rl2:Promise [promisor; promisee; promisedDuty]` | §923–§1035; §1036 | `PromiseEntry(p, q, PromisedDuty(d), effCond)` |
 
-> **Correspondence gap flagged (PROM-1 residue).** The semantics abstract syntax still
-> declares `Policy ::= { clauses : Norm* }` (RL2_Semantics.md §Policies), predating the
-> ontology's `rl2:Clause` (Norm ⊔ Promise) added in PROM-1. This IR takes the *ontology* as
-> authoritative: a clause is a `Clause`. The one-line `Norm* → Clause*` alignment of the
-> abstract syntax is a small PROM-1 follow-up (see issues.md), not a change of meaning.
+> **Correspondence note (PROM-1 residue, now aligned).** The semantics abstract syntax
+> previously declared `Policy ::= { clauses : Norm* }`, predating the ontology's `rl2:Clause`
+> (Norm ⊔ Promise) added in PROM-1. It has been aligned to `clauses : Clause*` with a
+> `Clause ::= Norm | Promise` production (RL2_Semantics.md §Policies), matching this IR and the
+> ontology — no change of meaning (the type-filtered comprehensions in `Out`/`Eval` already
+> exclude Promise clauses from norm matching; promises participate only via crystallization).
 
 ### 3.2 Conditions (base and inductive cases, with bytecode lowering)
 
@@ -132,8 +133,8 @@ the subsumption-aware `performed(...)` helper (§320), never inside the pure con
 
 Right-to-left, the table is the **IR → source inverse map**: every AST node and every emitted
 bytecode carries the identity of the RDF construct it came from. Error reporting ("policy X,
-clause Y") is therefore a table lookup, not a separate mechanism — this answers Open Question
-#3 of design-forth-ir.md (mapping VM errors back to source) for free.
+clause Y") is therefore a table lookup, not a separate mechanism — this answers
+design-forth-ir.md Open Question 3 (mapping VM errors back to source) for free.
 
 ---
 
@@ -391,6 +392,7 @@ in 9a, not here — it is AST-layer.)
 **(9c) Effect-soundness lemma.** `applyEffects(Σ, fx)` reproduces the `Σ'` that `Eval` computes
 via `updateDutyStates` (§1259) and the operational rules (§Duty Activation/Fulfillment/
 Violation, §Crystallization, §Remedial Generation). Two sub-lemmas:
+
 - **Made-vs-demanded orientation:** for either promise orientation, `CrystallizePromise`
   yields a `Duty` bound to the promisor and a correlative `Claim` bound to the promisee
   (§7.2).
