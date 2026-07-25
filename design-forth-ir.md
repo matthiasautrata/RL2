@@ -140,6 +140,12 @@ This minimal subset is what makes verification tractable.
 
 ## Primitive Set (~45 opcodes)
 
+> **Note (SEM-4).** In the adopted design (**RL2_IR.md**) the `EMIT-PERMIT` / `EMIT-FORBID` /
+> `EMIT-OBLIGATION` words in the table below are **removed** — emission is *derivation* in the
+> AST layer, not a stack effect — leaving ~30 pure opcodes. The Dafny `Instr` sketch further
+> down likewise predates that decision (its `IEmitPermit` / `IEmitForbid` cases are dropped).
+> The remaining primitives (stack / compare / logic / control / `RESOLVE`) are unchanged.
+
 | Category | Words |
 |----------|-------|
 | Stack | DUP DROP SWAP OVER ROT |

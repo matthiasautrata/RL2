@@ -1400,6 +1400,7 @@ If the researcher attempted to distribute:
 
 - **RL2_Semantics.md** — Mathematical definitions of evaluation, state transitions, and typing rules
 - **RL2_Architecture.md** — Evaluation pipeline, layer separation, design rationale
+- **RL2_IR.md** — Intermediate representation: how policies compile for evaluation, and the equivalence obligation
 
 ### Runtime Behavior
 

@@ -36,6 +36,7 @@ RL2 provides a semantic superset of ODRL 2.2 with:
 |----------|-------------|
 | [RL2_Semantics.md](RL2_Semantics.md) | Formal denotational and operational semantics |
 | [RL2_Architecture.md](RL2_Architecture.md) | Evaluation pipeline and design rationale |
+| [RL2_IR.md](RL2_IR.md) | Intermediate representation: compilation target and equivalence obligation |
 | [RL2_Protocol.md](RL2_Protocol.md) | Runtime evaluation protocol |
 
 ### Normative Files

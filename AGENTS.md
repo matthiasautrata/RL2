@@ -35,9 +35,10 @@ When documents conflict, higher-priority sources win:
 1. **TTL + SHACL** (rl2.ttl, rl2p.ttl, rl2-shacl.ttl, rl2p-shacl.ttl)
 2. **RL2_Semantics.md**
 3. **RL2_Architecture.md**
-4. **RL2_Protocol.md**
-5. **RL2_Vocabulary.md** (derived from TTL; explanatory)
-6. **Examples and prose** (illustrative, not normative)
+4. **RL2_IR.md** (compilation-target design; must match Semantics via the equivalence obligation)
+5. **RL2_Protocol.md**
+6. **RL2_Vocabulary.md** (derived from TTL; explanatory)
+7. **Examples and prose** (illustrative, not normative)
 
 If prose contradicts TTL/SHACL, the TTL/SHACL is correct and prose must be updated.
 
@@ -109,6 +110,7 @@ If an instruction is unclear, ask. Don't guess. Reasonable assumptions often are
 | `rl2p-shacl.ttl` | Protocol validation shapes |
 | `RL2_Semantics.md` | Formal denotational + operational semantics |
 | `RL2_Architecture.md` | Evaluation pipeline, functional model, design rationale |
+| `RL2_IR.md` | Intermediate representation (compilation target, construct correspondence, equivalence obligation) |
 | `RL2_Protocol.md` | Runtime evaluation protocol |
 | `RL2_Vocabulary.md` | Complete class/property reference (derived from TTL) |
 | `RL2_Primer.md` | Tutorial introduction |

@@ -392,10 +392,10 @@ TargetIndex : Target → PolicyRef*
 | **Sub-asset** | URI + attribute | Attribute classification | `ex:dataset123.ssn` → policy targets `tag:PII` |
 | **Subsumption** | URI with class | Superclass policy | `tag:top-secret` asset → policy targets `tag:sensitive` (if sensitive ⊇ top-secret) |
 
-**Subsumption reasoning:** TBD. Options include:
-- Closed-world: Only explicit classifications match
-- Open-world with declared hierarchy: `tag:sensitive rdfs:subClassOf tag:confidential`
-- Inference rules: Evaluator configuration
+**Subsumption reasoning:** decided — a **declared hierarchy** traversed by bounded graph
+reachability over `rl2:includedIn*` (closed-world; no OWL inference), materialized as a static
+subsumption index and matched at eval-time. See **RL2_IR.md** §Subsumption. The
+target-matching *algorithm* that applies it across the four modes is SEM-5.
 
 **Design constraint:** The `lookup` function must handle all modes; index structure is implementation-dependent.
 
@@ -604,9 +604,9 @@ Same inputs always produce same outputs.
 
 | Topic | Status | Notes |
 |-------|--------|-------|
-| IR structure | TBD | Internal representation; semantics-preserving |
-| Target matching algorithm | TBD | Must handle direct, classification, sub-asset, subsumption |
-| Subsumption reasoning | TBD | Closed-world vs declared hierarchy vs inference |
+| IR structure | **Defined** — RL2_IR.md | Two-lowering hybrid (normalized AST + condition bytecode); functional core + effect shell |
+| Target matching algorithm | TBD (SEM-5) | Must handle direct, classification, sub-asset, subsumption; index shape fixed in RL2_IR.md |
+| Subsumption reasoning | **Decided** — RL2_IR.md §Subsumption | Declared hierarchy via `includedIn*`, bounded reachability (no OWL inference), eval-time match; matching algorithm → SEM-5 |
 | Attribute-level policies | TBD | How sub-asset targets are represented and matched |
 | Context resolution mode | TBD | In-band vs out-of-band vs hybrid |
 | Incomplete context behavior | TBD | `Indeterminate` vs partial evaluation |
@@ -759,7 +759,7 @@ The Functional Model (§Functional Model) defines `compile` as producing an **In
 * **Pre-computed context requirements** — Know what's needed before evaluation
 * **Optimized evaluation** — IR can be tuned for performance
 
-IR structure is TBD. The Protocol remains the external interoperability boundary; IR is internal to evaluator implementations.
+IR structure is defined in **RL2_IR.md**. The Protocol remains the external interoperability boundary; IR is internal to evaluator implementations.
 
 ---
 

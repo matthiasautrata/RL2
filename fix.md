@@ -669,7 +669,7 @@ RL2 is explicitly optimized for AI Large Language Models (LLMs) and automated po
 
 ### Critical Gaps (S1)
 1. **`restoreAction` for `promisedState`** (SEM-1) — the one hole in an otherwise-deterministic pipeline.
-2. **IR definition** (SEM-4) — the Forth-IR design exists but is not adopted into the spec; `RL2_Architecture.md` still says "Structure: TBD."
+2. **IR definition** (SEM-4) — ✅ resolved 2026-07-25: adopted into the spec as **RL2_IR.md** (two-lowering hybrid IR — normalized AST + condition bytecode; correspondence table + split equivalence obligation).
 3. **Target matching algorithm** (SEM-5) — four modes listed, algorithm and precedence unspecified.
 4. **No implementation** — no Dafny kernel, no Go evaluator, no transpiler. The spec is paper-only.
 

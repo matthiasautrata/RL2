@@ -441,6 +441,7 @@ date: 2026-07-24
 | rl2-shacl.ttl | SHACL validation shapes |
 | RL2_Semantics.md | Formal evaluation semantics |
 | RL2_Architecture.md | Evaluation pipeline, layer separation, design rationale |
+| RL2_IR.md | Intermediate representation: compilation target, correspondence, equivalence obligation |
 | RL2_Protocol.md | Request/response protocol for interoperability |
 | RL2_ODRL_Coverage.md | Mapping from ODRL 2.2/3.0 to RL2 |
 | RL2_Primer.md | Tutorial introduction |
