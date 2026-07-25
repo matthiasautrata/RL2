@@ -51,7 +51,8 @@ RL2 provides a semantic superset of ODRL 2.2 with:
 
 | Document | Description |
 |----------|-------------|
-| [backlog.md](backlog.md) | Open decisions and work items |
+| [issues.md](issues.md) | Issue tracker, open decisions, resolved log |
+| [fix.md](fix.md) | Review findings and remediation roadmap |
 | [RL2_References.md](RL2_References.md) | Citations and glossary |
 
 ## Quick Example

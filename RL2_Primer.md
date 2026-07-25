@@ -1394,7 +1394,7 @@ If the researcher attempted to distribute:
 
 ### Project Status
 
-- **backlog.md** — Open decisions, work items, and mechanization status
+- **issues.md** — Issue tracker, open decisions, resolved log
 
 ### References and Glossary
 

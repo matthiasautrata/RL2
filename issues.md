@@ -4,6 +4,8 @@ Single consolidated tracker for RL2 ontology, semantics, protocol, and tooling.
 
 **Consolidated:** 2026-07-24 — merged from the former `critique.md` (three-part external review), `fix.md` (multi-role remediation plan), and the prior `issues.md`. Those three source documents are superseded by this file.
 
+**Updated:** 2026-07-25 — merged `backlog.md` into this file. The open design decisions (namespace, owl:imports, ODRL transpiler) are now § Open Decisions below. The backlog's work items and success criteria were already tracked as IMPL-1..3 and the S1/S4/S6 proof obligations. `backlog.md` is deleted. Review findings and the full remediation roadmap live in `fix.md` (cross-referenced from issues where relevant).
+
 ---
 
 ## How to use this file
@@ -21,6 +23,26 @@ Issues are tagged **[GEN]** (affects generatability / canonical form), **[VER]**
 
 ---
 
+## Open Decisions
+
+Forward-looking design decisions deferred until publication or spec stability.
+
+### OPEN-1 — Namespace URI
+**Status:** Deferred · **Severity:** S3
+**Current:** `https://rl2.example/ontology#`
+**Options:** `https://w3id.org/rl2/` (persistent) or institutional.
+Decide before publication.
+
+### OPEN-2 — ODRL owl:imports
+**Status:** Deferred · **Severity:** S3
+Add `owl:imports <http://www.w3.org/ns/odrl/2/>` before publication. Depends on OPEN-1 (namespace decision).
+
+### OPEN-3 — ODRL→RL2 transpiler
+**Status:** Open · **Severity:** S2 · **Tags:** [COV]
+Create an ODRL 2.2 → RL2 transpiler (flatten `inheritFrom`, map `odrl:Permission`→`rl2:Privilege`, etc.). Needed for migration path and to demonstrate RL2 as a true ODRL successor. Cross-ref: `fix.md` Task 13. Blocked on spec stability (Bands 1-3).
+
+---
+
 ## Corrections to the source reviews
 
 Grounding the reviews against the current files surfaced several stale or incorrect claims. Recorded here so we don't act on them:
@@ -29,7 +51,7 @@ Grounding the reviews against the current files surfaced several stale or incorr
 - **"Conflict resolution `resolveDecision` is undefined."** (fix §4.2, §13 Modeler) — It is defined at `RL2_Semantics.md:1240` (parameterized by strategy + priorities, with explicit ambiguity error on unbroken ties).
 - **"Power exercise semantics missing."** (fix §13 Modeler) — Power denotation and `ExercisePower` state transition are defined at `RL2_Semantics.md:738`.
 - **"Promise→Duty generation cut off mid-definition."** (fix §13) — The remedial generation rule exists at `RL2_Semantics.md:1007`. What is genuinely open is `restoreAction` (see SEM-1).
-- **"Technology stack undecided (Why3 vs Dafny vs Go)."** (fix §2, §12, P0.4) — Decided: **Dafny → Go**, committed (`de473f5`) and recorded in `backlog.md`. The entire fix §12 deliberation is historical.
+- **"Technology stack undecided (Why3 vs Dafny vs Go)."** (fix §2, §12, P0.4) — Decided: **Dafny → Go**, committed (`de473f5`). The entire fix §12 deliberation is historical.
 - **"Prohibition can be expressed two ways (`prohibitedAction` vs `dutyAction NotDelete`)."** (critique 3) — There is no `dutyAction`/`NotDelete` idiom in core. `rl2:prohibitedAction` is already `rdfs:subPropertyOf rl2:action` (`rl2.ttl:309`). The real question (CANON-3) is class modeling, not two competing idioms.
 - **"Counterparty can appear at multiple container levels."** (critique 3) — `rl2:counterparty` has domain `rl2:Norm` only; containers have no counterparty property, so container-level inheritance is not even expressible. The real question (CANON-4) is redundancy among `counterparty` / `claimHolder` / `claimAgainst` / `subject`.
 
@@ -56,7 +78,7 @@ Grounding the reviews against the current files surfaced several stale or incorr
 ## Band 0 — Canonical Form (Generatability)
 
 > **✅ Implemented in v0.6 (2026-07-24).** CANON-1..5 applied across `rl2.ttl`,
-> `rl2-shacl.ttl`, `RL2_Semantics.md`, `RL2_Architecture.md`, `persona.md`,
+> `rl2-shacl.ttl`, `RL2_Semantics.md`, `RL2_Architecture.md`, `AGENTS.md`,
 > `RL2_Vocabulary.md`, `RL2_Primer.md`, `CLAUDE.md`, and the affected use cases.
 > Ontology bumped to 0.6. See § Resolved → CANON (v0.6). Residual follow-ups are
 > tracked in Band 1 (CANON-1's IR-normalization enforcement → SEM-4; the
@@ -376,7 +398,7 @@ S1 Determinism, S4 Duty-state consistency, S6 Totality. Fold SEM-8's obligations
 - **DOC-4** — Merge `RL2_ODRL_Comparison.md` into `RL2_Primer.md` as a comparison section (+ an ODRL→RL2 migration guide). `S3`.
 - **DOC-5** — Add a document-navigation map ("I want to… → read…") to `README.md`. `S3`.
 - **DOC-6** — Terminology consistency: `ObligationState` (not DutyState), `Norm` (not Rule), clarify Requirement-wraps-Duty. `S3`.
-- **DOC-7** — Reconcile `backlog.md` with this log (overlap: recurrence, temporal arithmetic, toolchain, namespace). Keep backlog for forward *work items*; this file owns *issues*. `S3`.
+- **DOC-7** — ✅ Resolved (2026-07-25). `backlog.md` merged into this log. Open design decisions are now § Open Decisions (OPEN-1..3). Work items and success criteria were already tracked as IMPL-1..3 and S1/S4/S6. `backlog.md` deleted. `S3`.
 
 ---
 
@@ -391,7 +413,7 @@ S1 Determinism, S4 Duty-state consistency, S6 Totality. Fold SEM-8's obligations
 ### CANON (v0.6) — Canonical-form band
 **Resolved 2026-07-24 (ontology → 0.6).** Adopted the invariant *exactly one valid RDF shape per normative proposition* and applied it:
 
-- **CANON-5 / CANON-1.** Invariant documented in `RL2_Architecture.md` §Canonical Form and `persona.md` §11. Condition composition confirmed as conjunction (`n.effectiveCondition = And(P.condition, n.condition)`, already in semantics); canonical rule = author at narrowest scope; policy conditions pushed down during IR normalization (enforcement is an IR obligation → **SEM-4**).
+- **CANON-5 / CANON-1.** Invariant documented in `RL2_Architecture.md` §Canonical Form and `AGENTS.md` §6. Condition composition confirmed as conjunction (`n.effectiveCondition = And(P.condition, n.condition)`, already in semantics); canonical rule = author at narrowest scope; policy conditions pushed down during IR normalization (enforcement is an IR obligation → **SEM-4**).
 - **CANON-2.** Retired the polymorphic `rl2:promiseContent` / `rl2:PromiseContent` union. Added three disjoint properties: `rl2:promisedAction` (Tun-sollen), `rl2:promisedState` (Sein-sollen), `rl2:promisedDuty` (suretyship). `rl2:object` domain broadened to `Norm ∪ Promise`. `PromiseShape` now requires exactly one via `sh:xone`. Semantics `contentHolds`/`deadline`/`linkedDuty`/remedial rules rewritten over the tagged union (`contentHolds` reuses the ACT-2 `performed()` helper); `restoreAction`/`objectOf` made total (PromisedState remedial default → **SEM-1**). `promisedDuty` now has real semantics, resolving most of **PROM-5**. Migrated use cases 8 (`promisedAction`) and 11 (`promisedState`, dropping the invented `rl2:recurrence` → **EXPR-1**).
 - **CANON-3.** `rl2:Prohibition` kept as the sole negative-duty form; semantics now state it is a duty-to-refrain whose correlative **Claim** is held by its `counterparty` (or the grantor), derived not authored.
 - **CANON-4.** Unified normative roles on `rl2:subject` (right-holder) / `rl2:counterparty` (duty-bearer); **removed** `rl2:claimHolder` / `rl2:claimAgainst`. `ClaimShape` and all references migrated (Primer, Vocabulary, CLAUDE.md, use cases claim-counterclaim / no-claim-inference / pass-through-terms).

@@ -1474,7 +1474,7 @@ Conflict resolution reduces to condition calculus:
 - If two norms conflict, policy-level or clause-level precedence applies
 - RL2 supports ODRL conflict semantics via the `resolveDecision` function
 
-**Note on Inheritance**: ODRL's `inheritFrom` mechanism is intentionally not supported in RL2. Policy inheritance introduces complexity (flattening, override semantics, auditability issues) without clear benefit over explicit composition. See **backlog.md** §Policy Inheritance.
+**Note on Inheritance**: ODRL's `inheritFrom` mechanism is intentionally not supported in RL2. Policy inheritance introduces complexity (flattening, override semantics, auditability issues) without clear benefit over explicit composition. See **issues.md** § Open Decisions (OPEN-3).
 
 ---
 

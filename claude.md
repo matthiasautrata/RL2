@@ -1,6 +1,6 @@
 # RL2 Project Skill
 
-Read **persona.md** first — it defines working stance, source-of-truth hierarchy, and change discipline. This file adds quick reference for policy authoring.
+Read **AGENTS.md** first — it defines working stance, source-of-truth hierarchy, and change discipline. This file adds quick reference for policy authoring.
 
 ---
 
@@ -129,7 +129,7 @@ shacl validate --shapes rl2-shacl.ttl --data your-policy.ttl
 
 | File | Purpose |
 |------|---------|
-| persona.md | Working stance, source hierarchy, change discipline |
+| AGENTS.md | Working stance, source hierarchy, change discipline |
 | rl2.ttl | Normative ontology |
 | rl2-shacl.ttl | Validation shapes |
 | rl2p.ttl | Protocol ontology |
