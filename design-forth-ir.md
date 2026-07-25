@@ -1,8 +1,17 @@
 # RL2 IR Design: Stack-Based Kernel
 
-**Status:** Design Idea  
+**Status:** Design rationale — refined and narrowed by **RL2_IR.md** (2026-07-25, SEM-4)  
 **Date:** 2025-12-20  
 **Alternative to:** Undefined IR in RL2_Architecture.md
+
+> **Note (SEM-4, 2026-07-25).** The adopted IR (**RL2_IR.md**) takes the stack VM from this
+> document but **scopes it to pure condition evaluation only**. In particular the
+> `EMIT-PERMIT` / `EMIT-FORBID` / `EMIT-OBLIGATION` opcodes proposed below are **dropped**:
+> emission is *derivation* (collecting a normative envelope under I/O logic), a set operation
+> in the structured AST layer, not a stack effect. `resolveDecision` and clause matching live
+> in the outer AST (tree-walk over `Clause = Norm ⊔ Promise`), and state changes are emitted
+> as effect descriptions applied by a shell. This file is retained as design rationale for the
+> Layer 0/1 stack machine; read **RL2_IR.md** for the normative IR design.
 
 ---
 

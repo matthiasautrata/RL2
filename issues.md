@@ -73,7 +73,7 @@ Grounding the reviews against the current files surfaced several stale or incorr
 
 **Band 5 — Documentation hygiene.** DOC-1..7. Version normalization, dedup, navigation.
 
-**Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone.**
+**Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone. SEM-4 (IR definition) resolved 2026-07-25 — `RL2_IR.md` authored; next is SEM-5 (target matching), then SEM-1/2/3.**
 
 ---
 
@@ -148,16 +148,26 @@ The Promise→Duty remedial rule exists but `restoreAction(content)` is "impleme
 The Vocabulary says No-Claim and Disability are "inferrable" from the absence of a Claim/Power, but no inference rule is written anywhere. Either (a) state the rules formally (closed-world absence predicates: `NoClaim(a,b,x) := ¬∃ Claim(...)`), or (b) drop the "inferrable" language and scope them out explicitly. Use case `no-claim-inference.md` exists and should drive this.
 
 ### SEM-4 — IR definition
-**Status:** Open · **Severity:** S1 (blocks IMPL) · **Source:** fix P0.1 · **Tags:** [VER]
-**Files:** new (`RL2_IR.md`), `RL2_Architecture.md`, `design-forth-ir.md`
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S1 (blocks IMPL) · **Source:** fix P0.1 · **Tags:** [VER]
+**Files:** `RL2_IR.md` (new), `RL2_Architecture.md`, `design-forth-ir.md`
 
-`compile : Policy* → IR` leaves IR as TBD; blocks evaluator implementation and the "compile-time canonicalization" story. `design-forth-ir.md` proposes a stack-based IR — evaluate whether to adopt it, or define a flattened-norm-list IR. Must carry an equivalence obligation (IR eval ≡ RDF eval). Strongly synergistic with Band 0: canonical form makes the compile step a normalization, not a guess.
+`compile : Policy* → IR` left IR as TBD; blocked evaluator implementation and the "compile-time canonicalization" story. **Resolved** by authoring `RL2_IR.md`, a design spec (datatypes + opcode table + correspondence table + equivalence statements; no Dafny proofs — those are IMPL). Decisions:
+- **Hybrid, two-lowering IR** (standard compiler terms): `Turtle (syntax) → normalized AST (outer IR) → condition bytecode (inner IR)`. Only *conditions* lower to a stack machine; the deontic layer stays a tree-walk over the AST. Adopts `design-forth-ir.md`'s stack VM but **scopes it to pure condition eval** and **drops the `EMIT-*` opcodes** (emission is I/O-logic derivation, a set op in the AST layer, not a stack effect).
+- **`Clause` (Norm ⊔ Promise) is the AST base element**, mirroring PROM-1's `rl2:Clause`. Promises (made *and* demanded) and their three contents are first-class; centering on Norm would repeat the PROM-1 oversight. Offer-vs-Agreement well-formedness (only Offer admits a Promise clause) is compiled in via `CompiledPolicy.kind`.
+- **Derive-then-resolve** (I/O logic): monotone derivation collects a normative envelope; non-monotone `resolveDecision` applies conflict/priority after.
+- **Functional core + effect shell:** kernel is a pure `evalIR : (IR,Request,Σ) → (Decision, DutySet, seq<Effect>)` — `(Decision,DutySet)` = verdict + future duties; `seq<Effect>` refactors the denotational `Eval`'s returned `State`. `CrystallizePromise`/`GenerateRemedialDuty`/`TransitionDuty`/`CreateCase`/`ExercisePower` are one closed effect algebra (unifies PROM-1/PROM-6/SEM-1/SEM-6/SEM-8). Two recorded invariants: snapshot-consistency (enables effects-outside-semantics) and effect-coherence (a real proof obligation).
+- **Subsumption is eval-time:** compiler builds a static `subsumptionIndex` (`includedIn*` closure); the request-time match is membership. Limitations inherit ACT-1/2 + EXPR-2 (bounded reachability, no counting).
+- **Correspondence table is the proof spine** (syntax ↔ semantics §ref ↔ AST ctor + bytecode lowering); its rows are the induction cases; empty cell = proof hole (the PROM-1 shape); read backwards it is the IR→source error-report map.
+- **Compiler tested, not verified** (Cedar-style differential testing on the 51 use cases + generated policies), backed by CANON making `Turtle→AST` near-mechanical; condition-compiler is a later verification stretch goal. Precedents: evm-dafny (inner VM), Cedar-spec (test strategy) — `research/verification-toolchain-comparison.md`.
+- **Equivalence obligation** split into (a) normalization theorem (outer), (b) VM-correctness lemma (inner, `EvalBytecode(lower c,env)=⟦c⟧`), (c) effect-soundness lemma (incl. made-vs-demanded crystallization orientation + effect coherence).
+
+**Handoffs:** SEM-5 consumes `CompiledPolicy.targetIndex` (owns the matching algorithm/precedence); SEM-1 owns `PromisedState` maintenance-duty ObligationState wiring; PROM-5 owns `PromisedDuty` suretyship remedy; effect kinds map to PROM-6/SEM-6/SEM-8. **Follow-up (S3):** align RL2_Semantics.md abstract syntax `Policy.clauses : Norm* → Clause*` (PROM-1 residue surfaced by the IR correspondence table).
 
 ### SEM-5 — Target matching algorithm
 **Status:** Open · **Severity:** S1 (blocks IMPL) · **Source:** fix P0.2 · **Tags:** [VER]
 **Files:** `RL2_Architecture.md` (§TargetIndex)
 
-Four matching modes are listed (direct, classification, sub-asset, subsumption) but the algorithm and precedence are unspecified — implementations will disagree on whether `tag:sensitive` matches `doc:report.pdf`. Specify the algorithm with strict precedence and closed-world defaults.
+Four matching modes are listed (direct, classification, sub-asset, subsumption) but the algorithm and precedence are unspecified — implementations will disagree on whether `tag:sensitive` matches `doc:report.pdf`. Specify the algorithm with strict precedence and closed-world defaults. **SEM-4 handoff (2026-07-25):** `RL2_IR.md` fixes the index *shape* — `CompiledPolicy.targetIndex : map<Target, set<int>>` (Target → clause indices) — and defines eval-time subsumption matching via a static `subsumptionIndex` (`includedIn*` closure, bounded reachability per ACT-1/2, no counting per EXPR-2). SEM-5 owns the *algorithm* and precedence over that shape.
 
 ### SEM-6 — Policy-generation migration protocol
 **Status:** Open · **Severity:** S2 · **Source:** fix §3.2.3, P2.1 · **Tags:** [VER]

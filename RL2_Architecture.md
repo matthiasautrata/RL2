@@ -341,7 +341,13 @@ Every new construct is checked against this invariant before it is added.
 
 Executable representation of compiled policies.
 
-**Structure:** TBD.
+**Structure:** defined in **RL2_IR.md**. A two-lowering pipeline
+`Turtle → normalized AST (outer IR) → condition bytecode (inner IR)`: only conditions become
+a stack-machine executable, while the deontic layer stays a tree-walk over the AST. The AST
+base element is `Clause` (Norm ⊔ Promise); the verified kernel is a pure
+`evalIR : (CompiledPolicy, Request, Σ) → (Decision, DutySet, seq<Effect>)` (functional core +
+effect shell). The semantics-preservation obligation is stated there as a normalization
+theorem (outer) plus a VM-correctness lemma (inner) plus an effect-soundness lemma.
 
 **Properties:**
 - Closed-form: No external references requiring resolution at evaluation time
