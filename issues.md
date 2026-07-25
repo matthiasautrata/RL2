@@ -65,13 +65,15 @@ Grounding the reviews against the current files surfaced several stale or incorr
 
 **Band 2 — Hohfeld & Promise completeness (defensibility).** HOHF-1..5, PROM-1..8. Makes the theoretical claims true, not just asserted.
 
-**Band 3 — Expressiveness coverage.** EXPR-1..6. Recurrence, quorum, temporal arithmetic, collections, delegation, revocation.
+**Band 3 — Expressiveness coverage.** EXPR-1..6. Recurrence, quorum, temporal arithmetic (EXPR-1/2/3 decided 2026-07-25 — all profile-level/excluded, no core impact), collections, delegation, revocation (EXPR-4/5/6 still open, confirmed independent of Band 1 IR work).
 
-**Band 3.5 — Use-case corpus quality.** VALID-1..2. Systemic modeling defects and non-parseable drafts surfaced by the new `tools/validate.py` SHACL harness.
+**Band 3.5 — Use-case corpus quality.** VALID-1..3. Systemic modeling defects and non-parseable drafts surfaced by the new `tools/validate.py` SHACL harness; spec-doc examples brought up to the same validation standard.
 
 **Band 4 — Implementation.** IMPL-1..3. Dafny kernel, proofs, Go extraction.
 
 **Band 5 — Documentation hygiene.** DOC-1..7. Version normalization, dedup, navigation.
+
+**Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone.**
 
 ---
 
@@ -131,13 +133,13 @@ Make the "exactly one shape" principle an explicit, stated design tenet (not fol
 **Status:** Open · **Severity:** S1 · **Source:** fix §4.2.1, P1.2 · **Tags:** [VER]
 **Files:** `RL2_Semantics.md:1007-1031`, `rl2.ttl`
 
-The Promise→Duty remedial rule exists but `restoreAction(content)` is "implementation-defined" with no guidance — a hole in an otherwise-deterministic pipeline. Add an explicit `rl2:remedialAction` property so remediation is declared on the norm/promise rather than invented by the evaluator. Define the default mapping: Action-promise → retry the action; Duty → the duty's action; State-promise → requires explicit `rl2:remedialAction` (no default). Interacts with CANON-2 (the split makes the mapping total).
+The Promise→Duty remedial rule exists but `restoreAction(content)` is "implementation-defined" with no guidance — a hole in an otherwise-deterministic pipeline. Add an explicit `rl2:remedialAction` property so remediation is declared on the norm/promise rather than invented by the evaluator. Define the default mapping: Action-promise → retry the action; Duty → the duty's action; State-promise → requires explicit `rl2:remedialAction` (no default). Interacts with CANON-2 (the split makes the mapping total). **PROM-1 handoff (2026-07-25):** crystallization of a `promisedState` promise produces a *state-maintenance Duty* whose fulfillment is the promised condition; SEM-1 owns the ObligationState-transition wiring for such condition-fulfilled duties (how Active→Fulfilled/Violated advances, and `restoreAction` on breach). The crystallization *target* is fixed by PROM-1; only this behavioral wiring is open here.
 
 ### SEM-2 — `targetNorm` lacks parametricity
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §1.2 · **Tags:** [VER][COV]
 **Files:** `rl2.ttl:251`, `RL2_Semantics.md`
 
-`rl2:targetNorm` hard-references a specific Norm IRI, so state predicates (`obligationStateOperand`, `dutyPerformerOperand`) can only ask about *one enumerated* norm. You cannot express "if **any** duty is violated" or "if **all** duties in this policy are fulfilled." Needs a quantified target (e.g. a target-set selector, or a collection operand) so duty-state conditions compose.
+`rl2:targetNorm` hard-references a specific Norm IRI, so state predicates (`obligationStateOperand`, `dutyPerformerOperand`) can only ask about *one enumerated* norm. You cannot express "if **any** duty is violated" or "if **all** duties in this policy are fulfilled." Needs a quantified target (e.g. a target-set selector, or a collection operand) so duty-state conditions compose. **Scope note (2026-07-25):** EXPR-2 (quorum) is now decided as excluded-from-core, so this quantification only needs to cover any/all duty-*state* queries over a set of norms — not counting/aggregation. Keep the quantified-target design (SEM-4/5) to that narrower scope.
 
 ### SEM-3 — No-Claim / Disability inference rules
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §2.1, critique 2 · **Tags:** [VER][COV]
@@ -209,11 +211,21 @@ Claim, Power, Immunity, Liability are specified but not stress-tested — their 
 
 ## Promise Theory (PROM)
 
-### PROM-1 — Promise-in-Agreement restriction undefended & unenforced
-**Status:** Decision needed · **Severity:** S2 · **Source:** critique 2 · **Tags:** [GEN][COV]
-**Files:** `RL2_Primer.md`, `RL2_Architecture.md`, `rl2-shacl.ttl`
+### PROM-1 — Promise-in-Agreement restriction & crystallization
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S2 · **Source:** critique 2 · **Tags:** [GEN][COV]
+**Files:** `rl2.ttl`, `rl2-shacl.ttl`, `RL2_Semantics.md`, `RL2_Primer.md`, `RL2_Architecture.md`, `RL2_Vocabulary.md`, `RL2_Protocol.md`
 
-The lifecycle Set/Offer(contain Promise) → Agreement(contains only derived Duties/Claims) is theoretically right — a promise is "contractualized" on acceptance, so keeping it alongside its generated Duty creates a dual-source problem. But the restriction is (a) never justified in prose, (b) not enforced by SHACL, and (c) at odds with the casual author who reaches for `rl2:Promise` inside an Agreement. Pick one: enforce via SHACL (`sh:not` Promise in Agreement) *with* documented rationale, or allow and define resolution identically to Offer-contained promises (in which case, why restrict?).
+**Root cause found.** The Norm-only assumption was a systemic ontology oversight, not a deliberate restriction: `rl2:clause` range, `rl2:clauseOf` domain, and `PolicyShape`'s `sh:class rl2:Norm` all excluded `rl2:Promise` (a separate top-level class). Promise-in-policy examples only validated because RDFS range-entailment on `rl2:clause` *silently retyped the Promise as a Norm* to satisfy the SHACL `sh:class` — i.e. the corpus was passing by asserting a falsehood at inference time.
+
+**Decision (committed).** Enforceability requires correlatives; a Promise creates none; so an executed Agreement's enforceable content is Duties/Claims only, and a Promise there is inert goodwill (a verification liability). Offers are the home of Promises; **acceptance crystallizes each Promise into a Duty + correlative Claim** (the act of contracting), so crystallization is core, not deferred.
+
+**Implemented:**
+- Added `rl2:Clause` superclass (`Norm` ⊔ `Promise`); retargeted `rl2:clause` range / `rl2:clauseOf` domain to it. A *named* superclass (not an anonymous `owl:unionOf`) so RDFS auto-types clause referents as `rl2:Clause` — preserving simple-fence validation with zero churn — while subclass entailment only propagates upward, so a Promise is never coerced into a Norm.
+- SHACL: `PolicyShape` clause → `sh:class rl2:Clause` (permissive base; Offer inherits it). `AgreementShape`/`SetShape`/`PrivacyPolicyClauseShape`/`AssertionClauseShape` each add `sh:not [ sh:class rl2:Promise ]`. Only Offer admits a Promise clause. Verified: Promise-in-Offer conforms; Promise-in-Agreement fails.
+- Crystallization defined in `RL2_Semantics.md` as a total function; each Duty inherits the promise content's already-defined fulfillment criterion (`rl2.ttl:promisedAction/State/Duty`). `promisedAction` fully closed; `promisedState`/`promisedDuty` crystallization *targets* fixed, behavioral wiring handed to SEM-1 / PROM-5 (below).
+- Docs (Primer, Architecture) document the Offer=promises / Agreement=duties model; corpus examples that put a Promise in an Agreement (Vocabulary, Semantics, Protocol) re-typed to `rl2:Offer`.
+- `rl2:targetNorm` range intentionally left as `rl2:Norm` — widening it for standalone promise-state queries is PROM-7's, and doing it here regressed fences that relied on targetNorm range-coercion for typing.
+- Non-binding recitals: use `rl2:Assertion`, not a Promise clause.
 
 ### PROM-2 — Framework agreements / Power-to-promise
 **Status:** Open · **Severity:** S3 · **Source:** critique 2 · **Tags:** [COV]
@@ -237,7 +249,7 @@ Duty identity-binding is core-supported (`dutyPerformerOperand`); promise identi
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER][COV]
 **Files:** `rl2.ttl:122`, `RL2_Semantics.md`
 
-Promising to fulfill *someone else's* Duty (without becoming its dutyHolder) is a real legal concept — guarantee/suretyship — with no analysis. CANON-2's `rl2:promisedDuty` names it; this issue is to give it semantics (what state/obligation the suretyship promise creates for the promisor).
+Promising to fulfill *someone else's* Duty (without becoming its dutyHolder) is a real legal concept — guarantee/suretyship — with no analysis. CANON-2's `rl2:promisedDuty` names it; this issue is to give it semantics (what state/obligation the suretyship promise creates for the promisor). **PROM-1 handoff (2026-07-25):** crystallization maps a `promisedDuty` promise to a *second-order Duty* on the promisor, fulfilled when the referenced Duty reaches Fulfilled (target fixed by PROM-1). Open here: the remedy/liability the surety incurs when the referenced Duty is Violated — guarantee vs indemnity.
 
 ### PROM-6 — Promise-as-Generator mechanism
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2 · **Tags:** [VER]
@@ -249,7 +261,7 @@ Promising to fulfill *someone else's* Duty (without becoming its dutyHolder) is 
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER]
 **Files:** `rl2.ttl:535`, `rl2p.ttl`, `RL2_Protocol.md`
 
-A Promise carries `promiseState` (Pending/Fulfilled/Violated, no Active) while the Protocol wraps it in a `Requirement` whose `requirementStatus` *does* include Active. "Pending at the Promise level, Active at the Requirement level" is never reconciled. Define the projection between the two (analogous to how `projectObligationState` collapses Active→Pending for promises).
+A Promise carries `promiseState` (Pending/Fulfilled/Violated, no Active) while the Protocol wraps it in a `Requirement` whose `requirementStatus` *does* include Active. "Pending at the Promise level, Active at the Requirement level" is never reconciled. Define the projection between the two (analogous to how `projectObligationState` collapses Active→Pending for promises). **Narrowed by PROM-1 (2026-07-25):** since an executed Agreement contains no Promises (they crystallize to Duties), this reconciliation now concerns only *standalone* promises we choose to runtime-track (e.g. `data-freshness-promise`), never the agreement case. This issue also owns the `rl2:targetNorm` range widening (to `Norm ⊔ Promise`) needed to let a promise-state operand query a standalone promise's state.
 
 ### PROM-8 — Departure from Promise Theory autonomy, unacknowledged
 **Status:** Open · **Severity:** S3 · **Source:** critique 1 §3.2 · **Tags:** [COV]
@@ -262,27 +274,27 @@ Burgess's Promise Theory assesses a promise from the *promisee's* observation �
 ## Band 3 — Expressiveness Coverage
 
 ### EXPR-1 — Recurrent / periodic duties
-**Status:** Open · **Severity:** S2 · **Source:** fix §4.2.2, backlog · **Tags:** [COV]
-"Every quarter," "annually." Options: `rl2:DutyTemplate` + recurrence + event-triggered instantiation, or a recurrence profile. Decide core vs profile.
+**Status:** Decided (2026-07-25) — profile-level, not core · **Severity:** S3 · **Source:** fix §4.2.2, backlog · **Tags:** [COV]
+"Every quarter," "annually." Ratified fix.md's recommendation: `rl2:DutyTemplate` + recurrence + event-triggered instantiation lives in a **profile**, not core — same pattern as `ethics-approval.md`'s N-of-M operand. Core vocabulary is unaffected; no SEM-4/5 IR impact. **Remaining work:** author the actual profile pattern/use case (not yet written) when a concrete recurring-duty use case demands it.
 
 ### EXPR-2 — Quorum / k-of-n approvals
-**Status:** Open · **Severity:** S2 · **Source:** fix §4.2.3, backlog · **Tags:** [COV]
-Cannot express "any 2 of 5 approvers." Add a quorum constraint (min approvers + approver pool). Interacts with SEM-2 (quantified operands).
+**Status:** Decided (2026-07-25) — excluded from core, documented limitation · **Severity:** S3 · **Source:** fix §4.2.3, backlog · **Tags:** [COV]
+Cannot express "any 2 of 5 approvers" in the verifiable core, and this is now an explicit, permanent design decision rather than an open gap — it ratifies what `RL2_Architecture.md`'s "Known Limitations" (`LTL_F + Deontic + Finite Obligation Automata` has no counting quantifier) already stated. The `ethics-approval.md` "Multi-Approval Variant" pattern (`rl2:resolutionFunction "countApprovalsForAgent"`) remains the sanctioned workaround, but it is an **opaque host function** — policies using it are *not* Dafny-verifiable, unlike core RL2 policies. **Consequence for SEM-2:** its "quantified `targetNorm`" scope is narrowed to any/all duty-*state* queries ("if any duty is violated") — it does **not** need to support counting/aggregation. This removes a structural risk that would otherwise have forced IR (SEM-4) rework. **Follow-up (low-priority doc task):** add a one-line caveat to `ethics-approval.md` and `RL2_Architecture.md` noting the opaque-function/unverified tradeoff explicitly.
 
 ### EXPR-3 — Native temporal arithmetic
-**Status:** Deferred · **Severity:** S3 · **Source:** backlog, critique 1 · **Tags:** [COV]
-Relative time ("30 days after event") needs profile operands like `daysSinceEvent`. Native `xsd:duration` arithmetic (`currentDateTime − eventTime < P30D`) deferred to keep the kernel small. Revisit if recurrence (EXPR-1) forces it.
+**Status:** Decided (2026-07-25) — remains deferred · **Severity:** S3 · **Source:** backlog, critique 1 · **Tags:** [COV]
+Relative time ("30 days after event") needs profile operands like `daysSinceEvent`. Native `xsd:duration` arithmetic (`currentDateTime − eventTime < P30D`) stays out of the core kernel. The "revisit if EXPR-1 forces it" trigger no longer applies — EXPR-1 is confirmed profile-level, so no core recurrence machinery will create pressure to add native duration arithmetic. Treat as closed unless a new use case demands it.
 
 ### EXPR-4 — AssetCollection dynamic membership
-**Status:** Open · **Severity:** S3 · **Source:** fix §8.2 (+HOHF-5) · **Tags:** [COV]
+**Status:** Open (reviewed 2026-07-25 — independent of SEM-4/5, no urgency) · **Severity:** S3 · **Source:** fix §8.2 (+HOHF-5) · **Tags:** [COV]
 Only `rl2:member` enumeration. Add `rl2:selectionCriteria` (a Condition) for "all assets with tag:PII." Watch canonical-form: enumeration vs criteria must not become two ways to say the same set.
 
 ### EXPR-5 — Delegation model
-**Status:** Open · **Severity:** S3 · **Source:** fix §8.2 · **Tags:** [COV]
+**Status:** Open (reviewed 2026-07-25 — independent of SEM-4/5, no urgency) · **Severity:** S3 · **Source:** fix §8.2 · **Tags:** [COV]
 "Alice grants Bob power to act on her behalf." Likely expressible today via Power/Liability — check before adding `rl2:delegatedTo`. May be a documentation issue, not a vocabulary gap.
 
 ### EXPR-6 — Revocation vocabulary
-**Status:** Open · **Severity:** S3 · **Source:** fix §8.2 · **Tags:** [COV]
+**Status:** Open (reviewed 2026-07-25 — independent of SEM-4/5, no urgency) · **Severity:** S3 · **Source:** fix §8.2 · **Tags:** [COV]
 Power-to-revoke exists but there is no explicit revocation event. Consider `rl2:RevocationEvent` in the protocol layer. Use cases `approval-revocation.md`, `immunity-from-termination.md` should drive this.
 
 ---
@@ -338,8 +350,8 @@ code fences. A real ontology bug was also fixed: `rl2:EventPathTypeShape`'s SPAR
 `state.Events.*` resolution path — now double-escaped to `\\.`.
 
 ### VALID-3 — Spec-doc examples should validate too
-**Status:** Partially resolved · **Severity:** S3 · **Source:** validation harness · **Tags:** [COV]
-**Files:** `RL2_Semantics.md` ✅, `RL2_Primer.md` ✅, `RL2_Vocabulary.md` ✅, `RL2_Protocol.md` ⏳
+**Status:** Resolved · **Severity:** S3 · **Source:** validation harness · **Tags:** [COV]
+**Files:** `RL2_Semantics.md` ✅, `RL2_Primer.md` ✅, `RL2_Vocabulary.md` ✅, `RL2_Protocol.md` ✅
 
 The same "every example validates or is empty" standard applies to the spec docs, not
 just the use cases. The harness gained a **`--per-fence`** mode for this: each
@@ -349,28 +361,25 @@ across sections must not merge into one graph (whole-file mode would force false
 cardinality conflicts). Use cases keep whole-file mode (their fences build on each
 other). Run: `uv run tools/validate.py --per-fence <doc>.md`.
 
-**Done:** Semantics, Primer, Vocabulary all pass per-fence. Fixes were of two kinds:
+All four spec docs now pass per-fence (0 fail). Fixes were of three kinds:
 (1) demote genuine narration fragments (state-machine transition triples, bare
 predicate snippets) to plain code fences; (2) complete labeled examples so each is
 valid standalone (define the Power/Duty/Promise/Policy an example references; use
-`xsd:anyURI` literals for `policyGeneration`, not IRIs).
+`xsd:anyURI` literals for `policyGeneration`, not IRIs); (3) a real ontology bug in
+`rl2p.ttl` — `rl2p:fulfillmentEvidence` had `rdfs:domain rl2p:Requirement`, but the
+"Fulfillment as Context" pattern legitimately uses it on `rl2p:ContextAssertion` too.
+A second `rdfs:domain` declaration doesn't union domains, it conjuncts them (RDFS
+requires membership in *all* declared domains simultaneously) — the fix was to remove
+the domain restriction entirely rather than work around it in the docs.
 
-**Remaining — `RL2_Protocol.md`.** 9 fences still fail per-fence
-(`fence@189, 311, 320, 356, 553, 703, 738, 762, 805`). They develop a shared
-loan-access / data-contract scenario, so each fence references entities defined only
-in *other* fences (`ex:request1`, `ex:req1/req2`, `ex:loanAccessPolicy`,
-`ex:managerApprovalDuty`, `ex:dataQualityPromise`, `ex:dataContract`, `ex:case1`,
-`ex:eval1`, `ex:fulfillment1/2`). Under `rdfs` inference the referenced IRIs get typed
-via property ranges (e.g. `evaluatedRequest` range `Request`), so the shapes then
-demand their required fields. Note whole-file mode is *not* a fallback here: it has
-genuine merge conflicts (`ex:eval1` is defined twice with two decisions/explanations;
-a Request ends up with two requestors) — confirming per-fence is the correct model.
-
-**Fix (same recipe as Primer/Vocabulary):** make each of the 9 fences self-contained —
-define the source norm/promise (typed), its source Policy (with ≥1 clause), the
-referenced Request (action/asset/agent/time), and, for `requirementFulfilled`
-assertions, the performer. Then `uv run tools/validate.py --per-fence RL2_Protocol.md`
-should report all fences OK.
+`RL2_Protocol.md`'s 9 originally-failing fences (its shared loan-access /
+data-contract worked example, where each fence references entities defined only in
+*other* fences) were made self-contained per the same recipe used for
+Primer/Vocabulary: define the source norm/promise (typed), its source Policy (with
+≥1 clause), the referenced Request (action/asset/agent/time), the Case
+(initialRequest/caseCreated/caseStatus), and, for `requirementFulfilled` assertions,
+the performer. Confirmed no regressions: Semantics/Primer/Vocabulary still pass
+per-fence, and all 51 use cases still pass whole-file.
 
 ---
 

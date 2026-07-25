@@ -27,9 +27,11 @@
 #    actions, assets, and operands without modifying core shapes.
 #
 # 3. POLICY SUBCLASS INHERITANCE
-#    Policy subtypes (Set, Offer, Privacy, Assertion) inherit from
-#    PolicyShape via SHACL's standard inheritance behavior. Only
-#    Agreement has an additional shape requiring grantor/grantee.
+#    All policy subtypes inherit PolicyShape (via rl2:Policy membership).
+#    PolicyShape's clause rule is permissive (Norm OR Promise). Only Offer
+#    keeps that permissiveness; Agreement/Set/Privacy/Assertion each add a
+#    per-subclass shape forbidding a Promise clause (promises crystallize
+#    into Duties on acceptance). Agreement additionally requires grantor/grantee.
 #
 # 4. STATE ENUMERATION VALIDATION
 #    ObligationState and PromiseState are constrained to their
@@ -43,8 +45,8 @@ rl2:PolicyShape a sh:NodeShape ;
     sh:property [
         sh:path rl2:clause ;
         sh:minCount 1 ;
-        sh:class rl2:Norm ;
-        sh:message "A policy must have at least one clause (norm)."
+        sh:class rl2:Clause ;
+        sh:message "A policy must have at least one clause (a Norm, or a Promise in an Offer)."
     ] ;
     sh:property [
         sh:path rl2:grantor ;
@@ -68,7 +70,11 @@ rl2:PolicyShape a sh:NodeShape ;
         sh:datatype xsd:anyURI
     ] .
 
-# Agreement requires both grantor and grantee
+# Agreement requires both grantor and grantee, and contains only Norms.
+# Promises live in Offers; on acceptance they crystallize into Duties + Claims,
+# so a well-formed executed Agreement carries no surviving Promise clause. A
+# Promise here would be inert (no correlative, not runtime-tracked) — a
+# verification liability. Non-binding recitals belong in an rl2:Assertion.
 rl2:AgreementShape a sh:NodeShape ;
     sh:targetClass rl2:Agreement ;
     sh:property [
@@ -80,6 +86,37 @@ rl2:AgreementShape a sh:NodeShape ;
         sh:path rl2:grantee ;
         sh:minCount 1 ;
         sh:message "An Agreement must identify a grantee."
+    ] ;
+    sh:property [
+        sh:path rl2:clause ;
+        sh:not [ sh:class rl2:Promise ] ;
+        sh:message "An Agreement clause must be a Norm, not a Promise. Promises crystallize into Duties on acceptance; use an rl2:Assertion for non-binding recitals."
+    ] .
+
+# Set, Privacy, and Assertion are Norm-only containers too. Only Offer permits a
+# Promise clause (inheriting PolicyShape's permissive base with no restriction).
+rl2:SetShape a sh:NodeShape ;
+    sh:targetClass rl2:Set ;
+    sh:property [
+        sh:path rl2:clause ;
+        sh:not [ sh:class rl2:Promise ] ;
+        sh:message "A Set clause must be a Norm, not a Promise (Sets have no counterparty for a promise)."
+    ] .
+
+rl2:PrivacyPolicyClauseShape a sh:NodeShape ;
+    sh:targetClass rl2:Privacy ;
+    sh:property [
+        sh:path rl2:clause ;
+        sh:not [ sh:class rl2:Promise ] ;
+        sh:message "A Privacy policy clause must be a Norm, not a Promise."
+    ] .
+
+rl2:AssertionClauseShape a sh:NodeShape ;
+    sh:targetClass rl2:Assertion ;
+    sh:property [
+        sh:path rl2:clause ;
+        sh:not [ sh:class rl2:Promise ] ;
+        sh:message "An Assertion clause must be a Norm, not a Promise."
     ] .
 
 # Privilege shape

@@ -318,6 +318,12 @@ Instances in the current vocabulary:
 
 - **Promise content** — exactly one of `rl2:promisedAction` / `rl2:promisedState`
   / `rl2:promisedDuty`, not a polymorphic union. Enforced by `rl2:PromiseShape`.
+- **Promise vs Duty by container** — a voluntary commitment has one shape
+  (`rl2:Promise`, in a Set/Offer) and its accepted, enforceable form has one shape
+  (`rl2:Duty` + correlative `rl2:Claim`, in an Agreement). Acceptance *crystallizes*
+  the former into the latter; the two never coexist for one commitment, so there is
+  no dual-source encoding. A Promise clause in an Agreement is rejected by SHACL
+  (`AgreementShape`). See *Crystallization* in `RL2_Semantics.md`.
 - **Claim roles** — the uniform `rl2:subject` / `rl2:counterparty`; there are no
   Claim-specific `claimHolder` / `claimAgainst` properties.
 - **Negative duties** — expressed solely as `rl2:Prohibition`; there is no

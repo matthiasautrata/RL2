@@ -1242,13 +1242,15 @@ ex:dataQualityPromise a rl2:Promise ;
     rl2:promisor ex:DataProvider ; rl2:promisee ex:DataConsumer ;
     rl2:promisedState ex:qualityThresholdMet .
 
-ex:dataContract a rl2:Agreement ;
+# A Promise's natural home is an Offer. (In an accepted Agreement it would have
+# crystallized into a Duty + correlative Claim.)
+ex:dataOffer a rl2:Offer ;
     rl2:grantor ex:DataProvider ; rl2:grantee ex:DataConsumer ;
     rl2:clause ex:dataQualityPromise .
 
 ex:dataQualityReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:dataQualityPromise ;
-    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:sourcePolicy ex:dataOffer ;
     rl2p:counterparty ex:DataConsumer ;  # The promisee/Claim holder
     rl2p:requirementStatus rl2:Pending ;
     rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime .

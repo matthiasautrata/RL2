@@ -183,8 +183,7 @@ rl2p:fulfilledByEvent a owl:ObjectProperty ;
     rdfs:comment "The event/log entry evidencing fulfillment of this requirement." .
 
 rl2p:fulfillmentEvidence a owl:ObjectProperty ;
-    rdfs:domain rl2p:Requirement ;
-    rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment." .
+    rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment. Used on both rl2p:Requirement (audit trail) and rl2p:ContextAssertion (fulfillment-as-context pattern); no rdfs:domain restriction since it is genuinely dual-use." .
 
 rl2p:requirementLabel a owl:DatatypeProperty ;
     rdfs:domain rl2p:Requirement ;
@@ -258,8 +257,9 @@ rl2p:requirementFulfilled a rl2:LeftOperand ;
     rdfs:label "Requirement Fulfilled" ;
     rdfs:comment "Left operand indicating requirement fulfillment status." .
 
-# Note: rl2p:fulfillmentEvidence is defined in Section 4 with domain rl2p:Requirement.
-# It may also be used on ContextAssertion to provide fulfillment evidence.
+# Note: rl2p:fulfillmentEvidence is defined in Section 4 (domain-unrestricted).
+# It is used on both rl2p:Requirement (audit trail) and rl2p:ContextAssertion
+# (fulfillment-as-context pattern, see RL2_Protocol.md).
 
 ############################################################
 # 7. Case Lifecycle

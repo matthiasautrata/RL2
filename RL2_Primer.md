@@ -958,7 +958,9 @@ No acceptance is required; these constitute standing rules.
 
 ### Offer
 
-An Offer proposes terms that become binding upon acceptance:
+An Offer proposes terms that become binding upon acceptance. It is the natural home
+for **Promises** — voluntary commitments, made or demanded — alongside any restated
+externally-imposed Duties (e.g. a statutory obligation the offeror must flag):
 
 ```turtle
 ex:licenseOffer a rl2:Offer ;
@@ -967,7 +969,9 @@ ex:licenseOffer a rl2:Offer ;
     rl2:clause ex:attributionDuty .
 ```
 
-Until acceptance, no obligations are created.
+Until acceptance, no obligations are created: a Promise binds its promisor but
+creates no correlative Claim, and there is no consenting counterparty to demand
+performance.
 
 ### Agreement
 
@@ -983,6 +987,15 @@ ex:dataContract a rl2:Agreement ;
 ```
 
 Both parties are identified. SHACL validation requires Agreements to have both `grantor` and `grantee`.
+
+**Crystallization.** Acceptance turns an Offer into an Agreement: each Promise
+*crystallizes* into a Duty plus its correlative Claim (acceptance supplies the
+claim-holder the bare Promise lacked), and any restated external Duties carry
+through. An executed Agreement therefore contains **only Norms — Duties and Claims,
+never Promises**. A Promise creates no correlative, so one sitting in a signed
+Agreement would be inert goodwill; SHACL rejects it (use an `rl2:Assertion` for a
+non-binding recital). Promises live in Offers; Duties live in Agreements. See
+*Crystallization (Offer → Agreement)* in `RL2_Semantics.md` for the full mapping.
 
 ### Policy-Level Conditions
 

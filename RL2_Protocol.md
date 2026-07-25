@@ -186,6 +186,39 @@ rl2p:explanation a owl:DatatypeProperty ;
 ## Example
 
 ```turtle
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
+ex:managerApprovalDuty a rl2:Duty ;
+    rl2:subject ex:BobManager ; rl2:action ex:approve ; rl2:object ex:LoanPortfolio .
+
+ex:loanAccessPolicy a rl2:Policy ;
+    rl2:clause ex:loanAccessPrivilege , ex:managerApprovalDuty .
+
+ex:dataQualityPromise a rl2:Promise ;
+    rl2:promisor ex:DataProvider ; rl2:promisee ex:DataConsumer ;
+    rl2:promisedState ex:qualityThresholdMet .
+
+ex:dataOffer a rl2:Offer ;                 # Promises live in Offers, not Agreements
+    rl2:grantor ex:DataProvider ; rl2:grantee ex:DataConsumer ;
+    rl2:clause ex:dataQualityPromise .
+
+ex:req1 a rl2p:Requirement ;
+    rl2p:sourceNorm ex:managerApprovalDuty ;
+    rl2p:sourcePolicy ex:loanAccessPolicy ;
+    rl2p:requirementStatus rl2:Active ;
+    rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
+
+ex:req2 a rl2p:Requirement ;
+    rl2p:sourceNorm ex:dataQualityPromise ;
+    rl2p:sourcePolicy ex:dataOffer ;
+    rl2p:counterparty ex:DataConsumer ;
+    rl2p:requirementStatus rl2:Pending ;
+    rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
+
 ex:eval1 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
     rl2p:decision rl2p:Permit ;
@@ -290,8 +323,7 @@ rl2p:fulfilledByEvent a owl:ObjectProperty ;
     rdfs:comment "The event/log entry evidencing fulfillment of this requirement." .
 
 rl2p:fulfillmentEvidence a owl:ObjectProperty ;
-    rdfs:domain rl2p:Requirement ;
-    rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment." .
+    rdfs:comment "Reference to evidence (document, signature, record) supporting fulfillment. Dual-use: Requirement (audit trail) and ContextAssertion (fulfillment-as-context, below); no rdfs:domain restriction." .
 
 rl2p:requirementLabel a owl:DatatypeProperty ;
     rdfs:domain rl2p:Requirement ;
@@ -308,6 +340,12 @@ rl2p:requirementDescription a owl:DatatypeProperty ;
 
 **1. Standard Duty (Manager Approval)**
 ```turtle
+ex:managerApprovalDuty a rl2:Duty ;
+    rl2:subject ex:BobManager ; rl2:action ex:approve ; rl2:object ex:LoanPortfolio .
+
+ex:loanAccessPolicy a rl2:Policy ;
+    rl2:clause ex:managerApprovalDuty .
+
 ex:req1 a rl2p:Requirement ;
     rl2p:sourceNorm ex:managerApprovalDuty ;
     rl2p:sourcePolicy ex:loanAccessPolicy ;
@@ -317,9 +355,17 @@ ex:req1 a rl2p:Requirement ;
 
 **2. Promise-sourced Requirement (Data Quality)**
 ```turtle
+ex:dataQualityPromise a rl2:Promise ;
+    rl2:promisor ex:DataProvider ; rl2:promisee ex:DataConsumer ;
+    rl2:promisedState ex:qualityThresholdMet .
+
+ex:dataOffer a rl2:Offer ;                 # Promises live in Offers, not Agreements
+    rl2:grantor ex:DataProvider ; rl2:grantee ex:DataConsumer ;
+    rl2:clause ex:dataQualityPromise .
+
 ex:req2 a rl2p:Requirement ;
     rl2p:sourceNorm ex:dataQualityPromise ;  # The promise itself
-    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:sourcePolicy ex:dataOffer ;
     rl2p:counterparty ex:DataConsumer ;       # The promisee (Claim holder)
     rl2p:requirementStatus rl2:Pending ;
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
@@ -344,15 +390,19 @@ A fulfillment assertion uses:
 rl2p:requirementFulfilled a rl2:LeftOperand ;
     rdfs:label "Requirement Fulfilled" ;
     rdfs:comment "Left operand indicating requirement fulfillment status." .
-
-rl2p:fulfillmentEvidence a owl:ObjectProperty ;
-    rdfs:domain rl2p:ContextAssertion ;
-    rdfs:comment "Reference to evidence (document, signature, log entry, approval record)." .
 ```
+
+`rl2p:fulfillmentEvidence` is defined above under Universal Requirement; it is domain-unrestricted, so it applies equally here on `rl2p:ContextAssertion`.
 
 ## Example
 
 ```turtle
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
 # Manager approval fulfillment - as context assertion
 ex:fulfillment1 a rl2p:ContextAssertion ;
     rl2p:forRequest ex:request1 ;
@@ -361,7 +411,8 @@ ex:fulfillment1 a rl2p:ContextAssertion ;
     rl2p:contextValue "true"^^xsd:boolean ;
     rl2p:fulfillmentEvidence ex:approvalEmail123 ;
     rl2p:assertedTime "2025-01-15T10:30:00Z"^^xsd:dateTime ;
-    rl2p:assertedBy ex:BobManager .
+    rl2p:assertedBy ex:BobManager ;
+    rl2p:performer ex:BobManager .
 ```
 
 ---
@@ -550,6 +601,12 @@ rl2p:assertedBy a owl:ObjectProperty ;
 ## Example
 
 ```turtle
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
 # Multiple assertions can reference the same request
 ex:ctx1 a rl2p:ContextAssertion ;
     rl2p:forRequest ex:request1 ;
@@ -700,6 +757,18 @@ ex:case1 a rl2p:Case ;
 ## Step 2: Evaluator Renders Decision with Requirements
 
 ```turtle
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
+ex:managerApprovalDuty a rl2:Norm .
+ex:dataHandlingTrainingDuty a rl2:Norm .
+
+ex:loanAccessPolicy a rl2:Policy ;
+    rl2:clause ex:loanAccessPrivilege , ex:managerApprovalDuty , ex:dataHandlingTrainingDuty .
+
 # Initial evaluation: Permit with requirements
 ex:eval1 a rl2p:EvaluationResult ;
     rl2p:evaluatedRequest ex:request1 ;
@@ -728,13 +797,23 @@ ex:req2 a rl2p:Requirement ;
     rl2p:requirementStatus rl2:Pending ;
     rl2p:imposedTime "2025-01-15T09:00:01Z"^^xsd:dateTime .
 
-# Case updated with evaluation
-ex:case1 rl2p:evaluationHistory ex:eval1 .
+# Case created and updated with evaluation
+ex:case1 a rl2p:Case ;
+    rl2p:initialRequest ex:request1 ;
+    rl2p:caseStatus rl2p:CasePending ;
+    rl2p:caseCreated "2025-01-15T09:00:00Z"^^xsd:dateTime ;
+    rl2p:evaluationHistory ex:eval1 .
 ```
 
 ## Step 3: Fulfillment Context Added
 
 ```turtle
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
 # Manager approves - fulfillment as context assertion
 ex:fulfillment1 a rl2p:ContextAssertion ;
     rl2p:forRequest ex:request1 ;
@@ -742,6 +821,7 @@ ex:fulfillment1 a rl2p:ContextAssertion ;
     rl2p:contextProperty rl2p:requirementFulfilled ;
     rl2p:contextValue "true"^^xsd:boolean ;
     rl2p:fulfillmentEvidence ex:approvalEmail123 ;
+    rl2p:performer ex:BobManager ;
     rl2p:assertedTime "2025-01-15T10:30:00Z"^^xsd:dateTime ;
     rl2p:assertedBy ex:BobManager .
 
@@ -752,6 +832,7 @@ ex:fulfillment2 a rl2p:ContextAssertion ;
     rl2p:contextProperty rl2p:requirementFulfilled ;
     rl2p:contextValue "true"^^xsd:boolean ;
     rl2p:fulfillmentEvidence ex:trainingCertificate456 ;
+    rl2p:performer ex:Alice ;
     rl2p:assertedTime "2025-01-15T14:00:00Z"^^xsd:dateTime ;
     rl2p:assertedBy ex:Alice .
 ```
@@ -759,6 +840,21 @@ ex:fulfillment2 a rl2p:ContextAssertion ;
 ## Step 4: Re-evaluation with Full Approval
 
 ```turtle
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
+ex:loanAccessPolicy a rl2:Policy ;
+    rl2:clause ex:loanAccessPrivilege .
+
+# First evaluation, referenced in the case's evaluationHistory below
+ex:eval1 a rl2p:EvaluationResult ;
+    rl2p:evaluatedRequest ex:request1 ;
+    rl2p:evaluationTime "2025-01-15T09:00:01Z"^^xsd:dateTime ;
+    rl2p:decision rl2p:PermitWithObligations .
+
 # Re-evaluation after requirements fulfilled
 # Note: activeRequirements is omitted when all requirements are fulfilled
 ex:eval2 a rl2p:EvaluationResult ;
@@ -770,7 +866,9 @@ ex:eval2 a rl2p:EvaluationResult ;
     rl2p:explanation "Access permitted. All requirements fulfilled." .
 
 # Case status updated
-ex:case1
+ex:case1 a rl2p:Case ;
+    rl2p:initialRequest ex:request1 ;
+    rl2p:caseCreated "2025-01-15T09:00:00Z"^^xsd:dateTime ;
     rl2p:evaluationHistory ex:eval1 , ex:eval2 ;
     rl2p:caseStatus rl2p:Approved ;
     rl2p:expirationTime "2026-01-15T09:00:00Z"^^xsd:dateTime .
@@ -805,12 +903,21 @@ ex:accessGrant1 a ex:AccessGrant ;
 # One year later: access expires
 # (This could be triggered by a scheduler or temporal event)
 
+ex:request1 a rl2p:Request ;
+    rl2p:requestedAction ex:accessLoanData ;
+    rl2p:requestedAsset ex:LoanPortfolio ;
+    rl2p:requestingAgent ex:Alice ;
+    rl2p:requestTime "2025-01-15T09:00:00Z"^^xsd:dateTime .
+
 ex:expirationEvent a rl2:Event ;
     rl2p:affectsCase ex:case1 ;
     rl2:eventTime "2026-01-15T09:00:00Z"^^xsd:dateTime .
 
 # Case status updated
-ex:case1 rl2p:caseStatus rl2p:Expired .
+ex:case1 a rl2p:Case ;
+    rl2p:initialRequest ex:request1 ;
+    rl2p:caseCreated "2025-01-15T09:00:00Z"^^xsd:dateTime ;
+    rl2p:caseStatus rl2p:Expired .
 
 # Re-certification requirement is created (could be a new case or extension)
 ex:recertCase1 a rl2p:Case ;

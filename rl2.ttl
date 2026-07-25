@@ -17,8 +17,18 @@
 # 1. Normative Layer (DPCL)
 ############################################################
 
+# A Clause is anything that can occupy a policy's rl2:clause slot: a Norm or a
+# Promise. It is the range of rl2:clause. Naming it as a class (rather than an
+# anonymous owl:unionOf) lets RDFS range-entailment auto-type clause referents as
+# rl2:Clause — subclass entailment only propagates upward, so this never coerces a
+# Promise into a Norm (the bug that a `range rl2:Norm` on rl2:clause used to cause).
+rl2:Clause a owl:Class ;
+    rdfs:label "Clause" ;
+    rdfs:comment "A Norm or a Promise — the admissible content of a policy clause." .
+
 # Norms represent deontic/legal relations between agents, actions, and assets.
 rl2:Norm a owl:Class ;
+    rdfs:subClassOf rl2:Clause ;
     rdfs:label "Norm" ;
     rdfs:comment "A normative relation in the DPCL sense." .
 
@@ -102,8 +112,9 @@ rl2:priority a owl:DatatypeProperty ;
 ############################################################
 
 rl2:Promise a owl:Class ;
+    rdfs:subClassOf rl2:Clause ;
     rdfs:label "Promise" ;
-    rdfs:comment "Voluntary cooperative commitment from promisor to promisee." .
+    rdfs:comment "Voluntary cooperative commitment from promisor to promisee. A Clause (may occupy a policy clause) but NOT a Norm — it creates no correlative until crystallized into a Duty on acceptance." .
 
 rl2:promisor a owl:ObjectProperty ;
     rdfs:domain rl2:Promise ;
@@ -261,7 +272,9 @@ rl2:targetNorm a owl:ObjectProperty ;
     rdfs:label "Target Norm" ;
     rdfs:comment """Specifies the norm whose state is being queried.
     Used with rl2:obligationStateOperand or rl2:dutyPerformerOperand left operands.
-    When present, resolve(leftOperand) queries state for this specific norm.""" .
+    When present, resolve(leftOperand) queries state for this specific norm.
+    (Querying a standalone Promise's PromiseState — which would widen this range to
+    include rl2:Promise — is specified under PROM-7, not here.)""" .
 
 # Left operands for norm state queries
 rl2:obligationStateOperand a rl2:LeftOperand ;
@@ -638,14 +651,17 @@ rl2:Assertion a owl:Class ;
 
 rl2:clause a owl:ObjectProperty ;
     rdfs:domain rl2:Policy ;
-    rdfs:range rl2:Norm ;
-    rdfs:comment "Associates norms with a policy container." .
+    rdfs:range rl2:Clause ;
+    rdfs:comment """Associates a Clause (a Norm, or a Promise) with a policy container.
+    A Promise is a legitimate clause only in an Offer (its natural home); on
+    acceptance it crystallizes into a Duty + correlative Claim, so a well-formed
+    Agreement/Set/Privacy/Assertion contains only Norms (enforced by SHACL).""" .
 
 rl2:clauseOf a owl:ObjectProperty ;
     owl:inverseOf rl2:clause ;
-    rdfs:domain rl2:Norm ;
+    rdfs:domain rl2:Clause ;
     rdfs:range rl2:Policy ;
-    rdfs:comment "The policy containing this norm." .
+    rdfs:comment "The policy containing this norm or promise." .
 
 ############################################################
 # 7. Policy Generations

@@ -1033,6 +1033,52 @@ deadlinePassed(content, Σ) = true
 
 Where `deadlinePassed(content, Σ)` checks for expiry of any temporal bound extracted from the promise content.
 
+### Crystallization (Offer → Agreement)
+
+An **Offer** is a bundle of voluntary Promises (made or demanded) together with any
+restated externally-imposed Duties — e.g. a data provider offers "complete, timely
+data" (a Promise) *and* restates the statutory GDPR erasure obligation (a Duty that
+holds regardless of the contract). Nothing in an Offer is yet enforceable *as a
+contract*: a Promise binds its promisor in the Promise-Theory sense but creates no
+correlative Claim, and there is no accepted counterparty who can demand performance.
+
+**Acceptance** transforms the Offer into an **Agreement**. Each Promise
+*crystallizes* into a Duty plus its correlative Claim — acceptance is precisely what
+supplies the claim-holder the bare Promise lacked. Restated external Duties carry
+through unchanged. The result is enforceable on both sides, and **no Promise
+survives in the Agreement**: a residual Promise creates no correlative and is
+therefore inert — a construct the totality proof would have to carry with no
+evaluation semantics — so it is rejected by SHACL (`AgreementShape`). Non-binding
+recitals, if wanted, belong in an `rl2:Assertion`, not a clause.
+
+This is distinct from the **Remedial Generation Rule** below: crystallization is
+*acceptance-triggered*, total, and structural (every Promise yields a Duty at
+contract formation); remedial generation is *violation-triggered* and produces a
+restorative Duty only when a live Promise's invariant is breached.
+
+**Crystallization function** (total over the three content forms):
+
+```
+crystallize(Promise(p, q, κ)) = (D, C)
+    where C = Claim(subject = q, counterparty = p, correlativeTo = D)
+```
+
+| Promise content `κ` | Crystallized Duty `D` | Fulfillment criterion (inherited from the Promise) | Behavioral wiring |
+|---|---|---|---|
+| `PromisedAction(x)` on `o` | `Duty(subject=p, action=x, object=o)` | `D` Fulfilled when `p` has performed `x` (`performed()`, subsumption-aware) | none — standard action-performance duty. **Fully closed.** |
+| `PromisedState(c)` on `o` | state-maintenance `Duty(subject=p, object=o)` whose fulfillment is `c` | Fulfilled while `c` holds; Violated when `c` fails or its deadline passes | ObligationState transitions for a condition-fulfilled ("maintenance") duty + `restoreAction` on breach → **SEM-1** |
+| `PromisedDuty(d)` | second-order (suretyship) `Duty(subject=p)` over `d` | Fulfilled when `d`'s ObligationState reaches `Fulfilled` | the remedy/liability the surety `p` incurs when `d` is Violated (guarantee vs indemnity) → **PROM-5** |
+
+Each Duty's fulfillment criterion is inherited directly from the promise content's
+*already-defined* semantics (`rl2.ttl`: `promisedAction` / `promisedState` /
+`promisedDuty` all specify fulfillment/violation). Crystallization therefore
+introduces **no new fulfillment semantics** — it re-homes an existing criterion
+onto a Duty and adds the correlative Claim. The two behavioral wirings flagged
+above (how a maintenance duty's ObligationState machine advances; what obligation a
+surety incurs on breach) are residual specification tasks owned by SEM-1 and
+PROM-5; the crystallization *targets* fixed here hold regardless of how those
+resolve, so the Offer→Agreement transition is well-defined for every promise now.
+
 ### Promise→Duty Generation (Remedial Generation Rule)
 
 **Conceptual Foundation (Sein-Sollen vs Tun-Sollen)**:
@@ -1081,14 +1127,14 @@ ex:dataQualityPromise a rl2:Promise ;
     rl2:promisee ex:DataConsumer ;
     rl2:promisedState ex:qualityThresholdMet .
 
-ex:dataContract a rl2:Agreement ;
+ex:dataOffer a rl2:Offer ;                    # Promises live in Offers
     rl2:grantor ex:DataProvider ;
     rl2:grantee ex:DataConsumer ;
     rl2:clause ex:dataQualityPromise .
 
 ex:remedialReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:dataQualityPromise ;  # The violated Promise
-    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:sourcePolicy ex:dataOffer ;
     rl2p:counterparty ex:DataConsumer ;       # The promisee/Claim holder
     rl2p:requirementStatus rl2:Active ;
     rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
