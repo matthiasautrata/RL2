@@ -234,10 +234,10 @@ Claim, Power, Immunity, Liability are specified but not stress-tested — their 
 "A master agreement under which A may make future binding promises to B" is properly modeled as a **Power** (in A) + **Liability** (in B) inside the Agreement, plus Promises made *outside* it. RL2 can express this but never explains the Power↔Promise connection. Document it; add a use case.
 
 ### PROM-3 — Conditional promise in an accepted agreement
-**Status:** Open · **Severity:** S3 · **Source:** critique 2 · **Tags:** [GEN]
+**Status:** ✅ Resolved 2026-07-25 (by PROM-1) · **Severity:** S3 · **Source:** critique 2 · **Tags:** [GEN]
 **Files:** `RL2_Semantics.md`, `RL2_Primer.md`
 
-"If audit findings > X, I promise to remediate within 30 days," placed in an Agreement — is it a conditional Duty or a Promise-that-generates-a-Duty? The architecture implies the former; resolve explicitly (falls out of PROM-1's decision + CANON-2).
+"If audit findings > X, I promise to remediate within 30 days," placed in an Agreement — is it a conditional Duty or a Promise-that-generates-a-Duty? **Resolved by the container-determines-semantics rule (PROM-1 + CANON-2):** an Agreement contains no Promises — every promise crystallizes into a Duty + correlative Claim on acceptance — so in an Agreement this is unambiguously a **conditional Duty** (the condition is the duty's activation guard). The Promise-with-a-condition form exists only in an **Offer**, where it crystallizes to the conditional Duty on acceptance. The container type (Offer vs Agreement) fixes the reading; no ambiguity remains.
 
 ### PROM-4 — No `promisorOperand` in core
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER][COV]
