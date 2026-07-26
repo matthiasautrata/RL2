@@ -134,10 +134,35 @@ Beyond policy, technical measures may include:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a general-use Privilege alongside a specific
+Prohibition on ML training that takes priority over it; fine-tuning
+and embedding-creation are declared narrower actions `includedIn`
+the prohibited training action.
 
 ```turtle
-# Placeholder - will demonstrate Prohibition with specific action
+@prefix ex: <https://example.org/> .
+@prefix ai: <https://example.org/profile/ai#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── General use Privilege ─────────────────────────────────────────
+ex:useContentPrivilege a rl2:Privilege ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:use ;
+    rl2:object ex:LicensedContent .
+
+ex:use a rl2:Action ;
+    rdfs:label "Use" .
+
+# ── Specific Prohibition: ML/AI training, regardless of the above ──
+ex:noTrainingProhibition a rl2:Prohibition ;
+    rl2:subject ex:Licensee ;
+    rl2:prohibitedAction ai:trainModel ;
+    rl2:object ex:LicensedContent .
+
+ex:contentLicense a rl2:Agreement ;
+    rl2:grantor ex:ContentPlatform ;
+    rl2:grantee ex:Licensee ;
+    rl2:clause ex:useContentPrivilege, ex:noTrainingProhibition .
 ```
 
 ---

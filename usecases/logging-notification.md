@@ -154,10 +154,66 @@ audit:reportingPeriodEndOperand a rl2:LeftOperand ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates three Duties accompanying the access
+Privilege: an unconditional logging Duty, an incident-triggered
+notification Duty, and a period-end reporting Duty.
 
 ```turtle
-# Placeholder - will demonstrate triggered Duty for logging
+@prefix ex: <https://example.org/> .
+@prefix audit: <https://example.org/profile/audit#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Privilege: access the shared data ────────────────────────────
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Consumer ;
+    rl2:action ex:access ;
+    rl2:object ex:SharedData .
+
+ex:access a rl2:Action ;
+    rdfs:label "Access" .
+
+# ── Duty: log every access, unconditionally ──────────────────────
+ex:logAccessDuty a rl2:Duty ;
+    rl2:subject ex:Consumer ;
+    rl2:action audit:logAccess ;
+    rl2:object ex:AccessEvent ;
+    rl2:counterparty ex:Provider .
+
+# ── Duty: notify the provider within 24h of a security incident ──
+ex:notifyIncidentDuty a rl2:Duty ;
+    rl2:subject ex:Consumer ;
+    rl2:action audit:notify ;
+    rl2:object ex:SecurityIncident ;
+    rl2:counterparty ex:Provider ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand audit:isSecurityIncidentOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "true"^^xsd:boolean
+    ] .
+
+# ── Duty: submit a usage report once the reporting period ends ──
+ex:reportingDuty a rl2:Duty ;
+    rl2:subject ex:Consumer ;
+    rl2:action audit:submitReport ;
+    rl2:object ex:UsageReport ;
+    rl2:counterparty ex:Provider ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:currentDateOperand ;
+        rl2:constraintOperator rl2:gte ;
+        rl2:rightOperandRef audit:reportingPeriodEndOperand
+    ] .
+
+ex:currentDateOperand a rl2:LeftOperand ;
+    rdfs:label "Current Date" ;
+    rl2:resolutionPath "context.now" .
+
+ex:dataExchangeAgreement a rl2:Agreement ;
+    rl2:grantor ex:Provider ;
+    rl2:grantee ex:Consumer ;
+    rl2:clause ex:accessPrivilege, ex:logAccessDuty, ex:notifyIncidentDuty, ex:reportingDuty .
 ```
 
 ---

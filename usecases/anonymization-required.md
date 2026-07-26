@@ -127,10 +127,42 @@ privacy:anonymizationMethodOperand a rl2:LeftOperand ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a Duty (anonymize) that gates a Privilege
+(analyze): the researcher's privilege only becomes exercisable once
+the anonymization duty's recorded status is `"fulfilled"`.
 
 ```turtle
-# Placeholder - will demonstrate Duty as precondition to Privilege
+@prefix ex: <https://example.org/> .
+@prefix privacy: <https://example.org/profile/privacy#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Duty: anonymize before any downstream use ────────────────────
+ex:anonymizationDuty a rl2:Duty ;
+    rl2:subject ex:DataProcessor ;
+    rl2:action privacy:anonymize ;
+    rl2:object ex:RawPatientDataset ;
+    rl2:counterparty ex:HealthcareOrganization .
+
+# ── Privilege: analyze, gated on the duty's fulfilled status ────
+ex:analyzeAnonymizedData a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:analyze ;
+    rl2:object ex:AnonymizedDataset ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand privacy:anonymizationStatusOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "fulfilled"
+    ] .
+
+ex:analyze a rl2:Action ;
+    rdfs:label "Analyze" .
+
+ex:dataSharingAgreement a rl2:Agreement ;
+    rl2:grantor ex:HealthcareOrganization ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:anonymizationDuty, ex:analyzeAnonymizedData .
 ```
 
 ---

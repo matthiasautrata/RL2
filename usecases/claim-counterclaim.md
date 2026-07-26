@@ -165,7 +165,13 @@ Consumer2 holds Claim C2 correlative to D
 
 ## Protocol Representation
 
-When a Claim exists, the protocol can represent the Consumer's position:
+When a Claim exists, the protocol can represent the Consumer's position via
+`rl2p:Requirement` — see the RL2 Model below. The `counterparty` field on
+`rl2p:Requirement` captures who holds the correlative Claim.
+
+---
+
+## RL2 Model
 
 ```turtle
 # The data contract carries both sides of the relationship.
@@ -195,19 +201,6 @@ ex:freshnessRequirement a rl2p:Requirement ;
     rl2p:imposedTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
     rl2p:counterparty ex:Consumer ;  # The claim holder
     rl2p:requirementStatus rl2:Active .
-```
-
-The `counterparty` field on `rl2p:Requirement` captures who holds the correlative Claim.
-
----
-
-## RL2 Model
-
-*To be added after pattern documentation is approved.*
-
-```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Claim, subject, counterparty, correlativeTo
 ```
 
 ---

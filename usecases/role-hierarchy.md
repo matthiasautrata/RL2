@@ -170,10 +170,33 @@ docclass:PublicDocument a rdfs:Class ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates `isA` matching a document's declared class
+against `InternalDocument`, so the Privilege covers both the class
+itself and its subclasses (e.g. `ConfidentialDocument`).
 
 ```turtle
-# Placeholder - will demonstrate isA operator with type hierarchy
+@prefix ex: <https://example.org/> .
+@prefix docclass: <https://example.org/profile/docclass#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Privilege: managers may access internal documents (and subtypes) ──
+ex:accessInternalDocsPrivilege a rl2:Privilege ;
+    rl2:subject ex:Manager ;
+    rl2:action ex:access ;
+    rl2:object ex:Documents ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand docclass:documentTypeOperand ;
+        rl2:constraintOperator rl2:isA ;
+        rl2:rightOperandRef docclass:InternalDocument
+    ] .
+
+ex:access a rl2:Action ;
+    rdfs:label "Access" .
+
+ex:documentAccessPolicy a rl2:Set ;
+    rl2:grantor ex:DocumentManagementSystem ;
+    rl2:clause ex:accessInternalDocsPrivilege .
 ```
 
 ---

@@ -144,10 +144,53 @@ retention:certifyDeletion a rl2:Action ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates the retention/deletion pair: a Privilege to
+retain the data while the current time is still before the deadline,
+and a Duty to delete it once that deadline has passed.
 
 ```turtle
-# Placeholder - will demonstrate temporal Duty with deadline
+@prefix ex: <https://example.org/> .
+@prefix retention: <https://example.org/profile/retention#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:currentDateTimeOperand a rl2:LeftOperand ;
+    rdfs:label "Current Date/Time" ;
+    rl2:resolutionPath "context.now" ;
+    rdfs:range xsd:dateTime .
+
+# ── Privilege: retain data while before the deadline ─────────────
+ex:retainPrivilege a rl2:Privilege ;
+    rl2:subject ex:Recipient ;
+    rl2:action ex:retain ;
+    rl2:object ex:StudyDataset ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:currentDateTimeOperand ;
+        rl2:constraintOperator rl2:lt ;
+        rl2:rightOperandRef retention:retentionDeadlineOperand
+    ] .
+
+ex:retain a rl2:Action ;
+    rdfs:label "Retain" .
+
+# ── Duty: delete all copies once the deadline has passed ─────────
+ex:deleteDataDuty a rl2:Duty ;
+    rl2:subject ex:Recipient ;
+    rl2:action retention:delete ;
+    rl2:object ex:StudyDataset ;
+    rl2:counterparty ex:ResearchInstitution ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:currentDateTimeOperand ;
+        rl2:constraintOperator rl2:gte ;
+        rl2:rightOperandRef retention:retentionDeadlineOperand
+    ] .
+
+ex:dataUseAgreement a rl2:Agreement ;
+    rl2:grantor ex:ResearchInstitution ;
+    rl2:grantee ex:Recipient ;
+    rl2:clause ex:retainPrivilege, ex:deleteDataDuty .
 ```
 
 ---

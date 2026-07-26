@@ -167,11 +167,40 @@ Power exercise should be logged:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
-
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Power, affectsNorm, Liability (correlative)
+# The privilege the Data Steward originally granted, conditioned on the
+# grantor having been the Steward exercising this revocation power.
+ex:researcherAccessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:accessDataset ;
+    rl2:object ex:SensitiveDataset ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand governance:grantorOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef ex:DataSteward
+    ] .
+
+ex:accessDataset a rl2:Action ;
+    rdfs:label "Access Dataset" .
+
+# Power: the Steward's ongoing authority to extinguish that privilege.
+ex:revocationPower a rl2:Power ;
+    rl2:subject ex:DataSteward ;
+    rl2:action governance:revoke ;
+    rl2:affectsNorm ex:researcherAccessPrivilege ;
+    rl2:correlativeTo ex:researcherLiability .
+
+# Liability: the Researcher's correlative exposure to that power.
+ex:researcherLiability a rl2:Liability ;
+    rl2:subject ex:Researcher ;
+    rl2:exposedTo ex:revocationPower ;
+    rl2:correlativeTo ex:revocationPower .
+
+ex:dataAccessPolicy a rl2:Agreement ;
+    rl2:grantor ex:DataSteward ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:researcherAccessPrivilege, ex:revocationPower, ex:researcherLiability .
 ```
 
 ---

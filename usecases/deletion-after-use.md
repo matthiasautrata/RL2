@@ -143,10 +143,39 @@ lifecycle:delete a rl2:Action ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a Privilege to process data for a stated
+purpose, and a downstream Duty to delete all copies once the
+processing-complete Event has occurred.
 
 ```turtle
-# Placeholder - will demonstrate event-triggered deletion Duty
+@prefix ex: <https://example.org/> .
+@prefix lifecycle: <https://example.org/profile/lifecycle#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Privilege: process for route optimization ────────────────────
+ex:processPrivilege a rl2:Privilege ;
+    rl2:subject ex:Recipient ;
+    rl2:action ex:processForOptimization ;
+    rl2:object ex:ShipmentData .
+
+ex:processForOptimization a rl2:Action ;
+    rdfs:label "Process for Route Optimization" .
+
+# ── Duty: delete all copies once processing is complete ──────────
+ex:deleteDataDuty a rl2:Duty ;
+    rl2:subject ex:Recipient ;
+    rl2:action lifecycle:delete ;
+    rl2:object ex:ShipmentData ;
+    rl2:counterparty ex:LogisticsCompany ;
+    rl2:condition [
+        a rl2:EventConstraint ;
+        rl2:expectsEvent lifecycle:ProcessingComplete
+    ] .
+
+ex:dataSharingAgreement a rl2:Agreement ;
+    rl2:grantor ex:LogisticsCompany ;
+    rl2:grantee ex:Recipient ;
+    rl2:clause ex:processPrivilege, ex:deleteDataDuty .
 ```
 
 ---

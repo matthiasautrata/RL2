@@ -124,10 +124,55 @@ ids:TrustPlus a ids:CertificationLevel .
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a Privilege gated on the requesting
+connector's certification level (whitelist via `isAnyOf`) and its
+certification not yet having expired (`gt` against the current
+request time).
 
 ```turtle
-# Placeholder - will demonstrate profile operand for certification
+@prefix ex: <https://example.org/> .
+@prefix ids: <https://example.org/profile/ids#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Acceptable certification levels (whitelist) ──────────────────
+ids:AcceptedCertificationLevels a rl2:AssetCollection ;
+    rdfs:label "Accepted Certification Levels" ;
+    rl2:member ids:Trust, ids:TrustPlus .
+
+ex:requestTimeOperand a rl2:LeftOperand ;
+    rdfs:label "Request Time" ;
+    rl2:resolutionPath "context.request.time" ;
+    rdfs:range xsd:dateTime .
+
+# ── Privilege: exchange data via a certified, current connector ──
+ex:exchangeDataPrivilege a rl2:Privilege ;
+    rl2:subject ex:DataConsumer ;
+    rl2:action ex:retrieve ;
+    rl2:object ex:TrafficData ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand ids:connectorCertLevelOperand ;
+            rl2:constraintOperator rl2:isAnyOf ;
+            rl2:rightOperandRef ids:AcceptedCertificationLevels
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand ids:connectorCertValidUntilOperand ;
+            rl2:constraintOperator rl2:gt ;
+            rl2:rightOperandRef ex:requestTimeOperand
+        ]
+    ] .
+
+ex:retrieve a rl2:Action ;
+    rdfs:label "Retrieve" .
+
+ex:mobilityDataSpacePolicy a rl2:Set ;
+    rl2:grantor ex:DataProvider ;
+    rl2:clause ex:exchangeDataPrivilege .
 ```
 
 ---

@@ -137,10 +137,39 @@ protection:irrevocableImmunity a rl2:Immunity ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates `Immunity`/`immuneFrom`: the Researcher's
+perpetual use Privilege is the norm that the Licensor's Power would
+otherwise be able to affect, but the Researcher's Immunity puts that
+Power beyond effective exercise.
 
 ```turtle
-# Placeholder - will demonstrate Immunity, immuneFrom
+@prefix ex: <https://example.org/> .
+@prefix protection: <https://example.org/profile/protection#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Privilege: perpetual use of the dataset ──────────────────────
+ex:usePrivilege a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:use ;
+    rl2:object ex:Dataset .
+
+ex:use a rl2:Action ;
+    rdfs:label "Use" .
+
+# ── Power the Licensor would ordinarily hold over that Privilege ──
+protection:terminationPower a rl2:Power ;
+    rl2:subject ex:Licensor ;
+    rl2:affectsNorm ex:usePrivilege .
+
+# ── Immunity: the Researcher is protected from that Power ───────
+protection:irrevocableImmunity a rl2:Immunity ;
+    rl2:subject ex:Researcher ;
+    rl2:immuneFrom protection:terminationPower .
+
+ex:irrevocableLicense a rl2:Agreement ;
+    rl2:grantor ex:Licensor ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:usePrivilege, protection:terminationPower, protection:irrevocableImmunity .
 ```
 
 ---

@@ -151,10 +151,34 @@ ex:ClinicalOutcomesCollection a rl2:AssetCollection ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a single Privilege whose object is an
+`AssetCollection`, so the grant applies uniformly to every member
+dataset without a separate norm per asset.
 
 ```turtle
-# Placeholder - will demonstrate AssetCollection with member property
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── AssetCollection: the governed group of datasets ──────────────
+ex:ClinicalOutcomesCollection a rl2:AssetCollection ;
+    rdfs:label "Clinical Outcomes" ;
+    rl2:member ex:PatientDemographics ;
+    rl2:member ex:TreatmentRecords ;
+    rl2:member ex:OutcomeMeasures ;
+    rl2:member ex:AdverseEvents .
+
+# ── Privilege: access applies to the collection as a whole ──────
+ex:collectionAccessPrivilege a rl2:Privilege ;
+    rl2:subject ex:ResearchTeam ;
+    rl2:action ex:access ;
+    rl2:object ex:ClinicalOutcomesCollection .
+
+ex:access a rl2:Action ;
+    rdfs:label "Access" .
+
+ex:catalogPolicy a rl2:Set ;
+    rl2:grantor ex:DataCatalog ;
+    rl2:clause ex:collectionAccessPrivilege .
 ```
 
 ---

@@ -111,10 +111,26 @@ datacontract:Marketing a datacontract:Purpose .
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
-
 ```turtle
-# Placeholder for RL2 implementation
+datacontract:ApprovedPurposes a rl2:AssetCollection ;
+    rdfs:label "Approved Purposes" ;
+    rl2:member datacontract:RiskAssessment, datacontract:FraudDetection, datacontract:RegulatoryReporting .
+
+# Permit only if the declared purpose is one of the approved purposes.
+ex:approvedPurposeAccess a rl2:Privilege ;
+    rl2:subject ex:InternalTeam ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerAnalyticsData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand datacontract:purposeOperand ;
+        rl2:constraintOperator rl2:isAnyOf ;
+        rl2:rightOperandRef datacontract:ApprovedPurposes
+    ] .
+
+ex:analyticsDataPolicy a rl2:Set ;
+    rl2:grantor ex:FinancialInstitution ;
+    rl2:clause ex:approvedPurposeAccess .
 ```
 
 ---

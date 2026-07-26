@@ -131,10 +131,60 @@ license:DisplayUseTypes a rdf:List ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates `isAnyOf` classifying the requested use type
+against a whitelist of display uses, alongside a Prohibition on
+algorithmic (non-display) use absent a separate license.
 
 ```turtle
-# Placeholder - will demonstrate isAnyOf for use type sets
+@prefix ex: <https://example.org/> .
+@prefix license: <https://example.org/profile/license#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Display use types (whitelist) ─────────────────────────────────
+ex:DisplayUseTypes a rl2:AssetCollection ;
+    rdfs:label "Display Use Types" ;
+    rl2:member ex:View, ex:ManualAnalysis, ex:Reporting .
+
+# ── Privilege: display use is permitted under the base license ────
+ex:displayUsePrivilege a rl2:Privilege ;
+    rl2:subject ex:LicensedTrader ;
+    rl2:action ex:useData ;
+    rl2:object ex:MarketData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand license:useTypeOperand ;
+        rl2:constraintOperator rl2:isAnyOf ;
+        rl2:rightOperandRef ex:DisplayUseTypes
+    ] .
+
+ex:useData a rl2:Action ;
+    rdfs:label "Use Data" .
+
+# ── Prohibition: algorithmic (non-display) use without a license ──
+ex:nonDisplayProhibition a rl2:Prohibition ;
+    rl2:subject ex:AnySystem ;
+    rl2:prohibitedAction ex:algorithmicUse ;
+    rl2:object ex:MarketData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:hasNonDisplayLicenseOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "false"^^xsd:boolean
+    ] .
+
+ex:algorithmicUse a rl2:Action ;
+    rdfs:label "Algorithmic Use" .
+
+ex:hasNonDisplayLicenseOperand a rl2:LeftOperand ;
+    rdfs:label "Has Non-Display License" ;
+    rl2:resolutionPath "context.licensee.hasNonDisplayLicense" ;
+    rdfs:range xsd:boolean .
+
+ex:marketDataLicense a rl2:Agreement ;
+    rl2:grantor ex:DataVendor ;
+    rl2:grantee ex:Bank ;
+    rl2:clause ex:displayUsePrivilege, ex:nonDisplayProhibition .
 ```
 
 ---

@@ -185,11 +185,43 @@ Power exercise must be logged:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
-
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Power, affectsNorm (template), privilege instantiation
+# The Steward's ongoing authority to bring a new access privilege into existence
+# for researchers requesting datasets in their domain.
+ex:grantPower a rl2:Power ;
+    rl2:subject ex:DataSteward ;
+    rl2:action governance:grantAccess ;
+    rl2:affectsNorm ex:futureAccessPrivilege ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand governance:domainOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef governance:stewardDomainOperand
+    ] ;
+    rl2:correlativeTo ex:researcherLiability .
+
+# Liability: the researcher's position may be favorably altered by the Power's
+# exercise (Hohfeldian liability need not be adverse — see Business Context).
+ex:researcherLiability a rl2:Liability ;
+    rl2:subject ex:Researcher ;
+    rl2:exposedTo ex:grantPower ;
+    rl2:correlativeTo ex:grantPower .
+
+# The privilege template the Power creates when exercised. It is declared here
+# so affectsNorm has a concrete referent; each exercise instantiates a new
+# privilege of this shape for the specific researcher and dataset involved.
+ex:futureAccessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:accessDataset ;
+    rl2:object ex:StewardedDataset .
+
+ex:accessDataset a rl2:Action ;
+    rdfs:label "Access Dataset" .
+
+ex:stewardshipPolicy a rl2:Agreement ;
+    rl2:grantor ex:DataSteward ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:grantPower, ex:researcherLiability .
 ```
 
 ---

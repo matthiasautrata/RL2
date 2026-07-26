@@ -170,11 +170,55 @@ Internal use licenses often require:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a scoped Privilege (internal use) with a
+`context.recipient.type` condition, and a basic Prohibition against
+external use. All entities are declared within the model block so the
+graph is self-contained.
 
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Privilege (scoped), Prohibition (basic)
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Actions ──────────────────────────────────────────────────────
+ex:internalUse a rl2:Action ;
+    rdfs:label "Internal Use" ;
+    rdfs:comment "Use within the licensee organization." .
+
+ex:externalUse a rl2:Action ;
+    rdfs:label "External Use" ;
+    rdfs:comment "Use involving third parties outside the organization." .
+
+# ── Operand — resolves to the recipient context ─────────────────
+ex:recipientTypeOperand a rl2:LeftOperand ;
+    rdfs:label "Recipient Type" ;
+    rl2:resolutionPath "context.recipient.type" .
+
+# ── Privilege: internal use permitted ───────────────────────────
+ex:internalUsePrivilege a rl2:Privilege ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:internalUse ;
+    rl2:object ex:LicensedData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:recipientTypeOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "internal"
+    ] .
+
+# ── Prohibition: external use forbidden ─────────────────────────
+ex:externalUseProhibition a rl2:Prohibition ;
+    rl2:subject ex:Licensee ;
+    rl2:prohibitedAction ex:externalUse ;
+    rl2:object ex:LicensedData .
+
+# ── Policy grouping both norms ──────────────────────────────────
+# Uses rl2:Policy (the base class) with both a Privilege clause and
+# a Prohibition clause.
+ex:internalUsePolicy a rl2:Policy ;
+    rl2:grantor ex:DataVendor ;
+    rl2:grantee ex:Licensee ;
+    rl2:clause ex:internalUsePrivilege, ex:externalUseProhibition .
 ```
 
 ---

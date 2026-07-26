@@ -116,10 +116,49 @@ license:incrementCounter a rl2:Action ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates the counter-operand pattern: a Privilege
+gated on a persistent usage count staying at or below the licensed
+limit, plus a triggered Duty to increment that counter after each
+query.
 
 ```turtle
-# Placeholder - will demonstrate counter operand pattern
+@prefix ex: <https://example.org/> .
+@prefix license: <https://example.org/profile/license#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Privilege: query, while usage count stays within the limit ──────
+ex:queryPrivilege a rl2:Privilege ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:query ;
+    rl2:object ex:MarketData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand license:usageCountOperand ;
+        rl2:constraintOperator rl2:lte ;
+        rl2:rightOperandRef license:usageLimitOperand
+    ] .
+
+ex:query a rl2:Action ;
+    rdfs:label "Query" .
+
+ex:queryPerformedEvent a rl2:Event ;
+    rdfs:label "Query Performed" .
+
+# ── Duty: increment the usage counter after every query ──────────────
+ex:incrementCounterDuty a rl2:Duty ;
+    rl2:subject ex:System ;
+    rl2:action license:incrementCounter ;
+    rl2:object ex:UsageCounter ;
+    rl2:counterparty ex:Licensee ;
+    rl2:condition [
+        a rl2:EventConstraint ;
+        rl2:expectsEvent ex:queryPerformedEvent
+    ] .
+
+ex:marketDataLicense a rl2:Agreement ;
+    rl2:grantor ex:Bank ;
+    rl2:grantee ex:Licensee ;
+    rl2:clause ex:queryPrivilege, ex:incrementCounterDuty .
 ```
 
 ---

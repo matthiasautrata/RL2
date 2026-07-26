@@ -543,6 +543,42 @@ per-fence, and all 51 use cases still pass whole-file.
 
 No use case tests `ProhibitOverrides` vs `PermitOverrides` vs `SpecificOverridesGeneral` on the same scenario; none exercises the Forth-IR compilation path end-to-end; none demonstrates external data integration (the `resolve` function calling an external source). (ODRL migration coverage is tracked separately as **OPEN-3**.) **Action:** add targeted use cases once SEM-4/IR and SEM-13/external-data work stabilize enough to give them a fixed target to test against.
 
+### VALID-5 — DeepSeek use-case pass: accuracy check + marker removal ✅ RESOLVED (2026-07-26)
+**Status:** Resolved · **Severity:** S2 · **Source:** user-directed audit · **Tags:** [COV]
+**Files:** `usecases/*` (all 52), `usecases/README.md`
+
+An external model (DeepSeek) was asked to work through the use-case corpus and mark
+its edits with an `editedby: Deepseek` frontmatter line. Every one of the 52 marked
+files was checked against the pre-edit git version and, where needed, fixed:
+
+- **22 files** had only a placeholder `## RL2 Model` (`*To be added after pattern
+  documentation is approved.*` / `# Placeholder for RL2 implementation`) — 5 had been
+  emptied back to that placeholder, 17 had never gotten past `Status: DRAFT`. Wrote
+  real, self-contained Turtle for all 22, matching each file's own Normative
+  Structure/Profile Requirements sections and established corpus idioms (`Privilege`/
+  `Duty`/`Prohibition` gated by `AtomicConstraint` or `EventConstraint`, wrapped in an
+  `Agreement`/`Set`/`Policy`). One drafting slip caught before validation: typed a
+  fulfillment-evidence IRI as `a rl2p:Evidence`, a class that doesn't exist in
+  `rl2p.ttl`/`rl2p-shacl.ttl` — fixed by using the bare-untyped-IRI idiom
+  `RL2_Protocol.md` already establishes for `rl2p:fulfillmentEvidence` targets.
+- **6 files** (`claim-counterclaim`, `purpose-restriction`, `approval-revocation`,
+  `power-to-grant`, `internal-use-only`, `derived-data-restriction`) had real
+  DeepSeek-authored Turtle beyond the marker line. All validated correctly against
+  `rl2-shacl.ttl`/`rl2p-shacl.ttl`; `claim-counterclaim.md` had one editorial defect
+  (a sentence duplicated both before and after the code fence from how the edit moved
+  content out of "Protocol Representation" into "RL2 Model") — removed the duplicate.
+- **28 files** carried only the marker line with no content change — confirmed each
+  still had a complete, already-valid `RL2 Model` section.
+
+All 52 `editedby: Deepseek` frontmatter lines then removed. Full corpus revalidated
+clean after every step: `usecases/*.md` (whole-file) → `PASS 0 · WARN-ONLY 52 · FAIL 0
+· SKIP 1`. `usecases/README.md`'s "52 complete, 0 draft" claim, previously aspirational,
+is now actually true — no placeholder or DRAFT-only `RL2 Model` sections remain
+anywhere in the corpus (individual files' own `**Status:** DRAFT` frontmatter field
+was left untouched — that field is editorially stale across the corpus and tracking
+its accuracy is a separate, not-yet-scoped cleanup from the RL2-Model completeness
+checked here).
+
 ---
 
 ## Band 4 — Implementation

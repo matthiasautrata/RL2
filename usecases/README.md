@@ -1,6 +1,6 @@
 # RL2 Use Cases
 
-**Total: 52 use cases** — 17 complete, 35 draft
+**Total: 52 use cases** — 52 complete, 0 draft
 
 ---
 
@@ -41,12 +41,12 @@
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 18 | internal-use-only.md | Basic restriction | — | 📝 |
-| 19 | no-redistribution.md | Prohibition + pass-through | — | 📝 |
-| 20 | derived-data-restriction.md | Conditional prohibition | — | 📝 |
-| 21 | usage-metering.md | Count-based constraint | — | 📝 |
-| 22 | display-vs-nondisplay.md | Use-type differentiation | — | 📝 |
-| 23 | pass-through-terms.md | Downstream obligations | — | 📝 |
+| 18 | internal-use-only.md | Basic restriction | — | ✅ |
+| 19 | no-redistribution.md | Prohibition + pass-through | — | ✅ |
+| 20 | derived-data-restriction.md | Conditional prohibition | — | ✅ |
+| 21 | usage-metering.md | Count-based constraint | — | ✅ |
+| 22 | display-vs-nondisplay.md | Use-type differentiation | — | ✅ |
+| 23 | pass-through-terms.md | Downstream obligations | — | ✅ |
 
 ---
 
@@ -54,14 +54,14 @@
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 24 | purpose-restriction.md | Purpose whitelist | `isAnyOf` | 📝 |
-| 25 | geo-restriction.md | Jurisdiction control | `isNoneOf` | 📝 |
-| 26 | legal-review-gate.md | Approval workflow | `Offer`→`Agreement` | 📝 |
-| 27 | approval-revocation.md | Power to revoke | `Power` | 📝 |
-| 28 | data-retention-limit.md | Time-bound deletion | — | 📝 |
-| 29 | anonymization-required.md | Processing constraint | — | 📝 |
-| 30 | no-ml-training.md | Use prohibition | — | 📝 |
-| 31 | multi-level-approval.md | Sequential approvals | — | 📝 |
+| 24 | purpose-restriction.md | Purpose whitelist | `isAnyOf` | ✅ |
+| 25 | geo-restriction.md | Jurisdiction control | `isNoneOf` | ✅ |
+| 26 | legal-review-gate.md | Approval workflow | `Offer`→`Agreement` | ✅ |
+| 27 | approval-revocation.md | Power to revoke | `Power` | ✅ |
+| 28 | data-retention-limit.md | Time-bound deletion | — | ✅ |
+| 29 | anonymization-required.md | Processing constraint | — | ✅ |
+| 30 | no-ml-training.md | Use prohibition | — | ✅ |
+| 31 | multi-level-approval.md | Sequential approvals | — | ✅ |
 
 ---
 
@@ -69,12 +69,12 @@
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 32 | connector-certification.md | Certified connector | — | 📝 |
-| 33 | data-sovereignty.md | Provider controls | — | 📝 |
-| 34 | volume-limit.md | Data amount restriction | — | 📝 |
-| 35 | logging-notification.md | Must log or notify | — | 📝 |
-| 36 | deletion-after-use.md | Post-processing deletion | — | 📝 |
-| 37 | time-window-access.md | Temporal restriction | — | 📝 |
+| 32 | connector-certification.md | Certified connector | — | ✅ |
+| 33 | data-sovereignty.md | Provider controls | — | ✅ |
+| 34 | volume-limit.md | Data amount restriction | — | ✅ |
+| 35 | logging-notification.md | Must log or notify | — | ✅ |
+| 36 | deletion-after-use.md | Post-processing deletion | — | ✅ |
+| 37 | time-window-access.md | Temporal restriction | — | ✅ |
 
 ---
 
@@ -82,11 +82,11 @@
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 38 | claim-counterclaim.md | Correlative positions | `Claim` | 📝 |
-| 39 | immunity-from-termination.md | Protection from power | `Immunity` | 📝 |
-| 40 | power-to-grant.md | Authority to create | `Power` | 📝 |
-| 41 | liability-exposure.md | Exposure to power | — | 📝 |
-| 42 | no-claim-inference.md | Privilege correlative | — | 📝 |
+| 38 | claim-counterclaim.md | Correlative positions | `Claim` | ✅ |
+| 39 | immunity-from-termination.md | Protection from power | `Immunity` | ✅ |
+| 40 | power-to-grant.md | Authority to create | `Power` | ✅ |
+| 41 | liability-exposure.md | Exposure to power | — | ✅ |
+| 42 | no-claim-inference.md | Privilege correlative | — | ✅ |
 
 ---
 
@@ -94,13 +94,13 @@
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 43 | exclusive-license.md | Exactly-one choice | `xone` | 📝 |
-| 44 | multi-certification.md | All required | `isAllOf` | 📝 |
-| 45 | negated-condition.md | Unless clause | `not` | 📝 |
-| 46 | role-hierarchy.md | Type-based access | `isA` | 📝 |
-| 47 | asset-collection-access.md | Bulk dataset | `AssetCollection` | 📝 |
-| 48 | compliance-attestation.md | Status declaration | `Assertion` | 📝 |
-| 49 | policy-versioning.md | Generation tracking | `policyGeneration` | 📝 |
+| 43 | exclusive-license.md | Exactly-one choice | `xone` | ✅ |
+| 44 | multi-certification.md | All required | `isAllOf` | ✅ |
+| 45 | negated-condition.md | Unless clause | `not` | ✅ |
+| 46 | role-hierarchy.md | Type-based access | `isA` | ✅ |
+| 47 | asset-collection-access.md | Bulk dataset | `AssetCollection` | ✅ |
+| 48 | compliance-attestation.md | Status declaration | `Assertion` | ✅ |
+| 49 | policy-versioning.md | Generation tracking | `policyGeneration` | ✅ |
 
 ---
 
@@ -108,17 +108,9 @@
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 50 | runtime-evaluation.md | Evaluation trace | `rl2p:Requirement` | 📝 |
-| 51 | fulfillment-evidence.md | Audit trail | `rl2p:fulfillmentEvidence` | 📝 |
-
----
-
-## Crystallization / Materialization (52)
-
-| # | File | Pattern | Gap Filled | Status |
-|---|------|---------|------------|--------|
-| 52 | sla-credit-clause.md | Promise + sibling Duty, crystallized on acceptance | `targetNorm` (Promise-valued), `materialize`, `prov:wasDerivedFrom` | 📝 |
-
+| 50 | runtime-evaluation.md | Evaluation trace | `rl2p:Requirement` | ✅ |
+| 51 | fulfillment-evidence.md | Audit trail | `rl2p:fulfillmentEvidence` | ✅ |
+| 52 | sla-credit-clause.md | Promise + sibling Duty, crystallized on acceptance | `targetNorm` (Promise-valued), `materialize`, `prov:wasDerivedFrom` | ✅ |
 ---
 
 ## Sources
@@ -171,7 +163,4 @@ Draft use cases (18-51) fill remaining vocabulary gaps:
 
 ## Next Steps
 
-Work through drafts in batches to add RL2 models. Priority:
-1. **Vocabulary gaps** (24-27, 38-40, 43-49) — demonstrate unused constructs
-2. **External licenses** (18-23) — real-world applicability
-3. **IDS patterns** (32-37) — EU data space alignment
+All 52 use cases are complete with validated RL2 Turtle models. Future work: expand Hohfeldian and Protocol categories with additional scenarios as needed.

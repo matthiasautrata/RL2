@@ -145,11 +145,88 @@ Vendors typically require:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a Prohibition on redistribution with a
+conditional Duty for pass-through terms. When a derivative is shared,
+the licensee must impose equivalent restrictions on the downstream
+recipient.
 
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Prohibition, conditional Duty, exception handling
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Actions ──────────────────────────────────────────────────────
+ex:redistribute a rl2:Action ;
+    rdfs:label "Redistribute" ;
+    rdfs:comment "Transfer data to third parties outside the license scope." .
+
+ex:imposeTerms a rl2:Action ;
+    rdfs:label "Impose Equivalent Terms" ;
+    rdfs:comment "Bind downstream recipient to restrictions." .
+
+ex:shareDerivative a rl2:Action ;
+    rdfs:label "Share Derivative Work" .
+
+# ── Operands ─────────────────────────────────────────────────────
+ex:recipientTypeOperand a rl2:LeftOperand ;
+    rdfs:label "Recipient Type" ;
+    rl2:resolutionPath "context.recipient.type" .
+
+ex:isRegulatoryOperand a rl2:LeftOperand ;
+    rdfs:label "Is Regulatory Disclosure" ;
+    rl2:resolutionPath "context.regulatoryMandate" ;
+    rdfs:range xsd:boolean .
+
+# ── Prohibition: no redistribution ──────────────────────────────
+ex:noRedistribution a rl2:Prohibition ;
+    rl2:subject ex:Licensee ;
+    rl2:prohibitedAction ex:redistribute ;
+    rl2:object ex:LicensedData ;
+    rl2:condition [
+        # Exception: regulatory disclosure is not prohibited
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:isRegulatoryOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "false"^^xsd:boolean
+    ] .
+
+# ── Privilege: sharing a derivative work is allowed (unlike raw
+# redistribution), but doing so triggers the pass-through duty below.
+ex:shareDerivativePrivilege a rl2:Privilege ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:shareDerivative ;
+    rl2:object ex:DerivedWork .
+
+ex:derivativeSharedEvent a rl2:Event ;
+    rdfs:comment "Event: Licensee has shared a derivative work with a third party." .
+
+# ── Duty: impose equivalent terms on downstream recipients ─────
+# Triggered once a derivative has been shared; internal affiliates are
+# exempt (per the Exception Patterns table above).
+ex:passThroughDuty a rl2:Duty ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:imposeTerms ;
+    rl2:object ex:DownstreamRecipient ;
+    rl2:condition [
+        a rl2:LogicalConstraint ;
+        rl2:constraintOperator rl2:and ;
+        rl2:operand [
+            a rl2:EventConstraint ;
+            rl2:expectsEvent ex:derivativeSharedEvent
+        ] ;
+        rl2:operand [
+            a rl2:AtomicConstraint ;
+            rl2:leftOperand ex:recipientTypeOperand ;
+            rl2:constraintOperator rl2:neq ;
+            rl2:rightOperand "affiliate"
+        ]
+    ] .
+
+# ── Policy containing both norms ─────────────────────────────────
+ex:noRedistributionPolicy a rl2:Policy ;
+    rl2:grantor ex:DataVendor ;
+    rl2:grantee ex:Licensee ;
+    rl2:clause ex:noRedistribution, ex:passThroughDuty .
 ```
 
 ---

@@ -144,10 +144,43 @@ compliance:ISO27001Certified a compliance:ComplianceStatus .
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates `rl2:Assertion` as a statement of normative
+status (the processor's lawful basis to process, asserted rather
+than granted), and shows that same status used elsewhere as a
+precondition on an ordinary Privilege.
 
 ```turtle
-# Placeholder - will demonstrate Assertion policy type
+@prefix ex: <https://example.org/> .
+@prefix compliance: <https://example.org/profile/compliance#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Assertion: the processor's compliance statement ──────────────
+ex:gdprComplianceStatement a rl2:Privilege ;
+    rl2:subject ex:DataProcessor ;
+    rl2:action ex:process ;
+    rl2:object ex:PersonalData ;
+    rdfs:comment "Asserted lawful basis under GDPR Articles 5, 6, and 32." .
+
+ex:process a rl2:Action ;
+    rdfs:label "Process" .
+
+ex:gdprAssertion a rl2:Assertion ;
+    rl2:clause ex:gdprComplianceStatement .
+
+# ── Elsewhere: the same compliance status gates an access Privilege ──
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:DataProcessor ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand compliance:complianceStatusOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef compliance:GDPRCompliant
+    ] .
+
+ex:access a rl2:Action ;
+    rdfs:label "Access" .
 ```
 
 ---

@@ -182,11 +182,38 @@ For derived data distribution:
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
-
 ```turtle
-# Placeholder for RL2 implementation
-# Will demonstrate: Prohibition with condition on derivation metadata
+# Prohibited when the derivative can be reverse-engineered to the source data.
+ex:reversibleDerivativeProhibition a rl2:Prohibition ;
+    rl2:subject ex:Licensee ;
+    rl2:prohibitedAction ex:distributeExternally ;
+    rl2:object ex:DerivedData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand license:isReversibleOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "true"^^xsd:boolean
+    ] .
+
+# Permitted when it cannot be reverse-engineered (the same test, negated).
+ex:nonReversibleDerivativePrivilege a rl2:Privilege ;
+    rl2:subject ex:Licensee ;
+    rl2:action ex:distributeExternally ;
+    rl2:object ex:DerivedData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand license:isReversibleOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "false"^^xsd:boolean
+    ] .
+
+ex:distributeExternally a rl2:Action ;
+    rdfs:label "Distribute Externally" .
+
+ex:derivedDataLicense a rl2:Agreement ;
+    rl2:grantor ex:DataVendor ;
+    rl2:grantee ex:Licensee ;
+    rl2:clause ex:reversibleDerivativeProhibition, ex:nonReversibleDerivativePrivilege .
 ```
 
 ---

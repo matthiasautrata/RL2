@@ -134,10 +134,51 @@ sovereignty:revokeAccess a rl2:Action ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates the Agreement structure of sovereignty:
+access is granted by Privilege, but the Manufacturer retains a Power
+to revoke it at any time, and holds a Claim (correlative to the
+Supplier's audit Duty) to verify ongoing compliance.
 
 ```turtle
-# Placeholder - will demonstrate Agreement with Power and Claim
+@prefix ex: <https://example.org/> .
+@prefix sovereignty: <https://example.org/profile/sovereignty#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Privilege: Supplier may access production data ──────────────
+ex:accessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Supplier ;
+    rl2:action ex:access ;
+    rl2:object ex:ProductionData ;
+    rl2:correlativeTo ex:revocationPower .
+
+ex:access a rl2:Action ;
+    rdfs:label "Access" .
+
+# ── Power: Manufacturer may revoke the access Privilege at any time ──
+ex:revocationPower a rl2:Power ;
+    rl2:subject ex:Manufacturer ;
+    rl2:action sovereignty:revokeAccess ;
+    rl2:affectsNorm ex:accessPrivilege ;
+    rl2:correlativeTo ex:accessPrivilege .
+
+# ── Duty: Supplier must submit to usage audits ───────────────────
+ex:auditDuty a rl2:Duty ;
+    rl2:subject ex:Supplier ;
+    rl2:action sovereignty:auditData ;
+    rl2:object ex:UsageLogs ;
+    rl2:counterparty ex:Manufacturer ;
+    rl2:correlativeTo ex:auditClaim .
+
+# ── Claim: Manufacturer's right to demand the audit ──────────────
+ex:auditClaim a rl2:Claim ;
+    rl2:subject ex:Manufacturer ;      # right-holder
+    rl2:counterparty ex:Supplier ;     # duty-bearer
+    rl2:correlativeTo ex:auditDuty .
+
+ex:dataSharingAgreement a rl2:Agreement ;
+    rl2:grantor ex:Manufacturer ;
+    rl2:grantee ex:Supplier ;
+    rl2:clause ex:accessPrivilege, ex:revocationPower, ex:auditDuty, ex:auditClaim .
 ```
 
 ---

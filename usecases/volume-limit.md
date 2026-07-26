@@ -133,10 +133,48 @@ volume:incrementVolume a rl2:Action ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a numeric comparison against a profile-defined
+threshold operand, plus a triggered Duty to increment the volume
+counter after each successful query.
 
 ```turtle
-# Placeholder - will demonstrate numeric comparison with profile operands
+@prefix ex: <https://example.org/> .
+@prefix volume: <https://example.org/profile/volume#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── Privilege: query, while cumulative volume stays under the limit ──
+ex:queryPrivilege a rl2:Privilege ;
+    rl2:subject ex:Subscriber ;
+    rl2:action ex:query ;
+    rl2:object ex:DemographicData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand volume:currentVolumeOperand ;
+        rl2:constraintOperator rl2:lt ;
+        rl2:rightOperandRef volume:volumeLimitOperand
+    ] .
+
+ex:query a rl2:Action ;
+    rdfs:label "Query" .
+
+ex:queryPerformedEvent a rl2:Event ;
+    rdfs:label "Query Performed" .
+
+# ── Duty: increment the volume counter after every successful query ──
+ex:incrementVolumeDuty a rl2:Duty ;
+    rl2:subject ex:System ;
+    rl2:action volume:incrementVolume ;
+    rl2:object ex:VolumeCounter ;
+    rl2:counterparty ex:Subscriber ;
+    rl2:condition [
+        a rl2:EventConstraint ;
+        rl2:expectsEvent ex:queryPerformedEvent
+    ] .
+
+ex:dataAccessLicense a rl2:Agreement ;
+    rl2:grantor ex:DataMarketplace ;
+    rl2:grantee ex:Subscriber ;
+    rl2:clause ex:queryPrivilege, ex:incrementVolumeDuty .
 ```
 
 ---

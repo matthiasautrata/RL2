@@ -198,11 +198,41 @@ audit:signedBy a rdf:Property ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates a Duty tracked at runtime by a
+`rl2p:Requirement`, transitioning to `rl2:Fulfilled` once a refresh
+occurs, with `rl2p:fulfillmentEvidence` pointing at the log entry
+that substantiates the fulfillment.
 
 ```turtle
-# Placeholder - will demonstrate rl2p:fulfillmentEvidence
-# and related protocol properties
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2p: <https://rl2.example/protocol#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Duty: refresh the dataset every 6 hours ──────────────────────
+ex:refreshDuty a rl2:Duty ;
+    rl2:subject ex:DataProvider ;
+    rl2:action ex:refreshData ;
+    rl2:object ex:CustomerDataset ;
+    rl2:counterparty ex:Consumer .
+
+ex:refreshData a rl2:Action ;
+    rdfs:label "Refresh Data" .
+
+ex:dataContract a rl2:Agreement ;
+    rl2:grantor ex:DataProvider ;
+    rl2:grantee ex:Consumer ;
+    rl2:clause ex:refreshDuty .
+
+# ── Runtime record: the duty was fulfilled, with evidence ────────
+# ex:refreshEvent123 is the log entry IRI (1,250,000 records, sha256:a1b2c3...);
+# fulfillmentEvidence is domain/range-unrestricted, so it is referenced directly.
+ex:refreshRequirement a rl2p:Requirement ;
+    rl2p:sourceNorm ex:refreshDuty ;
+    rl2p:sourcePolicy ex:dataContract ;
+    rl2p:requirementStatus rl2:Fulfilled ;
+    rl2p:imposedTime "2025-01-15T08:30:00Z"^^xsd:dateTime ;
+    rl2p:fulfillmentEvidence ex:refreshEvent123 .
 ```
 
 ---

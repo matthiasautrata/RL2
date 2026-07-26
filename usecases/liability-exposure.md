@@ -141,10 +141,39 @@ governance:roleAssignmentLiability a rl2:Liability ;
 
 ## RL2 Model
 
-*To be added after pattern documentation is approved.*
+This model demonstrates the Power/Liability correlative pair: the
+Manager's Power to reach into the Employee's data-access privileges
+correlates with the Employee's Liability to that exercise.
 
 ```turtle
-# Placeholder - will demonstrate Liability, exposedTo
+@prefix ex: <https://example.org/> .
+@prefix governance: <https://example.org/profile/governance#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+
+# ── The privilege template the Power can alter ───────────────────
+ex:dataAccessPrivilegeTemplate a rl2:Privilege ;
+    rl2:subject ex:Employee ;
+    rl2:action ex:access ;
+    rl2:object ex:TeamDataset .
+
+ex:access a rl2:Action ;
+    rdfs:label "Access" .
+
+# ── Power: Manager may assign/revoke the Employee's role-linked access ──
+governance:assignRolePower a rl2:Power ;
+    rl2:subject ex:Manager ;
+    rl2:affectsNorm ex:dataAccessPrivilegeTemplate ;
+    rl2:correlativeTo governance:roleAssignmentLiability .
+
+# ── Liability: the Employee's exposure to that Power ─────────────
+governance:roleAssignmentLiability a rl2:Liability ;
+    rl2:subject ex:Employee ;
+    rl2:exposedTo governance:assignRolePower ;
+    rl2:correlativeTo governance:assignRolePower .
+
+ex:stewardshipRoles a rl2:Set ;
+    rl2:grantor ex:Manager ;
+    rl2:clause governance:assignRolePower, governance:roleAssignmentLiability .
 ```
 
 ---
