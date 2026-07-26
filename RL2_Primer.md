@@ -81,7 +81,7 @@ An RL2 policy admits exactly one interpretation. The evaluator produces consiste
 
 ### RL2 Extensions to ODRL
 
-RL2 is a semantic superset of ODRL—it can express everything ODRL can, though some constructs require transformation during compilation (e.g., `odrl:inheritFrom` requires flattening). The following table summarizes the extensions:
+RL2 aims to be a semantic superset of ODRL—the goal is to express everything ODRL can (a complete term-by-term compatibility inventory is still open work), though some constructs require transformation during compilation (e.g., `odrl:inheritFrom` requires flattening). The following table summarizes the extensions:
 
 | ODRL Limitation | RL2 Extension |
 |-----------------|---------------|
@@ -360,7 +360,7 @@ While a prohibition is logically equivalent to a duty to refrain, RL2 models Pro
 
 ## 6. Hohfeldian Relations: Claims, Powers, and Immunities
 
-RL2 models the full **Hohfeldian framework**—eight fundamental legal concepts forming the basis of normative relations.
+RL2 models the **Hohfeldian framework**—six of Hohfeld's eight fundamental positions (Privilege, Duty, Claim, Power, Liability, Immunity), plus Prohibition. The two omitted positions—No-Right and Disability—are the "absence" correlatives and are treated as derived rather than reified as classes.
 
 ### Background
 
@@ -1484,7 +1484,7 @@ This appendix provides detailed mapping tables for translating ODRL 2.2 policies
 | `action` | `rl2:action` | Operation being regulated |
 | `constraint` | `rl2:condition` | Activation requirements |
 | `refinement` | `rl2:condition` | Nested conditions on assets/actions |
-| `relation` | `rl2:refines` | Links Asset to Collection |
+| `relation` | *(no RL2-core equivalent)* | ODRL asset relations are out of core; would need a profile |
 | `consequence` | State-triggered Duty | Duty conditioned on violation state |
 | `remedy` | State-triggered Duty | Duty conditioned on prohibition violation |
 

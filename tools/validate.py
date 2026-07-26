@@ -18,6 +18,11 @@ Usage:
     uv run tools/validate.py usecases/foo.md ...   # specific files
     uv run tools/validate.py --shapes-only         # just load ontology + shapes
     uv run tools/validate.py -v                     # print full violation report
+    uv run tools/validate.py --strict               # also fail (exit 1) on warnings
+
+SHACL conformance (`sh:conforms`) is true exactly when a graph has no `sh:Violation`
+results — warnings do not affect it. That is reported separately from the project
+"gate" (warning-free), which `--strict` enforces for release/conformance CI.
 
 Exit code is non-zero if any target fails to parse or does not conform.
 """
@@ -157,8 +162,10 @@ def validate_whole(target: Path, rel, ont: Graph, shapes: Graph, verbose: bool) 
     # SHACL conformance depends only on sh:Violation results; warnings/info do
     # not break conformance (pyshacl's `conforms` flag is stricter).
     if n == 0:
+        # sh:conforms is true (no violations); warnings still fail the strict gate.
         wtxt = f"  (⚠ {w} warning(s))" if w else ""
-        print(f"✓ {rel}  ({len(data)} triples){wtxt}")
+        glyph = "⚠" if w else "✓"
+        print(f"{glyph} {rel}  ({len(data)} triples){wtxt}")
         return "warn" if w else "pass"
     wtxt = f", {w} warning(s)" if w else ""
     print(f"✗ {rel}  ({n} violation(s){wtxt})")
@@ -205,7 +212,8 @@ def validate_per_fence(target: Path, rel, ont: Graph, shapes: Graph, verbose: bo
     ok = len(fences) - sum(1 for b in bad if b.lstrip().startswith("✗"))
     if not bad:
         wtxt = f"  (⚠ {tot_warn} warning(s))" if tot_warn else ""
-        print(f"✓ {rel}  ({len(fences)} fence(s)){wtxt}")
+        glyph = "⚠" if tot_warn else "✓"
+        print(f"{glyph} {rel}  ({len(fences)} fence(s)){wtxt}")
         return "warn" if tot_warn else "pass"
     print(f"✗ {rel}  ({ok}/{len(fences)} fence(s) OK, {tot_viol} violation(s))")
     print("\n".join(bad))
@@ -222,6 +230,12 @@ def main() -> int:
         action="store_true",
         help="Validate each ```turtle fence as its own graph (for reference docs "
         "whose fences are independent illustrations, not one cumulative scenario)",
+    )
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat warning-only files as failures (release/conformance gate). "
+        "SHACL conformance is unaffected — this is the stricter project gate.",
     )
     args = ap.parse_args()
 
@@ -249,10 +263,19 @@ def main() -> int:
         {"pass": passed, "warn": warned, "fail": fails, "skip": skipped}[outcome].append(rel)
 
     print(f"\n{'='*60}")
+    evaluated = len(passed) + len(warned) + len(fails)
+    conforming = len(passed) + len(warned)  # sh:conforms: no sh:Violation
     print(f"PASS {len(passed)} · WARN-ONLY {len(warned)} · FAIL {len(fails)} · SKIP {len(skipped)}")
+    if evaluated:
+        print(
+            f"SHACL conformance (no sh:Violation): {conforming}/{evaluated}  ·  "
+            f"warning-free gate: {len(passed)}/{evaluated}"
+        )
+    if args.strict and warned:
+        print(f"--strict: {len(warned)} warning-only file(s) counted as failures.")
     if fails and not args.verbose:
         print("Re-run with -v <file> to see violation details.")
-    return 1 if fails else 0
+    return 1 if (fails or (args.strict and warned)) else 0
 
 
 if __name__ == "__main__":

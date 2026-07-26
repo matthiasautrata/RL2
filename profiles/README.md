@@ -4,7 +4,11 @@ This directory contains domain-specific profiles that extend RL2 Core with decla
 
 ## Architectural Principle
 
-**All runtime and contextual data access MUST go through declared `rl2:LeftOperand` instances.**
+**Runtime and contextual data access is expected to go through declared `rl2:LeftOperand` instances.**
+
+(The core SHACL enforces this as a *recommendation* — `OperandResolutionRecommendationShape`
+raises a warning, not a violation, for an operand lacking a resolution mechanism — so an
+undeclared fallback is permitted but discouraged.)
 
 This means:
 - No ad-hoc properties like `ex:dataOwner` or `rl2:eventPerformer` in policies
@@ -19,6 +23,7 @@ A profile declares domain-specific operands that resolve via the canonical path 
 @prefix myprofile: <https://example.org/profile/myprofile#> .
 @prefix rl2: <https://rl2.example/ontology#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 myprofile:departmentOperand a rl2:LeftOperand ;
     rdfs:label "Department" ;
@@ -50,10 +55,17 @@ Resolution paths must start with one of these canonical roots:
 Policies reference profile-declared operands:
 
 ```turtle
+@prefix ex: <https://example.org/> .
 @prefix privacy: <https://rl2.example/profile/privacy#> .
 @prefix rl2: <https://rl2.example/ontology#> .
 
+privacy:dataOwnerOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "asset.dataOwner" .
+
 ex:myPrivilege a rl2:Privilege ;
+    rl2:subject ex:Analyst ;
+    rl2:action ex:read ;
+    rl2:object ex:Dataset ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:leftOperand privacy:dataOwnerOperand ;
@@ -77,7 +89,7 @@ This architecture ensures:
 2. **Formal grounding** — All access maps to `resolve`/`deref` in RL2_Semantics
 3. **Type safety** — Operands declare `rdfs:range`
 4. **Validation** — SHACL can verify correct usage
-5. **Mechanization** — Clear path to Why3/Lean formalization
+5. **Mechanization** — Clear path to the Dafny→Go verified kernel
 6. **Interoperability** — Different backends implement resolution differently
 
 See [RL2_Semantics.md](../RL2_Semantics.md) for the formal `resolve` and `deref` specifications.

@@ -20,6 +20,8 @@ Single consolidated tracker for RL2 ontology, semantics, protocol, and tooling.
 
 **Updated:** 2026-07-26 (later same day — DOC-4 resolved, `RL2_ODRL_Comparison.md` overhauled) — the user supplied a new quantitative ontology comparison (RL2 vs. ODRL 2.2/PROV-O/DCAT 3/ORG/FOAF: raw metrics, complexity dimensions, understandability, utility-by-use-case) and decided the comparison doc should remain **standalone** rather than merge into `RL2_Primer.md` (reversing DOC-4's prior plan) — the doc needs room for motivation/use-cases/justification the Primer can't spare. Added the new section, then did a full accuracy pass rather than just applying the new content: fixed all four staleness items flagged in the doc's 2026-07-25 notice (Dafny→Go toolchain, nonexistent media profile, Duty/crystallization model, and — on inspection — found the "time-ordered Event Log" claim was actually already correct, not stale, so corrected the notice itself rather than the doc), and fact-checked the new metrics against the repo directly: caught and fixed an inaccurate "RL2 full" combined-suite row that had silently repeated the "RL2 core" row instead of rolling in `rl2p.ttl`'s classes/properties/enums. Doc version bumped 1.0→1.1. `DOC-4` closed.
 
+**Updated:** 2026-07-26 (deep review sweep — the current `fix.md`) — a substantially deeper external review (`fix.md`, ~60 findings across semantics, ontology, IR, protocol, ODRL compatibility, external data, proofs, and docs — S1–S8, C1–C8, O1–O5, I1–I4, P1–P4, E1, D1–D5, F1–F3, R1a/b, L1/L2, A1, T1, V1, X1) supersedes the shallow 13-finding 2026-07-26 sweep merged above. Rather than fold all ~60 findings into individual band entries at once, its analysis and dependency-ordered execution plan are captured as the new **§ Remediation Roadmap (deep sweep)** below. That roadmap groups the findings into nine work packages **WP-0 … WP-8**, ordered by *semantic dependency* (following the review's own closing recommendation — drive by dependency, not by the Class 1/2/3 effort tiers), cross-references each to the band entry it sharpens or the resolved decision it must respect, and is the authoritative execution order going forward — it supersedes the 2026-07-25 "Current sequencing decision" line for ordering. **`issues.md` is the source of truth**; `fix.md` and its saved copy `fix-codex-original.md` are **interim artifacts** kept only long enough to cross-check that the roadmap and bands captured every actionable finding, then removed — work is driven from this file, not from the fix docs. The per-issue bands below remain the tracker of record for individual findings.
+
 ---
 
 ## How to use this file
@@ -96,6 +98,122 @@ Grounding the reviews against the current files surfaced several stale or incorr
 **Band 6 — AI-generation tooling.** LLM-1. Prompt templates, few-shot examples, and a validation harness for NL→RL2 generation — not yet started.
 
 **Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone. SEM-4 (IR definition) resolved 2026-07-25 — `RL2_IR.md` authored; next is SEM-5 (target matching), then SEM-1/2/3.** The new **SEM-9..14** and **CONS-1..6** (2026-07-25, merged from fix.md/fix2.md) slot into the same agreed order as sharpenings of SEM-4/SEM-5 work — no resequencing needed; they surface as that work is picked up, not before.
+
+---
+
+## Remediation Roadmap — deep sweep (2026-07-26)
+
+Source: the current `fix.md` / `fix-codex-original.md` (~60 findings; both are interim scratch, to be cross-checked against this file and then deleted). This roadmap is the **execution order**; the bands below remain the **per-issue tracker**. The review classified findings by *remediation effort* (Class 1 mechanical, Class 2 bounded decision, Class 3 architectural stopper), but its own closing advice — adopted here — is to **drive by semantic dependency, not by class number**: take the cheap independent Class-1 wins immediately, front-load the foundational Class-2 decisions that bound the redesign, then work the Class-3 stoppers in dependency order, with the remaining Class-2 volume work and dependent Class-1 editorial consolidation trailing.
+
+**Dependency spine** (Class-3 roots and what they unblock):
+
+```text
+WP-2  S2 result/error algebra ─┬─ E1 external context (WP-5)
+                              ├─ I1 IR type system   (WP-5)
+                              └─ P2 replay diagnostics (WP-6)
+WP-2  C5 canonical AST ────────┬─ C6b Claim/correlative
+                              ├─ I1 source/IR correspondence (WP-5)
+                              └─ O2c lossless ODRL import     (WP-7)
+WP-3  S6 events + S5 scoped state ─┬─ S4 temporal lifecycle (WP-4)
+                                  ├─ I4 effect application  (WP-5)
+                                  └─ P1/P3/P4 protocol      (WP-6)
+WP-4  S7 conflict/provenance ──────┬─ ODRL conflict compat (WP-7)
+                                  └─ final decision + duty attachment
+```
+
+**Reconciliations — where `fix.md` re-opens an already-made decision** (do not act blindly):
+
+- **C1** (`targetNorm` RDFS range makes a targeted Promise a Norm). Already handled deliberately: **PROM-7/PROM-1** kept `rdfs:range rl2:Norm` on purpose (it is the RDFS range-entailment *auto-typing crutch* the terse-fence corpus depends on) and did the real widening in SHACL via `sh:or (Norm Promise)`. fix.md's "remove the range" recommendation would regress `RL2_Primer.md`/`RL2_Vocabulary.md`. **Residual actually open:** add disjointness / `sh:not` making the Promise≠Norm distinction *testable*, and decide the `StatefulClause`-vs-explicit-typing question as part of **C5** (canonical AST) — where the entailment crutch goes away anyway. Folded into WP-1/WP-2, not a fresh C1.
+- **I2/I3** (typed-AST-first; runtime solver-free). Largely **already the adopted stance** — `RL2_IR.md`/SEM-4 chose a hybrid (deontic tree-walk + condition bytecode) and §8.3 already keeps entailment/closure at ingestion. WP-1 ratifies + records the "measure before committing to bytecode" caveat, not a redesign.
+- **E1** ≈ **SEM-13**, already specified in detail (ContextManifest, out-of-band baseline, in-band as extension). WP-5 *executes* SEM-13, it is not a new finding.
+- **C3/C4** partly resolved: **CONS-6** capped constraint-shape multiplicity; **CONS-1** collapsed fulfillment-evidence to `sh:or`. Residual = node-shape `sh:maxCount 1` on subject/action/object/promisor/claim-party/etc. (C3) and the `rl2p:ContextAssertion` `contextValue`/`contextValueRef` exclusivity (C4) — small, folded into WP-1.
+- Several **D-items** are done (DOC-*); **D3/D4/D5** (claim-downgrade, reversed determinism formulas, stale refs) are genuinely open and sit in WP-0/WP-8.
+
+---
+
+### WP-0 — Immediate Class-1 corrections (independent, parallel-safe)
+**Depends on:** nothing · **Status:** ✅ Resolved 2026-07-26 · Cheap, mechanical/editorial fixes that make currently-false claims true; no new semantic decision.
+
+**Done this pass** (full corpus + per-fence spec/profile docs revalidated clean throughout — `PASS 0 · WARN-ONLY 52 · FAIL 0 · SKIP 1` whole-file; per-fence docs all `FAIL 0`):
+- **V1** — `tools/validate.py` now renames the warning-only glyph from `✓` to `⚠`, reports SHACL conformance (`no sh:Violation`) separately from the warning-free project gate, and adds a `--strict` flag (warning-only files → exit 1) for release/conformance CI. The summary now reads e.g. `SHACL conformance: 52/52 · warning-free gate: 0/52`, surfacing the baseline warning honestly. **Deferred (needs `AGENTS.md` §7 sign-off):** exempting the core `rl2p:requirementFulfilled` operand from `OperandResolutionRecommendationShape` in `rl2p-shacl.ttl` so the warning-free gate can reach 52/52 — a SHACL edit, folded into WP-1's C1/C3/C4 SHACL bundle.
+- **O4 / C6a(wording)** — `RL2_ODRL_Comparison.md`: "Hohfeldian octagon (8 positions)" → "seven modeled positions: six positive Hohfeldian positions + Prohibition; No-Right/Disability derived"; two more "octagon" mentions reworded; the "ODRL lacks formal semantics" claim (contradicted by the doc's own W3C-CG citation) softened to "specifies processing descriptively in prose … a non-normative Formal Semantics draft exists"; the "automated compliance/audit ✓" row downgraded to "Partial" with the missing audit machinery named. `RL2_Primer.md:363` "eight fundamental legal concepts" → the accurate six-plus-Prohibition framing.
+- **O2a** — `RL2_Primer.md` ODRL-mapping table: nonexistent `rl2:refines` replaced with "*(no RL2-core equivalent)*".
+- **C8** — `RL2_Architecture.md` "`rl2:Promise`, in a Set/Offer" → "in an Offer" (matches SHACL).
+- **D3** — "semantic superset" downgraded to a design goal in `README.md`, `RL2_Primer.md`, `FAQ/RL2_FAQ.md` (each now noting the compatibility inventory is open work); the `RL2 ≈ LTL_F + Deontic + …` characterization in `RL2_Architecture.md` recast as a "guarded finite-state transition system" with LTL as an explicit *design goal, not yet proved*, plus the expressive-comparison table row.
+- **D4** — `RL2_Architecture.md` determinism formulas replaced: the false converse (`evaluate(…,ctx₁)=evaluate(…,ctx₂) ⟹ ctx₁=ctx₂`) removed, restated as same-input determinism; the compile-injectivity relabeled as the (separate) canonicalization property.
+- **D5** — `RL2_IR.md` "51-use-case corpus" → "52".
+- **O5** — new "Prior Art and Related ODRL Work" section in `RL2_ODRL_Comparison.md` (disposition table over ODRL Formal Semantics, atomization, FORCE, evaluator test suite, ODRL-PAP/Rego, consistency checking, temporal & data-space/VC profiles, with stable links); References renumbered.
+- **R1a** — `profiles/README.md`: added missing `@prefix xsd:`; the illustrative Privilege fence made self-contained (subject/action/object + a defined operand) so it validates per-fence; "Why3/Lean" → "Dafny→Go"; the "MUST go through declared operands" overstatement softened to a recommendation (matching the SHACL warning-not-violation reality).
+- **S3** — `RL2_Semantics.md` `Env` redefined from the 4-tuple `Agent × Asset × State × ExternalContext` to a named five-field record `(Request, Agent, Asset, Σ, Context)` matching the `deref` roots one-to-one; `mkEnv` now retains the full `Request` so `request.*` paths resolve; `rl2:currentAgent = Request.requestingAgent` stated. (Prior grep confirmed no stray `requestor` usage.)
+
+**Judgment call left for a later pass:** D5's "remove volatile line-count/KB metrics" was *not* applied — the user's recent DOC-4 work deliberately added a Quantitative Comparison section, so stripping incidental line counts now would conflict; revisit alongside that section.
+
+Original item list retained below for reference.
+- **V1** — validation reporting: report `sh:conforms` separately from the project gate, rename warning-only "clean/conformant" success, fix-or-exempt the `OperandResolutionRecommendationShape` operand warning, add a fail-on-warning CI mode. Touches `tools/validate.py` + Band 3.5 baseline note. *(new)*
+- **S3** — one named `Env` record with `request/agent/asset/state/context`; align every signature; state `rl2:currentAgent = rl2p:requestingAgent`. *(new; mechanical alignment)*
+- **C8** — Architecture "Promise may occur in Set" → Offer only (matches SHACL). *(new, small)*
+- **O4 / C6a(wording)** — ODRL comparison factual errors: "octagon"/eight→**six positive Hohfeldian positions + Prohibition**; acknowledge ODRL's published formal-semantics work; drop the "SHACL+enum = audit" overstatement. *(new; distinct from DOC-4's already-done metrics work)*
+- **O2a / O5** — remove the nonexistent `odrl:relation → rl2:refines` mapping (`RL2_Primer.md:1487`); add the prior-art / disposition appendix with stable citations. *(new)*
+- **X1** — recast §12 product comparison as coverage / missing / intended-boundary. *(new)*
+- **R1a** — repair profile-example prefixes and per-fence-validate them; remove stale Why3/Lean toolchain prose from `profiles/README.md`. *(new; overlaps §14)*
+- **D3 / D4 / D5** — downgrade "full/total/polynomial/canonical/semantic superset" to design goals/proof obligations; replace the two reversed determinism formulas (`RL2_Architecture.md:595-596`) and the unproven `LTL_F + Deontic + Finite Obligation Automata` claim; fix stale section refs, 51→52, remove line/KB metrics, normalize terminology. *(extends Band 5 DOC)*
+
+### WP-1 — Foundational Class-2 decisions (bound the redesign)
+**Depends on:** WP-0 (mechanical Env/terminology cleanup helps) · **Status:** Open · Bounded decisions with a recommended resolution; they set the boundary conditions the Class-3 stoppers build on. Each needs `AGENTS.md` §7 sign-off before ontology/SHACL edits.
+- **S1** — restate the monotonicity theorem over `U ⊆ U'` for a **fixed immutable environment** (the false `Env ⊆ Env' ⇒ Out ⊆ Out'` is disproved by `Not(EventConstraint)`, `neq`, `isNoneOf`, upper time bounds); drop all proof/perf steps that relied on env-monotonicity; decide set-vs-bag for `Out`. *(new)*
+- **C2** — decide `promiseStateOperand`: define one typed core operand + resolver branch, **or** remove every core reference and mark it profile-only/non-portable. Relates **PROM-4** (`promisorOperand` symmetry). *(new)*
+- **C6a / SEM-3 / HOHF-1** — declare "six positive Hohfeldian positions + Prohibition; absence positions (No-Claim, Disability) derived/non-reified"; remove Power→Permit / Immunity→Deny decision mappings. *(sharpens SEM-3, HOHF-1, C6; CONS-4 already fixed the Vocabulary mapping)*
+- **C7 / EXPR-4** — decide whether `AssetCollection` is itself a target `Asset` (declare the subclass) or compiles to member-matching; bind membership to the evaluation snapshot; define direct-vs-transitive closure. *(sharpens EXPR-4)*
+- **S8a / SEM-8** — remove `rl2:after` and opaque `resolutionFunction`s from the *verified core* until precise bounded semantics exist; make depth/size/path/fuel bounds **conformance parameters**, not `MAY`. *(sharpens SEM-8)*
+- **O3 / OPEN-1/2 / R1b** — profile-declaration property + "reject unknown required profile" rule + version negotiation + move off the `rl2.example` namespace before publication; add profile-specific SHACL. *(sharpens OPEN-1/2, §14)*
+- **I2 / I3** (ratify only) — record "typed-AST evaluator first; bytecode only if a benchmark/portability need is shown" and "runtime stays solver-free; entailment/closure at ingestion". *(ratifies SEM-4 / §8.3)*
+- **C1 residual / C3 / C4** (small) — add Promise≠Norm `sh:not` testability; node-shape `sh:maxCount 1` on remaining singular fields; `ContextAssertion` value/ref exclusivity via `sh:xone`. *(folds C1/C3/C4 residue; CONS-1/6 did the rest)*
+
+### WP-2 — Result/error algebra + canonical AST (Class-3 roots)
+**Depends on:** WP-1 · **Status:** Open · The two foundations everything downstream needs. Do these before WP-3+.
+- **S2** — define a total result/truth algebra (`EvalValue<T> = Ok | Missing | Invalid | Conflict`; `Truth = True | False | Unknown`), specify `And/Or/Not/Xone` over it (incl. short-circuit/error observability), and the normative promotion `condition-error → Indeterminate` (deny is an enforcement-adapter mapping, not the semantic result). Use the same algebra in Semantics, IR, Protocol, and the Go API. *(new; blocks E1, I1, P2)*
+- **C5** — specify the normative `RDF → canonical AST` projection: entailment regime, semantic defaults (omitted condition → `True`), cardinality expansion, blank-node handling, operand ordering/dedup, annotation stripping, unsupported-extension rejection, stable IDs; scope canonicality to the *normalized projection*, not raw RDF graphs; drop the "graph comparison proves semantic equivalence" claim. *(new; blocks C6b, I1, O2c)*
+- **C6b** — Claim content: make it a required derived projection of a Duty (derive action/object/condition) **or** define its content directly; validate type-pairing and party-role alignment; make correlatives derived *or* authored, not both. *(depends on C5; sharpens CANON-4)*
+
+### WP-3 — State identity/scope + event model (Class-3 roots)
+**Depends on:** WP-2 · **Status:** Open
+- **S5** — give every runtime key an explicit scope `(tenant, policyGeneration, policyInstance, clauseInstance, subject, asset, case?)`; separate immutable policy identity from materialized agreement/clause identity; pure transition over a versioned snapshot + CAS/serializable commit; identify shared-strong-state vs case-local policies. Enables shared quotas, concurrent seats, Chinese-wall, tenant quotas, multi-materialized Offers, multiple generations. *(new; the `materialize()` fresh-IRI work from PROM-7 is the first slice of this)*
+- **S6** — one append-only event representation (id, sequence, timestamp, type, agent, action, object, case, provenance); derive `Performed`/`DutyPerformer` from the witness event; stable tie-breaking; one event-kind subsumption model (individuals **or** classes, not both). *(new)*
+- **F3 / P3(state)** — pick one authoritative event/state model; redefine core `obligationState`/`promiseState`, semantic maps, and Protocol `requirementStatus` as *projections* of it. *(new; folds F3)*
+
+### WP-4 — Temporal lifecycle + conflict/provenance
+**Depends on:** WP-3 · **Status:** Open
+- **S4 / SEM-11 / PROM-6** — distinguish **achievement** (fulfilled once true before a deadline) from **maintenance** (monitored over an interval, violated on counterexample) commitments; introduce a typed temporal form (`During`/`Before`/`By`/interval) instead of the unsound `timeout` min/max extractor; define the Promise↔Duty↔Requirement status projection once. *(sharpens SEM-11, PROM-6)*
+- **S7 / SEM-9 / SEM-8** — conflict resolution as explicit evaluator configuration (combining algorithm, priority order, tie behavior, error policy); retain source-policy/source-clause provenance on every normative atom; define the complete result for empty/tied/incomparable sets; add an ODRL-`invalid` strategy; attach duties to their grant. Fold in **SEM-9** `mostSpecific` (or drop `SpecificOverridesGeneral`). *(sharpens SEM-9, SEM-8)*
+- **F2 / SEM-10** — define the guard predicates `claimCondition`/`powerCondition`/`immunityCondition` (or unify as `⟦n.condition⟧`), Claim `right`, remedies, materialization/acceptance behavior. *(sharpens SEM-10; specificity folds into S7)*
+
+### WP-5 — External data + execution model
+**Depends on:** WP-2 (S2), WP-3 · **Status:** Open
+- **E1 = SEM-13** — execute the already-specified ContextManifest / immutable ResolvedContext / trusted-resolution / structured-error / replay-digest contract; kernel rejects undeclared reads. *(execute SEM-13, not a new finding)*
+- **I1 / SEM-4** — IR type-system redesign: real `Xone` (current `IXor` chain computes parity, wrong for ≥3 operands), add `isA/isAnyOf/isAllOf/isNoneOf`, extend `Value` (collections, decimals, durations, typed/lang literals, datetime/tz), represent runtime right-references, define the AST↔bytecode boundary and evaluation order, include `Ctx` in `evalIR`, lift conflict-strategy/`targetIndex` to cross-policy scope. *(concrete defects extending SEM-4/`RL2_IR.md`)*
+- **I4** — verify the pure next-state / effect-resolution function (incl. effect-conflict resolution); keep persistence/network/retries outside the proof but validate committed transitions against the verified expected version + effect set. *(new)*
+
+### WP-6 — Protocol projection + replay
+**Depends on:** WP-3, WP-4 · **Status:** Open
+- **P1** — CaseEvents append-only log (id, sequence, time, actor, prev-version, payload); derive `caseStatus`; persistence/concurrency stated outside SHACL. *(new)*
+- **P2** — replayable `EvaluationResult`: policy generation, evaluator/spec/profile versions, combining config, input/context digest, external-source versions, state-snapshot version, structured result/error code; disambiguate `matchedPolicies` (evaluated vs applicable vs decision-contributing). *(new; consumes S2's algebra)*
+- **P3** — validate Requirement→sourceNorm∈sourcePolicy and active-requirement→evaluated-case linkage/provenance. *(new; consumes WP-3's authoritative model)*
+- **P4** — enforcement phases (pre / concurrent / post) instead of one `PermitWithObligations`; blocking-vs-ongoing requirements; transformation/advice output; token issue/expiry/revocation. *(new)*
+
+### WP-7 — ODRL behavioral compatibility
+**Depends on:** WP-2 (C5), WP-4 (S7), WP-6 (P4) · **Status:** Open · The largest *volume* but regular work with a known decision rule.
+- **O1 / OPEN-3** — generate a term-by-term compatibility inventory from the W3C ODRL ontology; assign each of the five dispositions (lossless core / lossless profile / bounded expansion / rejected-with-diagnostic / intentionally-unsupported); back with golden import tests. *(sharpens OPEN-3)*
+- **O2b / O2c / EXPR-8** — field/operator/profile-term mappings (`hasPart`/`isPartOf`/`andSequence`/`consequence`/`remedy`/`inheritFrom`/collections/refinements); lossless import behavior — **blocked on S4/S6/S7/P4** for before-action duties, remedies, ordered constraints, and conflict. *(sharpens OPEN-3, EXPR-8)*
+
+### WP-8 — Proofs, tests, toolchain, closeout
+**Depends on:** WP-2 … WP-7 as noted · **Status:** Open · The trailing Class-2 volume + dependent Class-1 consolidation.
+- **S8b / IMPL-2** — rebuild the stateful-trace / totality / termination / complexity proofs after S2, S4–S7, E1, I1 are closed; restate complexity over the real work terms. *(sharpens IMPL-2)*
+- **L1 / L2 / IMPL-1** — the Dafny 4.11 → Go de-risking spike (RESOLVE, typed comparison, three-valued AND, exact-one, error propagation, one versioned effect) and the Lean-as-oracle comparison on the same fixtures. *(sharpens IMPL-1)*
+- **T1 / VALID-4** — convert the 52 narrative use cases into golden `input/AST-digest/state/context/envelope/decision/effects/next-state` vectors + negative vectors + the coverage matrix (§11). *(sharpens VALID-4)*
+- **D1** — W3C-style conformance classes + stable requirement IDs + RFC 2119 boilerplate, once the semantic decisions are closed. *(new; Band 5)*
+- **A1 / LLM-1** — the strict parse→validate→type-check→normalize→compile ingestion pipeline with unknown-term/heuristic-repair rejection + adversarial-input tests. *(sharpens LLM-1, §7)*
+- **R1b** — separate privacy-profile category classes from runtime individuals; add profile SHACL; narrow the GDPR legal claims. *(new; §14)*
+- **D2** (dependent) — final editorial consolidation per the source hierarchy; generate vocabulary/cardinality/namespace tables rather than hand-maintaining them. *(extends Band 5 DOC-2)*
 
 ---
 

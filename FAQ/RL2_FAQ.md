@@ -70,13 +70,16 @@ You can think of RL2 as giving ODRL a formal execution model.
 ### Is RL2 a replacement for ODRL?
 
 No. RL2 is:
-- A semantic superset, an extension
+- An intended semantic superset (design goal), an extension
 - Not a competing standard
 
-Every valid ODRL policy can be:
+The intent is that every valid ODRL policy can be:
 - Interpreted in RL2
 - Decomposed into RL2 atomic policies
 - Executed under RL2's runtime model
+
+(This is not yet backed by a complete term-by-term ODRL 2.2 compatibility inventory —
+that inventory is tracked as open work.)
 
 RL2 exists to close the gap between ODRL documents and real operational systems.
 

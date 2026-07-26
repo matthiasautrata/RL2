@@ -265,10 +265,21 @@ This model supports both:
 ### Environments
 
 ```
-Env = Agent × Asset × State × ExternalContext
+Env = (Request, Agent, Asset, Σ, Context)
 ```
 
-Used for evaluating operand paths.
+A named five-field record (not a bare product), used for evaluating operand paths.
+The fields correspond one-to-one with the canonical path roots (`request.*`,
+`agent.*`, `asset.*`, `state.*`, `context.*`):
+
+- `Request` — the `rl2p:Request` being evaluated
+- `Agent`   — the requesting agent (`Request.requestingAgent`; what `rl2:currentAgent` resolves to)
+- `Asset`   — the requested asset
+- `Σ`       — system state (the `state.*` root)
+- `Context` — external request context
+
+Including `Request` resolves the prior inconsistency where `deref` dereferenced
+`Env.Request` while `Env` was declared without it.
 
 ---
 
@@ -641,10 +652,12 @@ Norms are evaluated in the context of a **Request** `R = (a_req, x_req, s_req)` 
 Given a Request `R = (a_req, x_req, s_req)`, state `Σ`, and external context `Ctx`:
 
 ```
-mkEnv(R, Σ, Ctx) = (a_req, s_req, Σ, Ctx)
+mkEnv(R, Σ, Ctx) = (R, a_req, s_req, Σ, Ctx)   -- (Request, Agent, Asset, Σ, Context)
 ```
 
-The environment `Env = (Agent, Asset, State, ExternalContext)` provides the evaluation context for conditions.
+The environment `Env = (Request, Agent, Asset, Σ, Context)` (see *Environments* above)
+provides the evaluation context for conditions; `mkEnv` retains the full `Request` so
+`request.*` paths resolve.
 
 ### Request Matching
 

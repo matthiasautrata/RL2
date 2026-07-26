@@ -419,7 +419,7 @@ The **kernel** (`evalIR`, the VM, `applyEffects`) is the verified trusted base. 
 **compiler** (`Turtle → AST`, `lower : Condition → bytecode`, index construction) starts
 **tested, not verified**:
 
-- **Differential testing** against the denotational reference on the 51-use-case corpus *and*
+- **Differential testing** against the denotational reference on the 52-use-case corpus *and*
   on generated policies (the canonical-form thesis makes machine-generated policies the
   primary case, so they must be in the test set). This is the Cedar-spec model — reference
   semantics kept separate from the executable, reconciled by differential testing

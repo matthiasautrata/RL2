@@ -319,7 +319,7 @@ Instances in the current vocabulary:
 - **Promise content** — exactly one of `rl2:promisedAction` / `rl2:promisedState`
   / `rl2:promisedDuty`, not a polymorphic union. Enforced by `rl2:PromiseShape`.
 - **Promise vs Duty by container** — a voluntary commitment has one shape
-  (`rl2:Promise`, in a Set/Offer) and its accepted, enforceable form has one shape
+  (`rl2:Promise`, in an Offer) and its accepted, enforceable form has one shape
   (`rl2:Duty` + correlative `rl2:Claim`, in an Agreement). Acceptance *crystallizes*
   the former into the latter; the two never coexist for one commitment, so there is
   no dual-source encoding. A Promise clause in an Agreement is rejected by SHACL
@@ -592,11 +592,16 @@ Compiled evaluation is equivalent to direct semantic evaluation per RL2_Semantic
 **4. Determinism**
 
 ```
-compile(P₁) = compile(P₂) ⟹ P₁ ≡ P₂ (up to blank node renaming)
-evaluate(IR, policies, ctx₁) = evaluate(IR, policies, ctx₂) ⟹ ctx₁ = ctx₂
+identical normalized inputs and configuration (IR, request, Σ, resolved context)
+  ⟹ identical result, effects, diagnostics, and next state
 ```
 
-Same inputs always produce same outputs.
+This is *same-input determinism*, not injectivity. Distinct contexts routinely yield the
+same decision, so the converse `evaluate(…, ctx₁) = evaluate(…, ctx₂) ⟹ ctx₁ = ctx₂` does
+**not** hold and is not claimed. The related **canonicalization** property —
+`compile(P₁) = compile(P₂) ⟺ P₁ ≡ P₂` (up to blank-node renaming) — is a property of
+*compilation* (the Band-0 canonical-form thesis), distinct from determinism; the source/IR
+equivalence `evaluate(compile(P).IR, …) ≡ semanticEval(P, …)` is stated as item 3 above.
 
 ---
 
@@ -617,14 +622,19 @@ Same inputs always produce same outputs.
 
 ## Expressive Characterization
 
-RL2's expressive power:
+RL2's current expressive model is a **guarded finite-state transition system**: conditions are
+guards evaluated over a state snapshot (comparison over resolved values plus a current-time
+comparison), and duty/promise lifecycles are finite obligation automata. Full finite-trace
+temporal logic is a **design aspiration, not an established equivalence** — the current syntax
+defines no trace-satisfaction relation, so the characterization below is a design goal, not a
+proved result:
 
 ```
-RL2 ≈ LTL_F + Deontic(P, O, F) + Finite Obligation Automata
+RL2 ≈ LTL_F + Deontic(P, O, F) + Finite Obligation Automata      [design goal, not yet proved]
 ```
 
 Where:
-- `LTL_F` = Linear Temporal Logic with finite traces
+- `LTL_F` = Linear Temporal Logic with finite traces (target, once a trace semantics is specified)
 - `Deontic(P, O, F)` = Permission, Obligation, Prohibition
 - `Finite Obligation Automata` = Duty lifecycle (Pending → Active → Fulfilled/Violated)
 
@@ -650,7 +660,7 @@ Where:
 | Simple ACLs | Propositional | None |
 | XACML | First-order attributes | Point-in-time |
 | ODRL 2.2 | Deontic (O, P, F) | Implicit |
-| **RL2** | **LTL + Deontic + State** | **Linear time** |
+| **RL2** | **Guarded FSM + Deontic + State** (LTL is a design goal) | **Snapshot + current-time** |
 | Full temporal deontic | CTL* + Deontic | Branching |
 
 RL2 occupies a practical sweet spot: more expressive than ODRL, with explicit operational semantics, while avoiding CTL complexity.
