@@ -408,13 +408,17 @@ rl2:EventPathTypeShape a sh:NodeShape ;
         """
     ] .
 
-# Enforce targetNorm for norm state operands (already covered) and add type check for rightOperand vs leftOperand range
+# Enforce targetNorm for norm state operands (already covered) and add type check for rightOperand vs leftOperand range.
+# Two branches: IRI-valued rightOperand checked against leftOperand's rdfs:range class (RDFS type);
+# literal-valued rightOperand checked against leftOperand's rdfs:range datatype (SPARQL datatype()).
+# CONS-7 (2026-07-26): the literal branch was added because the IRI-only check silently skipped the
+# majority of the corpus's operand declarations, which are literal-typed (xsd:boolean/xsd:decimal/etc).
 rl2:OperandRangeTypeShape a sh:NodeShape ;
     sh:targetClass rl2:AtomicConstraint ;
     sh:severity sh:Warning ;
     sh:sparql [
         a sh:SPARQLConstraint ;
-        sh:message "If leftOperand declares rdfs:range and rightOperand is an IRI, rightOperand should have that type." ;
+        sh:message "leftOperand's declared rdfs:range does not match rightOperand's actual type." ;
         sh:select """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX rl2: <https://rl2.example/ontology#>
@@ -422,8 +426,15 @@ rl2:OperandRangeTypeShape a sh:NodeShape ;
                 $this rl2:leftOperand ?op ;
                       rl2:rightOperand ?right .
                 ?op rdfs:range ?expected .
-                FILTER(isIRI(?right))
-                FILTER NOT EXISTS { ?right a ?expected }
+                {
+                    FILTER(isIRI(?right))
+                    FILTER NOT EXISTS { ?right a ?expected }
+                }
+                UNION
+                {
+                    FILTER(isLiteral(?right) && isIRI(?expected))
+                    FILTER(datatype(?right) != ?expected)
+                }
             }
         """
     ] .

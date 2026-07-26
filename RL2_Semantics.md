@@ -315,8 +315,6 @@ Event constraint (approval requirement):
     false otherwise
 ```
 
-**rl2:requires semantics**: Conditions (and events) may declare dependencies via `rl2:requires`. A dependency `c1 requires c2` means that whenever `c1` is considered, `c2` must also hold. This is expressed in the RDF graph through `rl2:requires` links between `ConditionOrEvent` instances rather than via a distinct Composite constructor in the abstract syntax.
-
 ---
 
 ### Helper Function Specifications

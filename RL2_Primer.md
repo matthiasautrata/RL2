@@ -4,8 +4,6 @@ subtitle: "A Practical Introduction to Rights Language 2"
 version: "0.6"
 status: "Draft"
 date: 2026-07-24
-audience: "Students, practitioners, and implementers new to RL2"
-prerequisites: "Basic familiarity with RDF and policy concepts"
 ---
 
 ## About This Document
@@ -560,17 +558,34 @@ The promise is the *source*; the norms are the *effects*. This enables tracking 
 Policies may require promises as preconditions:
 
 ```turtle
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix ex:   <https://example.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:stewardshipPromise a rl2:Promise ;
+    rl2:promisor ex:Researcher ;
+    rl2:promisee ex:DataOwner ;
+    rl2:promisedAction ex:steward ;
+    rl2:object ex:Dataset ;
+    rl2:promiseState rl2:Pending .
+
+ex:stewardshipStateOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "state.Promises.stewardshipPromise.state" ;
+    rdfs:range rl2:PromiseState .
+
 ex:accessPrivilege a rl2:Privilege ;
     rl2:subject ex:Researcher ;
     rl2:action ex:access ;
     rl2:object ex:SensitiveData ;
     rl2:condition [
-        a rl2:Condition ;
-        rl2:requires ex:stewardshipPromise
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:stewardshipStateOperand ;
+        rl2:constraintOperator rl2:neq ;
+        rl2:rightOperandRef rl2:Violated
     ] .
 ```
 
-This states: "The researcher may access sensitive data only if the stewardship promise has been made."
+This states: "The researcher may access sensitive data only if the stewardship promise has been made and not violated." Conditions on norm state (or Promise state, as here) are expressed as `AtomicConstraint`s over a profile-declared `LeftOperand` with a `resolutionPath` into Σ — the same mechanism used for duty-state preconditions (§ Duty State as Precondition) — not via a distinct dependency link.
 
 ---
 
@@ -748,8 +763,6 @@ ex:complexPrivilege a rl2:Privilege ;
         ]
     ] .
 ```
-
-Dependencies between conditions or events are expressed via `rl2:requires` links between `ConditionOrEvent` instances in the RDF graph rather than a separate Composite constructor.
 
 ### Duty State as Precondition
 

@@ -16,7 +16,7 @@ RL2 (Rights Language 2) is a policy language for digital rights and data governa
 
 **Current:** Spec work — extensions, semantics for ontology and protocol. Bands 1-3 in `issues.md` (SEM-1..8, HOHF-1..5, PROM-1..8, EXPR-1..6). The ontology and protocol are the priority; documentation follows.
 
-**Next (parallel, gradual):** Dafny/Go implementation, starting with a de-risking spike — replicate a minimal evm-dafny-style proof (3-4 opcodes) in Dafny 4.11, extract to Go, confirm it works. Use [Consensys/evm-dafny](https://github.com/Consensys/evm-dafny) as architectural reference. Creusot (verify Rust directly) is the fallback if the Dafny→Go spike fails. See `fix.md` §6.2 for the full toolchain comparison.
+**Next (parallel, gradual):** Dafny/Go implementation, starting with a de-risking spike — replicate a minimal evm-dafny-style proof (3-4 opcodes) in Dafny 4.11, extract to Go, confirm it works. Use [Consensys/evm-dafny](https://github.com/Consensys/evm-dafny) as architectural reference. Creusot (verify Rust directly) is the fallback if the Dafny→Go spike fails. See `research/verification-toolchain-comparison.md` for the full toolchain comparison.
 
 Spec work takes precedence until it nears a stable state. Do not start Dafny implementation until the open SEM issues are resolved.
 
@@ -115,8 +115,6 @@ If an instruction is unclear, ask. Don't guess. Reasonable assumptions often are
 | `RL2_Vocabulary.md` | Complete class/property reference (derived from TTL) |
 | `RL2_Primer.md` | Tutorial introduction |
 | `issues.md` | Consolidated issue tracker with priority bands |
-| `fix.md` | Review findings and remediation roadmap |
-| `CLAUDE.md` | Quick-reference for policy authoring (read after this file) |
 | `tools/validate.py` | SHACL validation harness for use cases and spec examples |
 
 ## 13. Validation

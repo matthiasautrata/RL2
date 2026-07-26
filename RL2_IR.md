@@ -17,7 +17,7 @@ This is a **design specification**: it fixes the datatypes, the opcode set, the 
 correspondence, and the theorem statements. It deliberately contains **no Dafny proofs** —
 those belong to the implementation band (IMPL-1/2). For the formal semantics this IR refines,
 see **RL2_Semantics.md**; for the architectural pipeline, **RL2_Architecture.md**; the
-stack-VM design rationale is **design-forth-ir.md** (refined and narrowed by this document).
+stack-VM design rationale is **research/design-forth-ir.md** (refined and narrowed by this document).
 
 ---
 
@@ -134,7 +134,7 @@ the subsumption-aware `performed(...)` helper (§320), never inside the pure con
 Right-to-left, the table is the **IR → source inverse map**: every AST node and every emitted
 bytecode carries the identity of the RDF construct it came from. Error reporting ("policy X,
 clause Y") is therefore a table lookup, not a separate mechanism — this answers
-design-forth-ir.md Open Question 3 (mapping VM errors back to source) for free.
+research/design-forth-ir.md Open Question 3 (mapping VM errors back to source) for free.
 
 ---
 
@@ -180,7 +180,7 @@ Notes:
 ## 5. Inner IR (condition bytecode)
 
 Conditions compile to a small stack machine — the verifiable subset of Forth from
-design-forth-ir.md, **scoped to pure boolean evaluation**. The `EMIT-PERMIT/FORBID/
+research/design-forth-ir.md, **scoped to pure boolean evaluation**. The `EMIT-PERMIT/FORBID/
 OBLIGATION` opcodes of the original sketch are **removed**: emission is derivation (§7), a set
 operation over the envelope, not a stack effect. What remains is ~30 opcodes with no side
 effects and no external writes.
@@ -451,7 +451,7 @@ Lean, differential-tested) is precedent for the compiler-testing strategy.
 - **PROM-1 residue.** Align RL2_Semantics.md abstract syntax `clauses : Norm* → Clause*` (§3.1
   note) — a one-line follow-up.
 - **IMPL (Band 4), out of scope here:** bytecode serialization format, dictionary/word
-  indexing, error-report surfacing, and step/debug tooling (design-forth-ir.md §Open
+  indexing, error-report surfacing, and step/debug tooling (research/design-forth-ir.md §Open
   Questions). The de-risking spike (a handful of opcodes Dafny→Go) precedes committing to the
   full VM.
 
@@ -462,7 +462,7 @@ Lean, differential-tested) is precedent for the compiler-testing strategy.
 - **RL2_Semantics.md** — denotational and operational semantics this IR refines (§Conditions,
   §Norm Denotations, §Crystallization, §Normative Derivation, §Big-Step Semantics).
 - **RL2_Architecture.md** — evaluation pipeline and layer separation.
-- **design-forth-ir.md** — stack-VM design rationale (refined here: VM scoped to conditions;
+- **research/design-forth-ir.md** — stack-VM design rationale (refined here: VM scoped to conditions;
   `EMIT-*` removed).
 - **research/verification-toolchain-comparison.md** — Dafny→Go decision; evm-dafny and
   Cedar-spec precedents.

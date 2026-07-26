@@ -189,17 +189,13 @@ rl2:grantee a owl:ObjectProperty ;
     rdfs:range rl2:Agent ;
     rdfs:comment "Agent receiving a privilege or policy." .
 
-rl2:NormOrEvent a owl:Class ;
-    owl:unionOf (rl2:Norm rl2:Event) ;
-    rdfs:comment "Union class for properties applicable to both Norms and Events." .
-
 rl2:approver a owl:ObjectProperty ;
-    rdfs:domain rl2:NormOrEvent ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Event) ] ;
     rdfs:range rl2:Agent ;
     rdfs:comment "Agent whose approval is required for activation." .
 
 rl2:operationalAgent a owl:ObjectProperty ;
-    rdfs:domain rl2:NormOrEvent ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Event) ] ;
     rdfs:range rl2:Agent ;
     rdfs:comment "Agent performing an operational action." .
 
@@ -440,17 +436,6 @@ rl2:rightOperand a owl:DatatypeProperty ;
 rl2:rightOperandRef a owl:ObjectProperty ;
     rdfs:domain rl2:Condition ;
     rdfs:comment "Right operand of a condition (resource reference)." .
-
-rl2:ConditionOrEvent a owl:Class ;
-    owl:unionOf (rl2:Condition rl2:Event) ;
-    rdfs:label "Condition Or Event" ;
-    rdfs:comment "Union class for properties that may reference either a Condition or an Event." .
-
-rl2:requires a owl:ObjectProperty ;
-    rdfs:domain rl2:Condition ;
-    rdfs:range rl2:ConditionOrEvent ;
-    rdfs:comment "Composite condition requirement; may require another condition or a specific event." .
-
 
 rl2:operand a owl:ObjectProperty ;
     rdfs:domain rl2:LogicalConstraint ;

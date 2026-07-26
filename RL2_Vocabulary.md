@@ -460,14 +460,6 @@ ex:DataPlatform a rl2:Agent .
 
 ---
 
-### Union Classes for Role Properties
-
-**rl2:NormOrEvent**: Union of `rl2:Norm` and `rl2:Event`. Used as domain for properties applicable to both, such as `rl2:approver` and `rl2:operationalAgent`.
-
-**rl2:ConditionOrEvent**: Union of `rl2:Condition` and `rl2:Event`. Used as range for `rl2:requires`.
-
----
-
 ## 7. Action, Asset, and Condition Classes
 
 ### rl2:Action
@@ -542,7 +534,6 @@ ex:sensitiveAssets a rl2:AssetCollection ;
 
 **Common Properties**:
 - `rl2:constraintOperator` — Operator for evaluation
-- `rl2:requires` — Composite requirements
 
 **Notes**: Dynamic value resolution uses `LeftOperand` with `resolutionPath` (for left-side values) or `RuntimeReference` (for right-side values like `currentAgent`).
 
@@ -1038,8 +1029,8 @@ ex:complianceAssertion a rl2:Assertion ;
 
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
-| `rl2:approver` | NormOrEvent | Agent | Agent whose approval is required |
-| `rl2:operationalAgent` | NormOrEvent | Agent | Agent performing operational actions |
+| `rl2:approver` | Norm ∪ Event | Agent | Agent whose approval is required |
+| `rl2:operationalAgent` | Norm ∪ Event | Agent | Agent performing operational actions |
 | `rl2:participant` | Event | Agent | General participant |
 
 ### Condition Properties
@@ -1052,7 +1043,6 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:rightOperandRef` | Condition | (resource) | Resource for comparison |
 | `rl2:targetNorm` | AtomicConstraint | Norm | Norm whose state to query (for obligationStateOperand/dutyPerformerOperand) |
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
-| `rl2:requires` | Condition | ConditionOrEvent | Composite requirement |
 | `rl2:expectsEvent` | EventConstraint | Event | Required event |
 
 ### Event Properties
