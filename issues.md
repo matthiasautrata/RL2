@@ -6,6 +6,14 @@ Single consolidated tracker for RL2 ontology, semantics, protocol, and tooling.
 
 **Updated:** 2026-07-25 — merged `backlog.md` into this file. The open design decisions (namespace, owl:imports, ODRL transpiler) are now § Open Decisions below. The backlog's work items and success criteria were already tracked as IMPL-1..3 and the S1/S4/S6 proof obligations. `backlog.md` is deleted. Review findings and the full remediation roadmap live in `fix.md` (cross-referenced from issues where relevant).
 
+**Updated:** 2026-07-25 (later same day) — merged the fresh `fix.md` (full spec audit + engineering analysis + remediation roadmap) and `fix2.md` (independent quality-sweep corroborating, sharpening, and extending `fix.md`) into this file. Every actionable finding from both is now tracked below: new entries **SEM-9..14**, **CONS-1..6** (new Band 1.5), **EXPR-7/8**, **VALID-4**, **DOC-9..11**, **LLM-1** (new Band 6), **OPEN-4**; plus amendments folded into the existing **SEM-1**, **SEM-4**, **PROM-7**, **IMPL-1**, **DOC-3**, **DOC-4**, **DOC-6** entries. `fix.md` and `fix2.md` are superseded by this file (same disposition as `backlog.md`/`critique.md` above).
+
+**Updated:** 2026-07-25 (docs-only cleanup pass) — worked down the mechanical/editorial findings that touch only Markdown docs (no ontology/SHACL files, no design decisions): **DOC-3, DOC-6, DOC-9, DOC-10, DOC-11, SEM-12, CONS-4, CONS-5** resolved; **DOC-4** partially resolved (staleness disclaimer added to `RL2_ODRL_Comparison.md`; the actual merge into `RL2_Primer.md` stays open). Remaining findings in Band 1.5 (CONS-1/2/3/6) touch `rl2-shacl.ttl`/`rl2p-shacl.ttl`/`RL2_IR.md` and were deliberately deferred pending explicit discussion per `AGENTS.md` §7.
+
+**Updated:** 2026-07-25 (SHACL/IR tightening pass, discussed and approved per `AGENTS.md` §7) — **CONS-6** (`sh:maxCount 1` on Atomic/Logical/Event constraint shapes in `rl2-shacl.ttl`) and **CONS-3** (`source: Clause` added to `CrystallizePromise` in `RL2_IR.md`) resolved; then **CONS-1** (`sh:or` over fulfillment-evidence properties in `rl2p-shacl.ttl`) and **CONS-2** (documented, not SHACL-rejected, the intentional Active-on-Promise-Requirement projection, cross-referenced into `rl2p.ttl`/`rl2p-shacl.ttl`; closes PROM-7's reconciliation sub-task) resolved. All of Band 1.5 is now resolved except PROM-7's separate `targetNorm` range-widening sub-task. Full corpus revalidated clean after each change: `PASS 0 · WARN-ONLY 51 · FAIL 0 · SKIP 1`.
+
+**Updated:** 2026-07-25 (PROM-7 closed, discussed and approved per `AGENTS.md` §7) — **PROM-7** fully resolved: `rl2:targetNorm` widened to admit `rl2:Promise` (enforced via `sh:or` in `rl2-shacl.ttl`'s `AtomicConstraintShape`, deliberately *not* via `rdfs:range owl:unionOf` — that broke `RL2_Primer.md`/`RL2_Vocabulary.md`'s reliance on RDFS range-entailment auto-typing, see PROM-7 for the full root-cause note); new `materialize(Offer, Acceptance) → Agreement` function defined in `RL2_Semantics.md` §Materialization (fresh IRIs for every Agreement clause, `targetNorm` rewriting, `prov:wasDerivedFrom` provenance — borrowing PROV-O by term, first such use on individuals rather than the ontology header); `RL2_IR.md` §7.2 cross-references `materialize` as a pre-compilation step outside `evalIR`/`applyEffects`. New corpus example **Use Case 52** (`usecases/sla-credit-clause.md`). Full corpus revalidated clean: `usecases/*.md` → `PASS 0 · WARN-ONLY 52 · FAIL 0 · SKIP 1`; `RL2_Primer.md`/`RL2_Protocol.md`/`RL2_Vocabulary.md` (`--per-fence`) → `PASS 0 · WARN-ONLY 3 · FAIL 0 · SKIP 0`.
+
 ---
 
 ## How to use this file
@@ -41,6 +49,10 @@ Add `owl:imports <http://www.w3.org/ns/odrl/2/>` before publication. Depends on 
 **Status:** Open · **Severity:** S2 · **Tags:** [COV]
 Create an ODRL 2.2 → RL2 transpiler (flatten `inheritFrom`, map `odrl:Permission`→`rl2:Privilege`, etc.). Needed for migration path and to demonstrate RL2 as a true ODRL successor. Cross-ref: `fix.md` Task 13. Blocked on spec stability (Bands 1-3).
 
+### OPEN-4 — Track W3C ODRL Workshop outcomes for alignment
+**Status:** Open · **Severity:** S3 · **Source:** fix.md §1.1, fix2.md §7
+The W3C Workshop on the Future of ODRL (20-21 July 2026, London; co-chaired by Iannella, Fornara, Rodríguez-Doncel) covered gaps in the ODRL Information Model, formal semantics, policy evaluation engines, constraint modeling, and conformance/testing mechanisms — all areas RL2 addresses. No V3.0 requirements document or use-case catalog existed at review time; outcomes weren't yet published. Action: once published, check RL2's direction against the workshop's requirements/use-case output. Strategic opportunity to position RL2 as a workshop-informed ODRL 3.0 candidate contribution.
+
 ---
 
 ## Corrections to the source reviews
@@ -61,19 +73,23 @@ Grounding the reviews against the current files surfaced several stale or incorr
 
 **Band 0 — Canonical form (the generatability thesis).** CANON-1..5. Establishes the "exactly one shape per proposition" invariant that everything downstream depends on. Do first: later coverage work should be authored in canonical form from the start.
 
-**Band 1 — Formal-semantics soundness (verifiability).** SEM-1..8. Closes the gaps that block Dafny mechanization and the S1/S4/S6 proofs.
+**Band 1 — Formal-semantics soundness (verifiability).** SEM-1..14. Closes the gaps that block Dafny mechanization and the S1/S4/S6 proofs, including `mostSpecific` (SEM-9), guard predicates (SEM-10), `nullRequest` for PromisedState (SEM-11), the stale Dafny example (SEM-12), external-data binding (SEM-13), and the closed-world stance (SEM-14).
+
+**Band 1.5 — Protocol SHACL & cross-document consistency.** CONS-1..6. SHACL/protocol-level bugs and doc-vs-ontology mismatches surfaced by the fix.md/fix2.md sweep — distinct from Band 3.5's use-case-corpus scope.
 
 **Band 2 — Hohfeld & Promise completeness (defensibility).** HOHF-1..5, PROM-1..8. Makes the theoretical claims true, not just asserted.
 
-**Band 3 — Expressiveness coverage.** EXPR-1..6. Recurrence, quorum, temporal arithmetic (EXPR-1/2/3 decided 2026-07-25 — all profile-level/excluded, no core impact), collections, delegation, revocation (EXPR-4/5/6 still open, confirmed independent of Band 1 IR work).
+**Band 3 — Expressiveness coverage.** EXPR-1..8. Recurrence, quorum, temporal arithmetic (EXPR-1/2/3 decided 2026-07-25 — all profile-level/excluded, no core impact), collections, delegation, revocation (EXPR-4/5/6 still open, confirmed independent of Band 1 IR work), and implies/iff + ODRL relation/partOf coverage (EXPR-7/8, both deferrable).
 
-**Band 3.5 — Use-case corpus quality.** VALID-1..3. Systemic modeling defects and non-parseable drafts surfaced by the new `tools/validate.py` SHACL harness; spec-doc examples brought up to the same validation standard.
+**Band 3.5 — Use-case corpus quality.** VALID-1..4. Systemic modeling defects and non-parseable drafts surfaced by the new `tools/validate.py` SHACL harness; spec-doc examples brought up to the same validation standard; VALID-4 flags that the corpus doesn't yet exercise conflict resolution, the Forth-IR path, or external data.
 
-**Band 4 — Implementation.** IMPL-1..3. Dafny kernel, proofs, Go extraction.
+**Band 4 — Implementation.** IMPL-1..3. Dafny kernel, proofs, Go extraction. IMPL-1 now specifies a de-risking spike (evm-dafny-style, 3-4 opcodes) before full toolchain commitment.
 
-**Band 5 — Documentation hygiene.** DOC-1..7. Version normalization, dedup, navigation.
+**Band 5 — Documentation hygiene.** DOC-1..11. Version normalization, dedup, navigation, and (new) fixing three concrete stale/incorrect cross-references (DOC-9/10/11).
 
-**Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone. SEM-4 (IR definition) resolved 2026-07-25 — `RL2_IR.md` authored; next is SEM-5 (target matching), then SEM-1/2/3.**
+**Band 6 — AI-generation tooling.** LLM-1. Prompt templates, few-shot examples, and a validation harness for NL→RL2 generation — not yet started.
+
+**Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone. SEM-4 (IR definition) resolved 2026-07-25 — `RL2_IR.md` authored; next is SEM-5 (target matching), then SEM-1/2/3.** The new **SEM-9..14** and **CONS-1..6** (2026-07-25, merged from fix.md/fix2.md) slot into the same agreed order as sharpenings of SEM-4/SEM-5 work — no resequencing needed; they surface as that work is picked up, not before.
 
 ---
 
@@ -135,6 +151,8 @@ Make the "exactly one shape" principle an explicit, stated design tenet (not fol
 
 The Promise→Duty remedial rule exists but `restoreAction(content)` is "implementation-defined" with no guidance — a hole in an otherwise-deterministic pipeline. Add an explicit `rl2:remedialAction` property so remediation is declared on the norm/promise rather than invented by the evaluator. Define the default mapping: Action-promise → retry the action; Duty → the duty's action; State-promise → requires explicit `rl2:remedialAction` (no default). Interacts with CANON-2 (the split makes the mapping total). **PROM-1 handoff (2026-07-25):** crystallization of a `promisedState` promise produces a *state-maintenance Duty* whose fulfillment is the promised condition; SEM-1 owns the ObligationState-transition wiring for such condition-fulfilled duties (how Active→Fulfilled/Violated advances, and `restoreAction` on breach). The crystallization *target* is fixed by PROM-1; only this behavioral wiring is open here.
 
+**Sharpened (fix.md Task 2, fix2.md N4, 2026-07-25 sweep):** `restoreAction(content)` must be specified as a *total* function: `promisedAction` → re-execute the action; `promisedDuty` → fulfill the referenced duty; `promisedState` → require the explicit `rl2:remedialAction` annotation, and when it's absent return an explicit "needs annotation" sentinel — not ⊥ — so the function stays total. **Confirmed still missing from the ontology:** `rl2:remedialAction` is referenced in prose at `RL2_Semantics.md:1118` but is not declared anywhere in `rl2.ttl` (fix2.md N4). When this is implemented, add `rl2:remedialAction` to `rl2.ttl` with domain `rl2:Promise` and an appropriate range, plus a SHACL shape.
+
 ### SEM-2 — `targetNorm` lacks parametricity
 **Status:** Open · **Severity:** S2 · **Source:** critique 1 §1.2 · **Tags:** [VER][COV]
 **Files:** `rl2.ttl:251`, `RL2_Semantics.md`
@@ -163,6 +181,8 @@ The Vocabulary says No-Claim and Disability are "inferrable" from the absence of
 
 **Handoffs:** SEM-5 consumes `CompiledPolicy.targetIndex` (owns the matching algorithm/precedence); SEM-1 owns `PromisedState` maintenance-duty ObligationState wiring; PROM-5 owns `PromisedDuty` suretyship remedy; effect kinds map to PROM-6/SEM-6/SEM-8. **Follow-up (done 2026-07-25):** aligned RL2_Semantics.md abstract syntax to `Policy.clauses : Clause*` (added `Clause ::= Norm | Promise`), matching the ontology and RL2_IR.md. No semantic change — the type-filtered comprehensions in `Out`/`Eval` already exclude Promise clauses from norm matching.
 
+**Follow-up (fix2.md E9, 2026-07-25 sweep):** the snapshot-consistency invariant (`RL2_IR.md:247-253` — "every read in a single evaluation observes Σ as of entry; all effects apply atomically afterward") is currently stated as a design note ("so it is stated, not assumed") rather than enforced, and it "holds for RL2 today" only because `Out` is a set-builder over a fixed snapshot and `resolveDecision` is set-based — a future construct observing another clause's effect within the same evaluation would silently violate it. Action (belongs to IMPL-1/2, tracked here since it's a spec-level obligation first): add a Dafny precondition to the `evalIR` spec — `requires ∀ c ∈ CP.clauses, the evaluation of c does not depend on effects produced by evaluating any other clause` — so this becomes a verified precondition, not an assumption. Related: **CONS-3** (the `CrystallizePromise` effect in this same effect algebra needs a source-Promise reference for the audit trail).
+
 ### SEM-5 — Target matching algorithm
 **Status:** Open · **Severity:** S1 (blocks IMPL) · **Source:** fix P0.2 · **Tags:** [VER]
 **Files:** `RL2_Architecture.md` (§TargetIndex)
@@ -186,6 +206,88 @@ A Case is bound to the generation in force at creation. What happens to in-fligh
 **Files:** `RL2_Semantics.md:738,795,1240`
 
 These are *defined* (contra fix.md) but under-exercised: verify totality of `resolveDecision` for every norm-type pairing, confirm Power `ExercisePower` updates Σ consistently, and complete the violation→remedial-norm chains (`:795`). Turn into proof obligations for IMPL-2.
+
+### SEM-9 — `mostSpecific` undefined in `SpecificOverridesGeneral`
+**Status:** Open · **Severity:** S1 · **Source:** fix.md §3.1/Task 3, fix2.md E1 · **Tags:** [VER]
+**Files:** `RL2_Semantics.md:1301,1349` (`SpecificOverridesGeneral` strategy)
+
+`resolveDecision`'s `SpecificOverridesGeneral` strategy calls `mostSpecific(privileges ∪ prohibitions)`, but `mostSpecific` is never defined — so `resolveDecision` is not actually total until this is closed. **Sharpened (fix2.md):** the gap is subtler than "undefined": specificity may mean different things for a Privilege (action subsumption depth) vs a Prohibition (condition complexity), and a single ordering over the *union* of both assumes a common specificity metric that may not exist. **Recommendation:** define `mostSpecific` as a lexicographic ordering — (1) action subsumption depth (deeper = more specific), (2) condition count (more conditions = more specific), (3) policy priority as tiebreaker — and document this explicitly as a design choice, not a theorem.
+
+### SEM-10 — Undefined guard predicates `claimCondition`/`powerCondition`/`immunityCondition`
+**Status:** Open · **Severity:** S1 · **Source:** fix.md §3.3/Task 4, fix2.md E2 · **Tags:** [VER]
+**Files:** `RL2_Semantics.md:754/773/811` (denotations), `:756/775/813` (predicate uses, fix2.md line count)
+
+Three condition guard predicates gate the `Claim`, `Power`, and `Immunity` denotations, but their reduction rules (how they evaluate to true/false given an environment) are never given anywhere in the spec. SEM-8 already flags these as "under-exercised" (see above). The obvious canonical reading is that each is an alias for `⟦n.condition⟧(Env) = true` — if so, the three distinct names should be dropped per CANON-5 (exactly one canonical shape). **Additional finding (fix2.md):** the `Liability` denotation (`:801`) uses a *different* guard pattern — `∃ Power(h, n) where subject(n) = a`, an existential quantification over the norm universe, not a condition evaluation — suggesting confusion about whether these predicates are condition-gated or structurally-derived. **Action:** (a) if all are condition-evaluation aliases, use `⟦n.condition⟧(Env) = true` uniformly and drop the three distinct names; (b) if some have genuinely distinct semantics (e.g. Liability's existential), define each explicitly and document why the guard patterns differ.
+
+### SEM-11 — `nullRequest` semantics for `PromisedState` condition evaluation
+**Status:** Open · **Severity:** S2 · **Source:** fix.md §3.6/Task 5, fix2.md E3 · **Tags:** [VER]
+**Files:** `RL2_Semantics.md:560-562` (`contentHolds`/`mkEnv(nullRequest, Σ, emptyContext)`)
+
+`contentHolds` for `PromisedState` evaluates `⟦c⟧(mkEnv(nullRequest, Σ, emptyContext))` — but `nullRequest` is undefined, and the denotational semantics for conditions otherwise assume a real Request `R = (a_req, x_req, s_req)`. How `agent.*`/`asset.*` resolutionPaths behave under a null request is unspecified. **Narrowed (fix2.md):** `PromisedAction` and `PromisedDuty` don't use `Env` at all (they query Σ directly via `performed()`/`ObligationState`) — only `PromisedState` does. This supports fix.md's option (b) over defining a `nullRequest` sentinel. **Recommendation (adopted):** restrict `PromisedState` conditions to `state.*`/`context.*` resolutionPath roots only, since `agent.*`/`asset.*` are meaningless without a request; add a SHACL constraint enforcing this restriction.
+
+### SEM-12 — Stale Dafny example in `RL2_Semantics.md`
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S3 · **Source:** fix.md §3.7/§4.4(6)/Task 9, fix2.md E4 · **Tags:** [VER]
+**Files:** `RL2_Semantics.md` (Dafny Example, Mechanization section)
+
+The Dafny abstract-syntax example included `Temporal(start, end)` and `Context(path, cmp, val)` Condition variants that don't exist in the current abstract syntax: `TemporalConstraint` was removed in favor of `AtomicConstraint` + `currentDateTime`, and `Context` was replaced by `AtomicConstraint` + `resolutionPath`. It also omitted `Xone` even though it's present in the abstract syntax, and `EvalCondition`'s match fell through to `// ...` (non-exhaustive, would not compile). **Fixed:** removed `Temporal`/`Context`, added `Xone(operands: seq<Condition>)`, and made `EvalCondition` exhaustive (`Xone` case counts true operands via a set comprehension and requires exactly one).
+
+### SEM-13 — External data integration lacks a binding specification
+**Status:** Open · **Severity:** S2 · **Source:** fix.md §6.4/Task 11, fix2.md E10 · **Tags:** [VER]
+**Files:** `RL2_Architecture.md` (ContextManifest, `resolve`), `RL2_Semantics.md:364-366` (`resolutionFunction` "implementation-specific"), new `RL2_ExternalData.md` (proposed)
+
+`rl2:resolutionFunction` and `lookupExternal` are declared but not bound: no standard way for a policy to declare what external data it needs, for an evaluator to call external services, or to test/verify a policy that uses external data. This is the highest-risk area for the totality guarantee — the extension warning at `RL2_Semantics.md:1574` already flags unbounded external queries as a threat to polynomial-time/termination. The ContextManifest pattern (compiler extracts `RESOLVE` paths from condition trees → host pre-materializes them into `Env` before evaluation → `RESOLVE` of an un-manifested path is a hard reject) is the right shape, but the source-binding step between a manifest entry and an actual data source is unspecified.
+
+**Recommended resolution (fix.md and fix2.md converge on this):** write `RL2_ExternalData.md` specifying — (1) **out-of-band** (requester supplies all context as `rl2p:ContextAssertion`s before evaluation) as the *normative baseline* for the verified kernel, preserving totality/determinism/fuel-boundedness; (2) **hybrid/in-band** as a documented *extension only*, with source bindings declared in the ContextManifest (`required: true/false`), bounded complexity (O(1) or O(log n) per call), a timeout + fail-to-⊥ policy, and mock sources for testing; (3) **profile-defined source schemas** binding `resolutionFunction` names to concrete implementations (e.g. `privacy:dataOwnerOperand` → `source: HR_API, query: getUserByIRI`). Precedents: OPA's bundle API (atomic policy+data delivery; also track OPA's evolving `rego.v1`/bundle patterns as design input), Cedar's Entity Store (pre-loaded typed entities — the out-of-band pattern). Forbid pure in-band for the verified kernel; it breaks totality (XACML's PIP pattern is the cautionary example). Blocks IMPL-1 confidence.
+
+### SEM-14 — Document the closed-world evaluation stance as a deliberate design choice
+**Status:** Open · **Severity:** S3 · **Source:** fix.md §3.4 · **Tags:** [VER]
+**Files:** `RL2_Architecture.md:196` (already states "Not omniscient — Σ contains only facts explicitly asserted")
+
+The scoped closed-world assumption (Σ contains only explicitly-asserted facts; the evaluator has no access to external state unless provided) is correct for a verifiable evaluator, but creates a tension with ODRL's open-world RDF semantics that isn't currently called out as intentional. **Action:** state explicitly that this is a deliberate design choice (not an oversight), and specify how an open-world profile would work if one is ever needed (e.g. "absent fact → Indeterminate, not Deny").
+
+---
+
+## Band 1.5 — Protocol SHACL & Cross-Document Consistency (CONS)
+
+> Surfaced by the fix.md/fix2.md 2026-07-25 review sweep — concrete SHACL over/under-constraint bugs and vocabulary/ontology mismatches found by manual cross-reference, distinct from the pySHACL-harness use-case defects in Band 3.5.
+
+### CONS-1 — `RequirementFulfillmentAuditShape` requires both action and event evidence
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S2 · **Source:** fix2.md N1 · **Tags:** [VER]
+**Files:** `rl2p-shacl.ttl:178-205`
+
+The shape required `sh:minCount 1` on `fulfilledByAction` **and** `fulfilledByEvent` **and** `fulfillmentEvidence` for fulfilled requirements (three independent property shapes, each triggering its own warning) — but a requirement may legitimately be fulfilled by an action *or* an event, not necessarily both (e.g. a `PromisedState`-derived requirement is fulfilled by a state condition holding in Σ, with no discrete action). **Fixed:** collapsed the three property shapes into one `sh:or` (at least one of the three required). Severity was already `sh:Warning` at the node level. Validated against the full corpus: clean, `PASS 0 · WARN-ONLY 51 · FAIL 0 · SKIP 1`, no change in per-file warning counts (including `fulfillment-evidence.md`, which exercises this shape).
+
+### CONS-2 — Protocol SHACL allows `Active` for Promise-derived Requirements (semantically impossible)
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S2 · **Source:** fix2.md N2 · **Tags:** [VER] · **Related:** PROM-7
+**Files:** `rl2p-shacl.ttl:148-152` (`RequirementShape` `sh:in`), `rl2p.ttl:163-168`, `rl2.ttl:535-563`
+
+`RequirementShape`'s `requirementStatus` `sh:in` list is the full `ObligationState` enum (`Pending`, `Active`, `Fulfilled`, `Violated`) — but `PromiseState` admits no `Active` (`rl2.ttl:558`). A Promise-backed Requirement can therefore be assigned `requirementStatus = rl2:Active` and pass validation. **Resolved as option (b), not (a):** `RL2_Semantics.md`'s "Promise and duty states vs protocol requirement status" section (and `RL2_Protocol.md:277`'s cross-reference to it) already document this as the *intended* protocol-level projection — a pending promise that is effective now surfaces as `Active` at the Requirement layer while its semantic `PromiseState` stays `Pending`. Checked for consistency: `usecases/runtime-evaluation.md`'s `ex:promiseReq` example (`sourceNorm = ex:somePromise`, `requirementStatus = rl2:Active`) already relies on exactly this reading; `claim-counterclaim.md` and `fulfillment-evidence.md`'s `Active`/`Fulfilled` usages are all Duty-sourced, not Promise-sourced, so unaffected. `RL2_IR.md`'s effect algebra doesn't model `rl2p:Requirement`/`requirementStatus` at all (it operates on Duty/Promise state directly via `TransitionDuty`/`CrystallizePromise`) — the projection is a protocol/shell-layer computation above the verified kernel, so no IR change was needed or made. **Action taken:** rather than adding a SPARQL rejection rule (which would contradict this documented design), added cross-referencing comments to `rl2p:requirementStatus` in `rl2p.ttl` and to `RequirementShape`'s `requirementStatus` property in `rl2p-shacl.ttl`, so the ontology/SHACL files are self-explanatory without requiring a jump to `RL2_Semantics.md`. This also satisfies **PROM-7**'s "land the reconciliation, not just a semantics-doc note" ask — the reconciliation already existed in the docs; it's now wired up from the ontology side too. Validated against the full corpus: clean, `PASS 0 · WARN-ONLY 51 · FAIL 0 · SKIP 1`.
+
+### CONS-3 — `CrystallizePromise` effect lacks source-Promise reference
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S3 · **Source:** fix2.md N3 · **Tags:** [VER] · **Related:** SEM-4
+**Files:** `RL2_IR.md:277-285` (Effect algebra)
+
+`CrystallizePromise(promisor, promisee, content)` carried no reference to the originating `Promise` individual (its IRI or a clause index) — the audit trail from a crystallized Duty back to its source Promise was lost unless the application layer reconstructed it manually from `(promisor, promisee, content)`. **Fixed:** added `source: Clause` to the constructor, mirroring the existing convention already used by `GenerateRemedialDuty(source: Clause, remedy: Norm)` in the same effect algebra — no new `ClauseRef` type introduced since `Clause` already exists and serves the purpose directly.
+
+### CONS-4 — `rl2p:PermitStateChange`/`DenyStateChange` referenced but undefined; also conceptually wrong
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S3 · **Source:** fix.md §4.4(1), fix2.md E5 · **Tags:** [COV]
+**Files:** `RL2_Vocabulary.md` (Hohfeldian Mapping table), `rl2p.ttl` (Decision individuals: `Permit`, `PermitWithObligations`, `Deny`, `Indeterminate`, `NotApplicable` only)
+
+The Vocabulary mapped Power→`rl2p:PermitStateChange` and Immunity→`rl2p:DenyStateChange`, neither of which `rl2p.ttl` defines — and the mapping was conceptually wrong: Power/Immunity are about altering normative relations, not access decisions, so they don't belong in the Decision enum. **Fixed:** Power now maps to `Effect (ExercisePower)` referencing the `RL2_IR.md` effect algebra; Immunity is documented as not an effect or Decision at all, but a precondition blocking `ExercisePower` (`ImmunityActive(a,n) → ¬canExercise(Power(h,n))`, `RL2_Semantics.md:807-821`). No `BlockPower` effect exists in `RL2_IR.md`, so that speculative name from fix2.md was not used.
+
+### CONS-5 — `rl2p:requirementFulfilled` mis-categorized in the Vocabulary's Property Reference
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S3 · **Source:** fix.md §4.4(2), fix2.md E6 · **Tags:** [COV]
+**Files:** `RL2_Vocabulary.md`, `rl2p.ttl:256-258`
+
+`rl2p:requirementFulfilled` is a `rl2:LeftOperand` individual (an operand, not an OWL property) but was listed in the Protocol Property Reference table. **Fixed:** moved it to a new "Protocol Left Operands" subsection.
+
+### CONS-6 — Missing `sh:maxCount 1` on Atomic/Logical/Event constraint shapes
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S3 · **Source:** fix.md §4.4(4), fix2.md E7 · **Tags:** [GEN]
+**Files:** `rl2-shacl.ttl` (`AtomicConstraintShape` ~195-218, `LogicalConstraintShape` ~246-249, `EventConstraintShape` ~290-292)
+
+`AtomicConstraintShape` has `sh:minCount 1` but no `sh:maxCount 1` on `leftOperand` and `constraintOperator` (`rightOperand`/`rightOperandRef` is already `sh:xone`-guarded). `LogicalConstraintShape`'s `constraintOperator` and `EventConstraintShape`'s `expectsEvent` have the same gap — a `LogicalConstraint` with two `constraintOperator` values, or an `EventConstraint` with two `expectsEvent` values, is ill-formed but currently passes SHACL. A canonical-form (CANON-5) gap: multiplicity should be pinned down exactly. **Fixed:** added `sh:maxCount 1` to `leftOperand` and `constraintOperator` in `AtomicConstraintShape`, `constraintOperator` in `LogicalConstraintShape`, and `expectsEvent` in `EventConstraintShape` (`LogicalConstraintShape`'s `operand` intentionally left uncapped — `and`/`or`/`xone` need 2+ operands). Validated against the full 51-use-case corpus (`uv run tools/validate.py`): clean, `PASS 0 · WARN-ONLY 51 · FAIL 0 · SKIP 1`, confirming no existing use case relied on the now-forbidden multiplicity.
+
+**Checked and closed as not-a-gap (fix2.md E8):** fix.md's note that `Set`/`Privacy`/`Assertion` lack dedicated SHACL shapes beyond `PolicyShape` is **not** an issue — `Offer` intentionally inherits the permissive `PolicyShape`; the other subclasses each already have a shape that forbids Promise clauses (`AgreementShape` additionally requires `grantor`/`grantee`). The inheritance design is documented in `rl2-shacl.ttl:30-34`'s header comments. No action needed; recorded here so it isn't re-raised as an open gap.
 
 ---
 
@@ -234,7 +336,7 @@ Claim, Power, Immunity, Liability are specified but not stress-tested — their 
 - SHACL: `PolicyShape` clause → `sh:class rl2:Clause` (permissive base; Offer inherits it). `AgreementShape`/`SetShape`/`PrivacyPolicyClauseShape`/`AssertionClauseShape` each add `sh:not [ sh:class rl2:Promise ]`. Only Offer admits a Promise clause. Verified: Promise-in-Offer conforms; Promise-in-Agreement fails.
 - Crystallization defined in `RL2_Semantics.md` as a total function; each Duty inherits the promise content's already-defined fulfillment criterion (`rl2.ttl:promisedAction/State/Duty`). `promisedAction` fully closed; `promisedState`/`promisedDuty` crystallization *targets* fixed, behavioral wiring handed to SEM-1 / PROM-5 (below).
 - Docs (Primer, Architecture) document the Offer=promises / Agreement=duties model; corpus examples that put a Promise in an Agreement (Vocabulary, Semantics, Protocol) re-typed to `rl2:Offer`.
-- `rl2:targetNorm` range intentionally left as `rl2:Norm` — widening it for standalone promise-state queries is PROM-7's, and doing it here regressed fences that relied on targetNorm range-coercion for typing.
+- `rl2:targetNorm` range intentionally left as `rl2:Norm` — widening it for standalone promise-state queries was deferred to PROM-7 (now resolved: widened via SHACL `sh:or`, not `rdfs:range`, since a union range would have regressed fences that relied on targetNorm range-coercion for typing — see PROM-7 for the full root-cause note).
 - Non-binding recitals: use `rl2:Assertion`, not a Promise clause.
 
 ### PROM-2 — Framework agreements / Power-to-promise
@@ -268,10 +370,20 @@ Promising to fulfill *someone else's* Duty (without becoming its dutyHolder) is 
 "When the world deviates from a Promise's invariant, generate a remedial Duty" — but what triggers the check (continuous? event-driven?), who defines "deviation," and how does it interact with SEM-1 `restoreAction`? Specify the trigger and detection model.
 
 ### PROM-7 — `PromiseState` vs `RequirementStatus` dual state machines
-**Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER]
-**Files:** `rl2.ttl:535`, `rl2p.ttl`, `RL2_Protocol.md`
+**Status:** ✅ Resolved 2026-07-25 · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER]
+**Files:** `rl2.ttl:535`, `rl2p.ttl`, `RL2_Protocol.md`, `rl2-shacl.ttl`, `RL2_Semantics.md`, `RL2_IR.md`, `usecases/sla-credit-clause.md`
 
 A Promise carries `promiseState` (Pending/Fulfilled/Violated, no Active) while the Protocol wraps it in a `Requirement` whose `requirementStatus` *does* include Active. "Pending at the Promise level, Active at the Requirement level" is never reconciled. Define the projection between the two (analogous to how `projectObligationState` collapses Active→Pending for promises). **Narrowed by PROM-1 (2026-07-25):** since an executed Agreement contains no Promises (they crystallize to Duties), this reconciliation now concerns only *standalone* promises we choose to runtime-track (e.g. `data-freshness-promise`), never the agreement case. This issue also owns the `rl2:targetNorm` range widening (to `Norm ⊔ Promise`) needed to let a promise-state operand query a standalone promise's state.
+
+**Reconciliation resolved via CONS-2 (2026-07-25):** the projection was already defined in `RL2_Semantics.md` ("Promise and duty states vs protocol requirement status") and cross-referenced from `RL2_Protocol.md:277`; what was missing was wiring from the ontology/SHACL side. `rl2p.ttl`'s `requirementStatus` property and `rl2p-shacl.ttl`'s `RequirementShape` now both carry comments cross-referencing the projection rule, so `requirementStatus = Active` on a Promise-sourced Requirement is documented as intentional at every layer, not just in prose.
+
+**`targetNorm` widening resolved 2026-07-25 — via a `materialize(Offer, Acceptance) → Agreement` design, discussed and approved per `AGENTS.md` §7:**
+
+- **Where the widening is enforced:** `rl2-shacl.ttl`'s `AtomicConstraintShape.targetNorm` now uses `sh:or ( [ sh:class rl2:Norm ] [ sh:class rl2:Promise ] )` in place of the old `sh:class rl2:Norm`, so an Offer-stage clause may target a sibling Promise directly (see `usecases/sla-credit-clause.md`). `NormStateConstraintShape` (the shape specific to `obligationStateOperand`/`dutyPerformerOperand`) was deliberately left Norm-only — those two operands are Duty-state-specific; a Promise-valued target belongs to a `promiseStateOperand` instead (already demonstrated pre-session by `usecases/data-freshness-promise.md`).
+- **Why `rl2:targetNorm`'s `rdfs:range` was *not* widened to `owl:unionOf(Norm, Promise)`:** tried this first and it broke `RL2_Primer.md`/`RL2_Vocabulary.md` corpus validation (10 violations each). Root cause: `pyshacl`'s `inference="rdfs"` silently auto-types many terse example values (e.g. `ex:paymentDuty` in `RL2_Primer.md:783`, never explicitly declared `a rl2:Duty` in that fence) via RDFS range-entailment (rdfs3) from `targetNorm`'s single-class range — this is a pre-existing, previously-undocumented crutch the corpus depends on. Plain RDFS entailment cannot auto-type through an `owl:unionOf` blank node (that needs full OWL reasoning, which `pyshacl`'s `rdfs` inference option doesn't do), so widening the range broke every example relying on it. Fix: `rdfs:range` stays the single class `rl2:Norm` (preserves the entailment crutch for the dominant Norm-targeting case); the SHACL `sh:or` above is the real, enforced widening and correctly admits any *explicitly*-typed `rl2:Promise` value. Documented in `rl2:targetNorm`'s `rdfs:comment` in `rl2.ttl` so this doesn't get "fixed" back into a regression later.
+- **`materialize(Offer, Acceptance) → Agreement`** — new function defined in `RL2_Semantics.md` §Materialization, immediately after §Crystallization: a one-time, document-level, pre-compilation step (not an IR `Effect` — `RL2_IR.md` §7.2 now cross-references this explicitly, since `evalIR`/`applyEffects` only ever mutate Σ, never a policy's own AST, which the `targetNorm` rewrite requires). It (1) mints a fresh Agreement IRI; (2) crystallizes each Promise clause into a **freshly-minted** Duty + correlative Claim; (3) copies each restated Norm clause under a **freshly-minted** IRI too (not merely for symmetry — `Σ`'s `ObligationState`/`DutyPerformer`/`Requirements` maps are keyed by bare IRI with no Case/Agreement dimension, so reusing any clause IRI across multiple Agreements formed from the same catalog Offer would let two customers' fulfillment states collide); (4) rewrites every `targetNorm` reference through the resulting crystallization/restatement map, so an executed Agreement's `targetNorm` usage is always Norm-valued — consistent with "no Promise survives materialization" (PROM-1); (5) records provenance as `Agreement prov:wasDerivedFrom Offer`, borrowing the PROV-O term by reference (no `owl:imports`, matching how `rl2.ttl` already borrows `dc:` at the ontology-header level) rather than minting a bespoke `rl2:materializedFrom` property — chosen for the richer machinery available if agent/time provenance is ever wanted (`prov:wasGeneratedBy`/`prov:Activity`/`prov:atTime`). This is the corpus's first use of an external vocabulary term on individuals rather than just the ontology document header — deliberate, not a precedent for importing further vocabularies without the same discussion.
+- **New corpus example:** `usecases/sla-credit-clause.md` (Use Case 52) — an SLA Offer with a Promise (uptime) and a sibling Duty (service credit) whose condition targets the Promise pre-acceptance, then shows `materialize` producing an Agreement where the same condition has been rewritten to target the crystallized Duty. Explicitly contrasts with `usecases/legal-review-gate.md`, whose Offer→Agreement clause-IRI reuse is safe only because that Offer is accepted exactly once (not a catalog Offer accepted by many customers).
+- Full corpus revalidated clean after every step of this fix, including the range-widening revert: `usecases/*.md` (whole-file) → `PASS 0 · WARN-ONLY 52 · FAIL 0 · SKIP 1`; `RL2_Primer.md`/`RL2_Protocol.md`/`RL2_Vocabulary.md` (`--per-fence`) → `PASS 0 · WARN-ONLY 3 · FAIL 0 · SKIP 0`.
 
 ### PROM-8 — Departure from Promise Theory autonomy, unacknowledged
 **Status:** Open · **Severity:** S3 · **Source:** critique 1 §3.2 · **Tags:** [COV]
@@ -306,6 +418,18 @@ Only `rl2:member` enumeration. Add `rl2:selectionCriteria` (a Condition) for "al
 ### EXPR-6 — Revocation vocabulary
 **Status:** Open (reviewed 2026-07-25 — independent of SEM-4/5, no urgency) · **Severity:** S3 · **Source:** fix §8.2 · **Tags:** [COV]
 Power-to-revoke exists but there is no explicit revocation event. Consider `rl2:RevocationEvent` in the protocol layer. Use cases `approval-revocation.md`, `immunity-from-termination.md` should drive this.
+
+### EXPR-7 — Logical implication/equivalence (`implies`, `iff`) absent
+**Status:** Open · **Severity:** S3 · **Source:** fix.md §2.4(1) · **Tags:** [COV]
+**Files:** `rl2.ttl` (`rl2:LogicalOperator`: `and`/`or`/`xone`/`not` only)
+
+`A ⟹ B` and `A ⟺ B` can't be expressed as first-class logical operators today. **Recommendation:** desugar at IR-compilation time (`A ⟹ B ≡ ¬A ∨ B`) rather than adding new core operators — preserves canonical form by avoiding two ways to express the same proposition. No core ontology change needed; note as an IR-compiler (SEM-4/`RL2_IR.md`) normalization rule.
+
+### EXPR-8 — ODRL `relation`/`partOf`/`refinement` not covered in RL2 core
+**Status:** Open · **Severity:** S3 · **Source:** fix.md §2.1 (coverage table) · **Tags:** [COV]
+**Files:** `rl2.ttl`
+
+ODRL's asset relation properties (`relation`, `partOf`, `hasPolicy`) and `refinement` (constraining an action or collection) have no RL2-core equivalent. Action refinement is partially covered via `rl2:includedIn` hierarchies; collection refinement would need `rl2:selectionCriteria` (tracked as **EXPR-4**); `relation`/`partOf` would need a profile. Minor gap — defer to a profile unless a use case demands core support.
 
 ---
 
@@ -391,6 +515,12 @@ Primer/Vocabulary: define the source norm/promise (typed), its source Policy (wi
 the performer. Confirmed no regressions: Semantics/Primer/Vocabulary still pass
 per-fence, and all 51 use cases still pass whole-file.
 
+### VALID-4 — Corpus doesn't exercise conflict resolution, the Forth-IR path, or external data
+**Status:** Open · **Severity:** S3 · **Source:** fix.md §2.5 · **Tags:** [COV]
+**Files:** `usecases/*`
+
+No use case tests `ProhibitOverrides` vs `PermitOverrides` vs `SpecificOverridesGeneral` on the same scenario; none exercises the Forth-IR compilation path end-to-end; none demonstrates external data integration (the `resolve` function calling an external source). (ODRL migration coverage is tracked separately as **OPEN-3**.) **Action:** add targeted use cases once SEM-4/IR and SEM-13/external-data work stabilize enough to give them a fixed target to test against.
+
 ---
 
 ## Band 4 — Implementation
@@ -398,6 +528,8 @@ per-fence, and all 51 use cases still pass whole-file.
 ### IMPL-1 — Dafny core modules
 **Status:** Open · **Severity:** S1 · **Source:** backlog Phase 1, fix §12 · **Tags:** [VER]
 Translate `RL2_Semantics.md` to Dafny. Blocked on SEM-4 (IR) and SEM-5 (target matching). Toolchain decided (Dafny→Go).
+
+**De-risking spike required first (fix.md Task 12/§6.2, confirmed by fix2.md §6):** before full commitment, replicate a minimal evm-dafny-style proof (3-4 opcodes — DUP, DROP, ADD, IF) in Dafny 4.11 (pin this version to avoid nightly churn), extract to Go, and confirm the generated Go compiles and runs correctly. A 2-3 day spike, using [Consensys/evm-dafny](https://github.com/Consensys/evm-dafny) as the architectural reference — a verified stack VM in Dafny with the same shape RL2 needs. fix2.md notes that `RL2_IR.md`'s design of keeping deontic logic in the AST tree-walk and only conditions in the bytecode VM shrinks the verification surface to ~30 opcodes of pure boolean evaluation, more tractable than the original ~45-opcode `design-forth-ir.md` estimate. If the spike succeeds, proceed with Dafny→Go as planned. If it fails (Go extraction issues, proof friction), fall back to **Creusot** (verify Rust directly — eliminates the extraction gap entirely, but is pre-1.0 and lacks a `--enforce-determinism` equivalent).
 
 ### IMPL-2 — Discharge proofs S1 / S4 / S6
 **Status:** Open · **Severity:** S1 · **Source:** backlog, fix · **Tags:** [VER]
@@ -413,11 +545,24 @@ S1 Determinism, S4 Duty-state consistency, S6 Totality. Fold SEM-8's obligations
 
 - **DOC-1** — ✅ Resolved (v0.6). Spec-suite docs normalized to `version: "0.6"` / `date: 2026-07-24` (Semantics, Architecture, Vocabulary, Primer, Protocol, References, README banner). RDF artifacts keep truthful `owl:versionInfo`: `rl2.ttl` 0.6 (changed), `rl2p.ttl` 0.5 (unchanged); Vocabulary footer notes the split. `RL2_ODRL_Comparison.md` retains its own doc version (1.0). `S3`.
 - **DOC-2** — `RL2_Vocabulary.md` vs `rl2.ttl` duplication (~800 lines). Keep TTL authoritative; Vocabulary as gloss. `S3`.
-- **DOC-3** — Remove redundant AI-config pointer files `codex.md`, `gemini.md` (4-line pointers; Codex retired per global policy), and reconcile `claude.md` with `persona.md`. `S3`.
-- **DOC-4** — Merge `RL2_ODRL_Comparison.md` into `RL2_Primer.md` as a comparison section (+ an ODRL→RL2 migration guide). `S3`.
+- **DOC-3** — ✅ Resolved (2026-07-25). `codex.md`/`gemini.md`/`persona.md` were already gone; found and removed a byte-identical duplicate `claude.md` (redundant with `CLAUDE.md`). Fixed the stale `persona.md` references in `design-canonical-form.md:25,46` → `AGENTS.md`. `S3`.
+- **DOC-4** — **Partially resolved (2026-07-25):** added a staleness disclaimer to the top of `RL2_ODRL_Comparison.md` covering the Why3/Coq/Lean, `rl2-media-profile.ttl`, Event Log, and pre-PROM-1 Duty-ambiguity issues below. **Still open:** the actual merge into `RL2_Primer.md` as a comparison section (+ ODRL→RL2 migration guide). `S2` (raised from S3: fix2.md N5 confirms this doc is badly stale, not just duplicative — it predates the v0.6 canonical-form pass and the Dafny→Go decision). Specific staleness (now flagged in the doc itself, still to fix if/when merged): references `Why3/WhyML` and `Coq/Lean` as verification targets (§3.2, lines 90-91) when the decided toolchain is Dafny→Go exclusively (`de473f5`); cites `rl2-media-profile.ttl` (§1.1, line 22), which doesn't exist in `profiles/`; claims Σ includes a "time-ordered Event Log" (§2.2, lines 57-59) when Σ.Events is a set; its Duty-ambiguity discussion (§2.1, lines 43-52) predates PROM-1's crystallization resolution.
 - **DOC-5** — Add a document-navigation map ("I want to… → read…") to `README.md`. `S3`.
-- **DOC-6** — Terminology consistency: `ObligationState` (not DutyState), `Norm` (not Rule), clarify Requirement-wraps-Duty. `S3`.
+- **DOC-6** — ✅ Resolved (2026-07-25). `FAQ/RL2_FAQ.md:23` "Rights & Licenses 2" → "Rights Language 2"; `FAQ/RL2_FAQ.md:111-118`'s pre-CANON-2 `ProviderPromise`/`ConsumerPromise`/`ThirdPartyPromise` terms replaced with a description of the unified `rl2:Promise` class + `promisedAction`/`promisedState`/`promisedDuty`. Same stale terminology also found and fixed in `RL2_References.md:329` (Tun-Sollen glossary entry). Remaining terminology consistency (`ObligationState` not DutyState, `Norm` not Rule, Requirement-wraps-Duty clarity) not yet audited beyond these two files — reopen if found elsewhere. `S3`.
 - **DOC-7** — ✅ Resolved (2026-07-25). `backlog.md` merged into this log. Open design decisions are now § Open Decisions (OPEN-1..3). Work items and success criteria were already tracked as IMPL-1..3 and S1/S4/S6. `backlog.md` deleted. `S3`.
+- **DOC-9** — ✅ Resolved (2026-07-25). Rewrote `FAQ/RL2_FAQ.md:183` (conflict-resolution bullet) and the "Is RL2 tied to a specific policy engine?" section (was lines 280-291) to describe the actual single Forth-IR → Dafny → Go pipeline; Rego/Cedar/Prolog/Datalog are now framed as conceivable future targets for that IR, not implemented/planned backends. `S2`.
+- **DOC-10** — ✅ Resolved (2026-07-25). `RL2_References.md:446` now cites `RL2_ODRL_Comparison.md` (was the nonexistent `RL2_ODRL_Coverage.md`). `S3`.
+- **DOC-11** — ✅ Resolved (2026-07-25). `RL2_Semantics.md:1684`'s dangling reference to `RL2_ResearchPlan.md` replaced with pointers to `RL2_IR.md` (compilation target) and `issues.md` Band 4 (phased implementation plan) — the artifacts that actually carry this content now. `S3`.
+
+---
+
+## Band 6 — AI-Generation Tooling
+
+### LLM-1 — No LLM-generation prompt templates, few-shot examples, or validation harness
+**Status:** Open · **Severity:** S3 · **Source:** fix.md §7.2/Task 15 · **Tags:** [COV]
+**Files:** new `examples/llm-generation/` (proposed)
+
+The canonical-form invariant makes RL2 well-suited for LLM generation (graph isomorphism substitutes for a semantic theorem prover when comparing generated vs gold-standard policies — fix.md §7.1), but no concrete artifacts demonstrate this: no prompt-engineering guide for NL→RL2 generation, no NL→RL2 evaluation harness/benchmark, no few-shot examples formatted for LLM consumption. **Action:** create `examples/llm-generation/` with prompt templates, few-shot examples, and a validation harness checking LLM output against SHACL + canonical-form rules.
 
 ---
 

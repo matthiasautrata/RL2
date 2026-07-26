@@ -4,6 +4,22 @@
 **Date:** 2025-12-16  
 **Status:** Draft
 
+> **Staleness notice (2026-07-25, DOC-4).** This document predates the v0.6
+> canonical-form pass and the Dafny→Go toolchain decision, and contains several
+> claims no longer accurate:
+> - References **Why3/WhyML** and **Coq/Lean** as verification targets (§3.2) —
+>   the decided toolchain is **Dafny → Go** exclusively (`de473f5`).
+> - Cites `rl2-media-profile.ttl` (§1.1) — this file does not exist in `profiles/`.
+> - Claims Σ includes a "time-ordered Event Log" (§2.2) — `Σ.Events` is a set, not
+>   an ordered log.
+> - Its Duty-ambiguity discussion (§2.1) predates **PROM-1**'s crystallization
+>   resolution (Promise-in-Agreement content crystallizes into Duty + correlative
+>   Claim on acceptance).
+>
+> See `issues.md` **DOC-4** for the full list and the plan to merge this document
+> into `RL2_Primer.md` as a comparison section. Treat the sections below as
+> historical unless corroborated by the current spec suite.
+
 ## Executive Summary
 
 RL2 is designed as a **rigorous successor** to the Open Digital Rights Language (ODRL). While ODRL provides a flexible vocabulary for expressing rights and policies, it lacks a strictly defined formal semantics, leading to ambiguity in automated enforcement. RL2 retains the conceptual information model of ODRL (Subject-Action-Object rules) but replaces its descriptive processing model with a **formal operational calculus** (state machines, transition rules, type systems).

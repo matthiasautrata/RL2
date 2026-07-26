@@ -22,7 +22,7 @@ Why this is the foundation for the north star:
 - **Generatable.** A model emitting a policy never has to choose among equivalent encodings — there is one target shape. Prompting and fine-tuning both get dramatically easier when the output is canonical.
 - **Verifiable.** Semantic equivalence reduces to graph isomorphism after normalization. No bespoke normalizer full of edge cases (the place ODRL bugs live).
 
-**Action:** add a short "Canonical Form" section to `RL2_Architecture.md` stating the invariant, and a design rule to `persona.md`. CANON-1..4 are the concrete instances; every future construct is checked against the invariant.
+**Action:** add a short "Canonical Form" section to `RL2_Architecture.md` stating the invariant, and a design rule to `AGENTS.md`. CANON-1..4 are the concrete instances; every future construct is checked against the invariant.
 
 Grounding correction: RL2 is already *closer* to this than the reviews implied — condition composition is defined, `prohibitedAction ⊑ action`, roles are Norm-scoped. The work is finishing the job, not starting it.
 
@@ -44,7 +44,7 @@ So there is no "undefined merge operator" (contra critique 3). The only residual
 2. Declare the **canonical authoring rule**: place a condition at the *narrowest* level that carries its scope. A condition scoping exactly one norm belongs on that norm.
 3. Enforce canonicality at **compile time, not in SHACL**: IR normalization pushes every policy condition down into each norm's `effectiveCondition` via the existing `And()`. The IR therefore carries conditions *only on norms* — one shape. (This is a SEM-4 IR obligation; recorded there.)
 
-**Files:** `RL2_Architecture.md` (canonical-form section + IR normalization rule), `persona.md` (authoring rule). No `rl2.ttl` / SHACL change.
+**Files:** `RL2_Architecture.md` (canonical-form section + IR normalization rule), `AGENTS.md` (authoring rule). No `rl2.ttl` / SHACL change.
 
 ---
 

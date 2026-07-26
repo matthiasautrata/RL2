@@ -143,6 +143,13 @@ rl2p:RequirementShape a sh:NodeShape ;
         sh:class rl2:Policy ;
         sh:message "A Requirement must reference exactly one source Policy."
     ] ;
+    # CONS-2/PROM-7: the full ObligationState range (including Active) is intentionally
+    # permitted here even when sourceNorm is a rl2:Promise — Active on a Promise-sourced
+    # Requirement is a deliberate "effective now / monitored" protocol projection, not a
+    # claim about semantic PromiseState (which never reaches Active). See
+    # RL2_Semantics.md "Promise and duty states vs protocol requirement status" and
+    # rl2p:requirementStatus's comment in rl2p.ttl. Do not add a SPARQL rule rejecting
+    # Active here — it would contradict this documented, intended behavior.
     sh:property [
         sh:path rl2p:requirementStatus ;
         sh:minCount 1 ;
@@ -188,21 +195,12 @@ rl2p:RequirementFulfillmentAuditShape a sh:NodeShape ;
             }
         """
     ] ;
-    sh:property [
-        sh:path rl2p:fulfilledByAction ;
-        sh:minCount 1 ;
-        sh:message "Fulfilled Requirement should indicate the action that fulfilled it."
-    ] ;
-    sh:property [
-        sh:path rl2p:fulfilledByEvent ;
-        sh:minCount 1 ;
-        sh:message "Fulfilled Requirement should reference the event evidencing fulfillment."
-    ] ;
-    sh:property [
-        sh:path rl2p:fulfillmentEvidence ;
-        sh:minCount 1 ;
-        sh:message "Fulfilled Requirement should reference fulfillment evidence."
-    ] .
+    sh:or (
+        [ sh:path rl2p:fulfilledByAction ; sh:minCount 1 ]
+        [ sh:path rl2p:fulfilledByEvent ; sh:minCount 1 ]
+        [ sh:path rl2p:fulfillmentEvidence ; sh:minCount 1 ]
+    ) ;
+    sh:message "Fulfilled Requirement should have fulfillment evidence via action, event, or an explicit evidence reference (CONS-1 — at least one, not all three)." .
 
 ############################################################
 # Context Assertion Shapes

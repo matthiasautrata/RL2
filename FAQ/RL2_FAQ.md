@@ -20,7 +20,7 @@
 
 ### What is RL2, in one sentence?
 
-RL2 (Rights & Licenses 2) is a policy language and execution model that extends ODRL with explicit promises, events, policy lifecycles, and executable semantics, enabling both real-time authorization and continuous compliance.
+RL2 (Rights Language 2) is a policy language and execution model that extends ODRL with explicit promises, events, policy lifecycles, and executable semantics, enabling both real-time authorization and continuous compliance.
 
 ### Who is RL2 intended for?
 
@@ -111,11 +111,13 @@ RL2 can be introduced incrementally.
 ### What are "Promises" in RL2, and why add them?
 
 In ODRL, a Duty informally expresses that "someone must do something."
-RL2 makes this explicit using Promises:
-
-- **ProviderPromise** — commitments by the data provider
-- **ConsumerPromise** — commitments by the data consumer
-- **ThirdPartyPromise** — commitments by auditors, processors, etc.
+RL2 makes this explicit using a single `rl2:Promise` class: any agent (a
+data provider, a data consumer, an auditor, a processor, etc.) can be the
+`promisor` or `promisee` of a Promise — the role isn't a separate subclass,
+it's just who fills those two properties. A Promise's content is exactly
+one of `rl2:promisedAction` (a commitment to *do* something), `rl2:promisedState`
+(a commitment that something *holds*), or `rl2:promisedDuty` (a suretyship
+commitment to fulfill someone else's Duty).
 
 Promises are necessary because:
 - They can be triggered by events
@@ -178,7 +180,7 @@ This allows:
 - Deterministic evaluation
 - Parallel execution
 - Clean conflict detection
-- Efficient compilation to Rego, Cedar, Prolog, etc.
+- Compilation to the RL2 IR (a Forth-style stack bytecode for conditions, verified in Dafny and extracted to Go — see `RL2_IR.md`)
 
 ### Why does RL2 distinguish between events and duties?
 
@@ -277,16 +279,13 @@ These are intentionally separated:
 
 ### Is RL2 tied to a specific policy engine?
 
-No. RL2 is deliberately engine-agnostic.
-
-Atomic RL2 policies can be compiled to:
-- Rego / OPA
-- Cedar
-- Prolog
-- Datalog
-- Custom interpreters
-
-RL2's purpose is to act as a semantic and structural intermediate representation (IR) for policy systems.
+No, but RL2 does have one concrete, verified execution path rather than a
+multi-backend compiler. Policies compile to a single RL2 intermediate
+representation — a normalized AST for the deontic layer plus a Forth-style
+stack bytecode for condition evaluation (see `RL2_IR.md`) — which is verified
+in Dafny and extracted to Go. Alternative backends (Rego/OPA, Cedar, Prolog,
+Datalog) are conceivable future targets for that same IR, but none is
+implemented or currently planned; the RL2 IR itself is the engine.
 
 ### Does RL2 require a knowledge graph?
 

@@ -1,6 +1,6 @@
 # RL2 Use Cases
 
-**Total: 51 use cases** — 17 complete, 34 draft
+**Total: 52 use cases** — 17 complete, 35 draft
 
 ---
 
@@ -113,6 +113,14 @@
 
 ---
 
+## Crystallization / Materialization (52)
+
+| # | File | Pattern | Gap Filled | Status |
+|---|------|---------|------------|--------|
+| 52 | sla-credit-clause.md | Promise + sibling Duty, crystallized on acceptance | `targetNorm` (Promise-valued), `materialize`, `prov:wasDerivedFrom` | 📝 |
+
+---
+
 ## Sources
 
 Use case selection informed by:
@@ -157,6 +165,7 @@ Draft use cases (18-51) fill remaining vocabulary gaps:
 | `policyGeneration` | 49 |
 | `rl2p:Requirement` | 50 |
 | `rl2p:fulfillmentEvidence` | 51 |
+| `targetNorm` (Promise-valued) / `materialize` | 52 |
 
 ---
 

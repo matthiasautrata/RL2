@@ -326,7 +326,7 @@ date: 2026-07-24
 : A norm specifying that a state of affairs *ought to be the case*. From German legal philosophy (Kant → Kelsen → von Wright). In RL2, Sein-Sollen norms govern world states rather than agent actions: invariants, compliance conditions, boundary set definitions, and regulatory safety requirements. Evaluated continuously or via monitoring (SHACL, SPARQL, TLA+). Violations represent illegal states rather than behavioral infractions. Contrasts with Tun-Sollen. See [von Wright 1963].
 
 **Tun-Sollen** (Action-Directed Ought)
-: A norm specifying that an agent *ought to do* (or refrain from doing) an action. From German legal philosophy (Kant → Kelsen → von Wright). In RL2, Tun-Sollen norms govern agent behavior: Promises, permissions, prohibitions, and event-triggered duties. Evaluated at request time or upon event occurrence. Violations are behavioral—an agent failed to act as required. Maps to ODRL duties and RL2's ConsumerPromise/ProviderPromise. Contrasts with Sein-Sollen. See [von Wright 1963].
+: A norm specifying that an agent *ought to do* (or refrain from doing) an action. From German legal philosophy (Kant → Kelsen → von Wright). In RL2, Tun-Sollen norms govern agent behavior: Promises, permissions, prohibitions, and event-triggered duties. Evaluated at request time or upon event occurrence. Violations are behavioral—an agent failed to act as required. Maps to ODRL duties and RL2's `rl2:Promise` (via `promisedAction`). Contrasts with Sein-Sollen. See [von Wright 1963].
 
 ## Policy Terms
 
@@ -443,6 +443,6 @@ date: 2026-07-24
 | RL2_Architecture.md | Evaluation pipeline, layer separation, design rationale |
 | RL2_IR.md | Intermediate representation: compilation target, correspondence, equivalence obligation |
 | RL2_Protocol.md | Request/response protocol for interoperability |
-| RL2_ODRL_Coverage.md | Mapping from ODRL 2.2/3.0 to RL2 |
+| RL2_ODRL_Comparison.md | Mapping from ODRL 2.2/3.0 to RL2 |
 | RL2_Primer.md | Tutorial introduction |
 | RL2_Vocabulary.md | Complete class and property reference |

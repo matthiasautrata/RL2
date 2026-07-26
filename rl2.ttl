@@ -5,6 +5,7 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 
 <https://rl2.example/ontology>
   a owl:Ontology ;
@@ -270,11 +271,26 @@ rl2:targetNorm a owl:ObjectProperty ;
     rdfs:domain rl2:AtomicConstraint ;
     rdfs:range rl2:Norm ;
     rdfs:label "Target Norm" ;
-    rdfs:comment """Specifies the norm whose state is being queried.
-    Used with rl2:obligationStateOperand or rl2:dutyPerformerOperand left operands.
-    When present, resolve(leftOperand) queries state for this specific norm.
-    (Querying a standalone Promise's PromiseState — which would widen this range to
-    include rl2:Promise — is specified under PROM-7, not here.)""" .
+    rdfs:comment """Specifies the norm (or, pre-acceptance inside an Offer, the promise)
+    whose state is being queried. Used with rl2:obligationStateOperand or
+    rl2:dutyPerformerOperand (Norm-only — see rl2-shacl.ttl's NormStateConstraintShape)
+    or with a promiseStateOperand (Promise-valued; queries PromiseState, e.g.
+    usecases/data-freshness-promise.md). When present, resolve(leftOperand) queries
+    state for this specific norm or promise.
+    PROM-7: an Offer-stage clause may target a sibling Promise directly (the Promise
+    has not crystallized yet). On Agreement formation, materialize() (RL2_Semantics.md
+    §Materialization) rewrites every such targetNorm to the crystallized Duty, so an
+    executed Agreement's targetNorm usage is always Norm-valued — no Promise survives
+    materialization (PROM-1).
+    NOTE: rdfs:range is deliberately left as the single class rl2:Norm, not an
+    owl:unionOf(Norm, Promise) — plain RDFS entailment (rdfs3) can only auto-type a
+    value from a range triple whose object is a single named class, and much of this
+    corpus's illustrative Turtle relies on exactly that auto-typing for terse examples
+    that reference a Duty by IRI without re-declaring `a rl2:Duty` in the same fence.
+    The real, enforced widening lives in rl2-shacl.ttl's AtomicConstraintShape
+    (sh:or over sh:class rl2:Norm / sh:class rl2:Promise), which correctly admits an
+    explicitly-typed rl2:Promise value without weakening this rdfs:range shortcut for
+    every other (Norm-targeting) use.""" .
 
 # Left operands for norm state queries
 rl2:obligationStateOperand a rl2:LeftOperand ;

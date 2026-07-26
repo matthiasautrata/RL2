@@ -194,13 +194,13 @@ rl2:PromiseShape a sh:NodeShape ;
 # to avoid false positives with SHACL engines that perform RDFS inference on subclasses.
 rl2:AtomicConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:AtomicConstraint ;
-    sh:property [ sh:path rl2:leftOperand ; sh:minCount 1 ] ;
-    sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:ComparisonOperator ] ;
+    sh:property [ sh:path rl2:leftOperand ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:ComparisonOperator ] ;
     sh:property [
         sh:path rl2:targetNorm ;
         sh:maxCount 1 ;
-        sh:class rl2:Norm ;
-        sh:message "targetNorm must reference a Norm."
+        sh:or ( [ sh:class rl2:Norm ] [ sh:class rl2:Promise ] ) ;
+        sh:message "targetNorm must reference a Norm or a Promise (PROM-7 — Promise only meaningful pre-acceptance, inside an Offer)."
     ] ;
     sh:xone (
         [ sh:property [
@@ -220,6 +220,10 @@ rl2:AtomicConstraintShape a sh:NodeShape ;
 # Conditional requirement: targetNorm REQUIRED for norm state operands.
 # When leftOperand is obligationStateOperand or dutyPerformerOperand,
 # the constraint must specify which norm's state to query.
+# PROM-7: intentionally left Norm-only (not widened like AtomicConstraintShape above) —
+# these two operands query ObligationState/DutyPerformer, which are Duty-only in Σ.
+# A Promise-valued target belongs to promiseStateOperand instead (see rl2:targetNorm's
+# comment in rl2.ttl and usecases/data-freshness-promise.md).
 rl2:NormStateConstraintShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
@@ -245,7 +249,7 @@ rl2:NormStateConstraintShape a sh:NodeShape ;
 # operator-specific cardinality as defined in the ontology comments.
 rl2:LogicalConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:LogicalConstraint ;
-    sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:class rl2:LogicalOperator ] ;
+    sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:LogicalOperator ] ;
     sh:property [ sh:path rl2:operand ; sh:minCount 1 ; sh:class rl2:Condition ] .
 
 # Operand cardinalities for logical operators
@@ -289,7 +293,7 @@ rl2:AndOrXoneOperandCardinalityShape a sh:NodeShape ;
 # Event constraints require an expected event
 rl2:EventConstraintShape a sh:NodeShape ;
     sh:targetClass rl2:EventConstraint ;
-    sh:property [ sh:path rl2:expectsEvent ; sh:minCount 1 ; sh:class rl2:Event ] .
+    sh:property [ sh:path rl2:expectsEvent ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Event ] .
 
 # Asset collection shape
 rl2:AssetCollectionShape a sh:NodeShape ;

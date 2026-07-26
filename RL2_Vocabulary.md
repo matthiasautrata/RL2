@@ -1264,8 +1264,8 @@ ex:dataQualityReq a rl2p:Requirement ;
 | Promise | `rl2p:Requirement` (sourceNorm → Promise) |
 | Claim | `rl2p:Requirement` (with counterparty) |
 | Privilege | `rl2p:Decision` (Permit) |
-| Power | `rl2p:Decision` (Permit State Change) |
-| Immunity | `rl2p:Decision` (Deny State Change) |
+| Power | `Effect (ExercisePower)` — see `RL2_IR.md`'s effect algebra; not a `rl2p:Decision`, since exercising a Power changes normative positions rather than authorizing a request |
+| Immunity | Not an effect or a `rl2p:Decision` — a precondition that blocks `ExercisePower`: `ImmunityActive(a, n) → ¬canExercise(Power(h, n))` (`RL2_Semantics.md:807-821`) |
 
 ---
 
@@ -1284,7 +1284,14 @@ ex:dataQualityReq a rl2p:Requirement ;
 | `rl2p:requirementLabel` | Requirement | xsd:string | Human-readable label |
 | `rl2p:requirementDescription` | Requirement | xsd:string | Human-readable description |
 | `rl2p:activeRequirements` | EvaluationResult | Requirement | Requirements that must be fulfilled |
-| `rl2p:requirementFulfilled` | (LeftOperand) | — | Left operand for requirement fulfillment status |
+
+---
+
+### Protocol Left Operands
+
+| Left Operand | Description |
+|---------------|-------------|
+| `rl2p:requirementFulfilled` | Left operand for querying whether a Requirement is fulfilled (an `rl2:LeftOperand` individual, not an OWL property) |
 
 ---
 

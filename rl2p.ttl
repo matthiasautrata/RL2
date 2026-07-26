@@ -165,7 +165,11 @@ rl2p:requirementStatus a owl:ObjectProperty ;
     rdfs:comment """Current lifecycle status of this requirement.
     Uses rl2:ObligationState from RL2 Core (Pending, Active, Fulfilled, Violated)
     to ensure semantic alignment between the ontology and protocol.
-    The Promise vs Duty distinction lives in sourceNorm, not in status.""" .
+    The Promise vs Duty distinction lives in sourceNorm, not in status.
+    CONS-2/PROM-7: when sourceNorm is a rl2:Promise, requirementStatus = Active is a
+    deliberate protocol-level projection ("effective now / monitored"), not a claim
+    about semantic PromiseState (which never reaches Active — see rl2:PromiseState
+    and RL2_Semantics.md \"Promise and duty states vs protocol requirement status\").""" .
 
 rl2p:imposedTime a owl:DatatypeProperty ;
     rdfs:domain rl2p:Requirement ;

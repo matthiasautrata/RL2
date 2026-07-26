@@ -1081,6 +1081,58 @@ surety incurs on breach) are residual specification tasks owned by SEM-1 and
 PROM-5; the crystallization *targets* fixed here hold regardless of how those
 resolve, so the Offer→Agreement transition is well-defined for every promise now.
 
+### Materialization (Offer → Agreement, document level)
+
+Crystallization above defines *what a Promise becomes*; it does not by itself say how an
+Agreement's clauses come to reference the crystallized Duty instead of the vanished Promise, or
+how a restated Norm clause avoids colliding across multiple Agreements formed from the same
+Offer. **Materialization** is the one-time, document-level step that acceptance performs to
+produce a self-contained Agreement:
+
+```
+materialize(Offer, Acceptance) = Agreement
+    where Agreement = fresh IRI
+```
+
+An Offer is catalog-like: it is authored once, published, and may be accepted many times (e.g.
+an SLA offered to many customers). Because `Σ`'s state maps are keyed by bare IRI with no
+Case/Agreement dimension —
+
+```
+ObligationState : Duty → {Pending, Active, Fulfilled, Violated}
+DutyPerformer   : Duty → Agent ∪ {⊥}
+```
+
+(§Σ, above) — two Agreements that shared a clause IRI would share one entry in these maps, and
+one customer's fulfillment would silently become another's. `materialize` therefore mints a
+**fresh IRI for every clause it places in the Agreement**, crystallized or not:
+
+1. Mint a fresh IRI for the Agreement itself.
+2. For each Promise clause in the Offer, `crystallize` it (as above) into a **freshly-minted**
+   Duty `D` and correlative Claim `C` — scoped to this Agreement, not shared with any other
+   acceptance of the same Offer.
+3. For each restated Norm clause in the Offer, copy it into the Agreement under a **freshly-minted**
+   IRI — for the same Σ-collision reason as step 2, not merely for symmetry.
+4. Let `map` be the resulting Promise/Norm ⟶ crystallized-or-copied-clause correspondence built by
+   steps 2–3. Rewrite every `rl2:targetNorm` reference inside the Agreement's clauses through
+   `map`, so a condition that targeted an Offer-stage Promise now targets its crystallized Duty.
+   After this rewrite, `targetNorm` is always Norm-valued inside an executed Agreement — no
+   Promise survives materialization (PROM-1) and none is ever queried by IRI after acceptance.
+5. Record provenance: `Agreement prov:wasDerivedFrom Offer` (`http://www.w3.org/ns/prov#`,
+   borrowed by term as `rl2.ttl` already borrows `dc:` — no `owl:imports` of PROV-O itself).
+   This is the first use of an external vocabulary term on RL2 individuals rather than on the
+   ontology document header; it is deliberate, not an invitation to import further vocabularies
+   without the same discussion.
+
+`materialize` is **not** an IR effect. It runs once, before compilation, over the fixed Offer
+document and the Acceptance event — analogous to the ODRL-inheritance flattening pass in
+`RL2_ODRL_Comparison.md`. `evalIR`/`applyEffects` (RL2_IR.md §7) operate on an already-compiled,
+immutable `CompiledPolicy` and only ever mutate Σ; they have no mechanism for rewriting a
+policy's own AST, which is exactly what step 4 requires. `CrystallizePromise` (RL2_IR.md's
+`Effect` datatype) remains unchanged: it is the *runtime* bookkeeping Σ-effect fired each time a
+`PromiseEntry` is evaluated within an already-materialized Agreement, distinct from this one-time
+document construction.
+
 ### Promise→Duty Generation (Remedial Generation Rule)
 
 **Conceptual Foundation (Sein-Sollen vs Tun-Sollen)**:
@@ -1652,8 +1704,7 @@ datatype Condition =
   | And(left: Condition, right: Condition)
   | Or(left: Condition, right: Condition)
   | Not(inner: Condition)
-  | Temporal(start: Time, end: Time)
-  | Context(path: Path, cmp: Operator, val: Value)
+  | Xone(operands: seq<Condition>)
 
 function EvalCondition(c: Condition, env: Env): bool
   requires ValidEnv(env)
@@ -1664,7 +1715,8 @@ function EvalCondition(c: Condition, env: Env): bool
     case And(l, r) => EvalCondition(l, env) && EvalCondition(r, env)
     case Or(l, r) => EvalCondition(l, env) || EvalCondition(r, env)
     case Not(inner) => !EvalCondition(inner, env)
-    // ...
+    case Xone(cs) =>
+      |set i | 0 <= i < |cs| && EvalCondition(cs[i], env)| == 1
 }
 ```
 
@@ -1681,7 +1733,7 @@ The following properties should be proved for a verified implementation:
 5. **(S5) Timeout correctness**: Deadlines are eventually enforced
 6. **(S6) Totality**: `Eval` terminates for all well-formed inputs
 
-See **RL2_ResearchPlan.md** for the complete mechanization roadmap, phased implementation plan, and deliverable specifications.
+See **`RL2_IR.md`** for the compilation target these properties are proved against, and **`issues.md`** (Band 4 — Implementation) for the phased Dafny/Go implementation plan and deliverable specifications.
 
 For expressive characterization and comparison with other formalisms, see **RL2_Architecture.md**.
 

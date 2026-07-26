@@ -277,7 +277,7 @@ evalIR : (CompiledPolicy, Request, Σ) → (Decision, DutySet, seq<Effect>)     
 datatype Effect =
   | TransitionDuty(duty: Norm, from: DutyState, to: DutyState)   // Duty SM; SEM-1 restoreAction wiring
   | CrystallizePromise(promisor: Agent, promisee: Agent,         // PROM-1 §1036 — orientation-carrying
-                       content: PromiseContent)
+                       content: PromiseContent, source: Clause)  // CONS-3 — audit trail to originating Promise
   | GenerateRemedialDuty(source: Clause, remedy: Norm)           // PROM-6 §1082 (Remedial Generation)
   | CreateCase(case: CaseRef, generation: GenId)                 // Protocol; SEM-6 generation binding
   | ExercisePower(power: Norm, target: Norm)                     // Power exercise; SEM-8
@@ -327,6 +327,15 @@ effect is what keeps the resulting `Duty` + correlative `Claim` correctly orient
 made-vs-demanded orientation is a named effect-soundness sub-lemma (§9c). The three content
 forms map exactly as in RL2_Semantics.md §Crystallization (`PromisedAction` fully closed;
 `PromisedState` maintenance-duty wiring → SEM-1; `PromisedDuty` suretyship remedy → PROM-5).
+
+**`CrystallizePromise` is not the whole of Offer→Agreement (PROM-7).** This effect is
+*runtime* bookkeeping inside an already-materialized Agreement's evaluation. The document-level
+step that turns an Offer into that Agreement — minting fresh clause IRIs and rewriting
+`targetNorm` references from Offer-stage Promises to their crystallized Duties — is
+`materialize` (RL2_Semantics.md §Materialization), which runs once, before compilation. It
+cannot be an `Effect`/`applyEffects` case: `CompiledPolicy` is immutable during `evalIR`, and
+`applyEffects` only ever produces a new Σ, never a rewritten policy AST — exactly what
+`targetNorm` rewriting requires.
 
 ### 7.3 Effect coherence
 
