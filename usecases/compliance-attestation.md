@@ -76,7 +76,10 @@ A data processor publishes a compliance assertion:
 Assertions don't directly grant access but may be preconditions:
 
 ```turtle
-ex:accessPrivilege a rl2:Privilege ;
+ex:processorComplianceAssertionOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "context.processorComplianceAssertion" .
+
+ex:processPrivilege a rl2:Privilege ;
     rl2:subject ex:Processor ;
     rl2:action ex:process ;
     rl2:object ex:PersonalData ;

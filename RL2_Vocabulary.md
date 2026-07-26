@@ -504,12 +504,12 @@ ex:trainModel a rl2:Action .
 
 ### rl2:AssetCollection
 
-**Definition**: A collection of assets, possibly dynamically determined.
+**Definition**: A collection of assets. **`rdfs:subClassOf rl2:Asset`** (C7) — a collection is itself an Asset, so it can be the object of a norm and can itself be a member of another collection.
 
-**Type**: `owl:Class`
+**Type**: `owl:Class` (subclass of `rl2:Asset`)
 
 **Properties**:
-- `rl2:member` — Static member assets
+- `rl2:member` — Direct member assets (not transitively closed in core)
 
 **SHACL Shape**: `rl2:AssetCollectionShape`
 
@@ -520,7 +520,7 @@ ex:sensitiveAssets a rl2:AssetCollection ;
     rl2:member ex:financialRecords .
 ```
 
-**Note**: Dynamic materialization is profile-specific. RL2 Core no longer specifies a query string; profiles may define resolution functions or registry references if needed.
+**Membership semantics (C7)**: Core matching uses **direct** `rl2:member` links only, resolved against the evaluation snapshot (stable for the duration of an evaluation). Because `AssetCollection ⊑ Asset`, a member may itself be a collection, but core does **not** auto-flatten nested collections — transitive membership is a profile/derived concern. Dynamic materialization is likewise profile-specific: RL2 Core specifies no query string; profiles may define resolution functions or registry references if needed.
 
 ---
 
@@ -672,7 +672,7 @@ ex:identityCheck a rl2:AtomicConstraint ;
 **Type**: `owl:Class`
 
 **Notes**:
-- RL2 Core defines two instances for norm state queries (see below)
+- RL2 Core defines four state-query instances plus `currentDateTime` (see below)
 - Profiles define additional domain-specific operands (purpose, dateTime, recipient, etc.)
 - Examples: `purpose`, `dateTime`, `spatial`, `payAmount`
 
@@ -680,8 +680,10 @@ ex:identityCheck a rl2:AtomicConstraint ;
 
 | Instance | Description | Requires |
 |----------|-------------|----------|
-| `rl2:obligationStateOperand` | Queries ObligationState (Pending, Active, Fulfilled, Violated) of a norm from Σ | `rl2:targetNorm` |
-| `rl2:dutyPerformerOperand` | Queries the Agent who fulfilled a duty from Σ | `rl2:targetNorm` |
+| `rl2:obligationStateOperand` | Queries ObligationState (Pending, Active, Fulfilled, Violated) of a norm from Σ | `rl2:targetNorm` (Norm-valued) |
+| `rl2:dutyPerformerOperand` | Queries the Agent who fulfilled a duty from Σ | `rl2:targetNorm` (Norm-valued) |
+| `rl2:promiseStateOperand` | Queries PromiseState (Pending, Fulfilled, Violated) of a promise from Σ — the Promise-valued counterpart of `obligationStateOperand` | `rl2:targetNorm` (Promise-valued) |
+| `rl2:promisorOperand` | Queries the Agent bound by a promise from Σ — the Promise-valued counterpart of `dutyPerformerOperand` | `rl2:targetNorm` (Promise-valued) |
 
 **Example (Tun-sollen pattern — "I must fulfill the duty myself")**:
 ```turtle
@@ -724,7 +726,7 @@ ex:accessPrivilege a rl2:Privilege ;
 - `rl2:operationalAgent` — Agent performing the event
 - `rl2:participant` — General participant in the event
 - `rl2:approver` — Agent whose approval this event represents
-- `rl2:after` — Event that must precede this one
+- `rl2:after` — Event that must precede this one. **Outside the verified core (S8a)**: implementation-defined semantics, not evaluated by the kernel; an authoring/profile hint until bounded temporal semantics are specified (WP-4).
 
 **SHACL Shape**: `rl2:EventShape`
 
@@ -1050,7 +1052,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
 | `rl2:eventTime` | Event | xsd:dateTime | When event occurred |
-| `rl2:after` | Event | Event | Temporal sequence |
+| `rl2:after` | Event | Event | Temporal sequence (outside verified core, S8a) |
 
 ### Operational Properties
 

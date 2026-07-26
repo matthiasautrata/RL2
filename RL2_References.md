@@ -199,7 +199,7 @@ date: 2026-07-24
 - https://icr.uni.lu/leonvandertorre/papers/deon00a.pdf
 - Foundational paper introducing I/O operations for normative reasoning
 - Models norms as pairs `(φ, ψ)` meaning "if φ holds, ψ is normatively produced"
-- **RL2 relevance**: RL2's `Out(U,Env)` function directly implements I/O-style derivation — monotone production of normative atoms from facts, with conflict resolution as a separate post-derivation step. The key property that "contradiction is data, not failure" comes from I/O logic's treatment of conflicting outputs.
+- **RL2 relevance**: RL2's `Out(U,Env)` function directly implements I/O-style derivation — order-independent production of normative atoms (monotone in the policy universe for a fixed environment; **not** monotone in the facts, since RL2's condition language admits anti-monotone predicates), with conflict resolution as a separate post-derivation step. The key property that "contradiction is data, not failure" comes from I/O logic's treatment of conflicting outputs.
 
 **[I/O Logic Tutorial]** Makinson, David, and Leendert van der Torre. "What is Input/Output Logic?" *Foundations of the Formal Sciences II*, Trends in Logic Series vol 17, 2003, pp 163-174.
 - https://icr.uni.lu/leonvandertorre/papers/fotfs03.pdf

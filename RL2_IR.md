@@ -68,6 +68,21 @@ Two orthogonal structural commitments frame the rest of this document:
   returns a decision plus a list of *effect descriptions*; an unverified shell applies them
   to state (§7).
 
+Two ratified implementation stances follow from these (recorded here so downstream work does
+not relitigate them):
+
+- **I2 — typed-AST evaluator first; bytecode is conditional.** The normative meaning is the
+  tree-walk over the outer AST (§4). The inner condition **bytecode** (§5) is an
+  *optimization/portability* path, not a prerequisite: implement and verify the typed-AST
+  evaluator first, and adopt the stack-VM lowering only once a concrete benchmark or a
+  cross-language portability requirement justifies the extra proof surface. Absent that
+  evidence, a conforming implementation MAY evaluate conditions directly over the AST.
+- **I3 — runtime stays solver-free; entailment/closure happen at ingestion.** No OWL reasoner,
+  SAT/SMT solver, or fixpoint search runs during evaluation. All entailment and bounded
+  closure — subsumption/`includedIn*` (§8), materialization (§6), hierarchy expansion — are
+  computed **once at ingestion/compile time** and frozen into static indices; `evalIR` only
+  reads pre-materialized values. This is what keeps the kernel a pure total function.
+
 ```
    ┌──────────────────────────── verified kernel (pure) ────────────────────────────┐
    │  evalIR : (CompiledPolicy, Request, Σ) → (Decision, DutySet, seq<Effect>)       │

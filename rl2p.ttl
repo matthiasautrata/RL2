@@ -259,7 +259,9 @@ rl2p:performer a owl:ObjectProperty ;
 
 rl2p:requirementFulfilled a rl2:LeftOperand ;
     rdfs:label "Requirement Fulfilled" ;
-    rdfs:comment "Left operand indicating requirement fulfillment status." .
+    rdfs:comment """Left operand indicating requirement fulfillment status. Resolved by
+    built-in protocol fulfillment semantics (not via rl2:resolutionPath/resolutionFunction),
+    so it is exempt from OperandResolutionRecommendationShape — see rl2-shacl.ttl.""" .
 
 # Note: rl2p:fulfillmentEvidence is defined in Section 4 (domain-unrestricted).
 # It is used on both rl2p:Requirement (audit trail) and rl2p:ContextAssertion

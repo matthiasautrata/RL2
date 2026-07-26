@@ -90,7 +90,7 @@ Condition ::=
 Notes:
 - `And`, `Or`, and `Xone` take one or more conditions
 - `EventConstraint` models approval requirements; holds when the expected event is present in Σ.Events
-- `leftOperand` is drawn from profile-defined operands (RL2 Core defines `rl2:LeftOperand` class plus `currentDateTime`, `obligationStateOperand`, `dutyPerformerOperand` instances)
+- `leftOperand` is drawn from profile-defined operands (RL2 Core defines `rl2:LeftOperand` class plus `currentDateTime`, `obligationStateOperand`, `dutyPerformerOperand`, `promiseStateOperand`, `promisorOperand` instances)
 - Time-based conditions use `AtomicConstraint` with `leftOperand = currentDateTime` (e.g., `currentDateTime lte deadline`)
 - Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`
 - Dynamic value resolution on the right side uses `RuntimeReference` (e.g., `currentAgent`)
@@ -338,7 +338,7 @@ The function `resolve(leftOperand, Env, targetNorm?)` maps a left operand to a v
 
 **Resolution Precedence**: Operands are resolved in the following order:
 
-1. **Core operands** (obligationStateOperand, dutyPerformerOperand) — handled specially
+1. **Core operands** (obligationStateOperand, dutyPerformerOperand, promiseStateOperand, promisorOperand) — handled specially
 2. **Path-based resolution** — if `op.resolutionPath` is defined, use `deref()`
 3. **Function-based resolution** — if `op.resolutionFunction` is defined, invoke it
 4. **External lookup** — fallback to context-based resolution
@@ -355,6 +355,12 @@ resolve(op, Env, targetNorm) =
         dutyPerformerOperand →
             if targetNorm ≠ ⊥ then Env.Σ.DutyPerformer(targetNorm)
             else ⊥
+        promiseStateOperand →
+            if targetNorm ≠ ⊥ then PromiseState(targetNorm, Env.Σ)
+            else ⊥
+        promisorOperand →
+            if targetNorm ≠ ⊥ then Env.Σ.Promises[targetNorm].promisor
+            else ⊥
 
         -- Profile-declared operands with explicit resolution
         _ | op.resolutionPath ≠ ⊥ →
@@ -370,6 +376,8 @@ resolve(op, Env, targetNorm) =
 Where:
 * `obligationStateOperand` queries `Σ.ObligationState(targetNorm)` — returns Pending, Active, Fulfilled, or Violated
 * `dutyPerformerOperand` queries `Σ.DutyPerformer(targetNorm)` — returns the Agent who fulfilled the duty, or ⊥
+* `promiseStateOperand` queries `PromiseState(targetNorm, Σ)` — returns Pending, Fulfilled, or Violated (Promise-valued counterpart of `obligationStateOperand`; `targetNorm` must be a Promise)
+* `promisorOperand` queries `Σ.Promises[targetNorm].promisor` — returns the Agent bound by the promise, or ⊥ (Promise-valued counterpart of `dutyPerformerOperand`)
 * `op.resolutionPath` — path expression declared on the operand via `rl2:resolutionPath`
 * `op.resolutionFunction` — function name declared on the operand via `rl2:resolutionFunction`
 * `invokeFunction(name, Env)` — implementation-specific function invocation
@@ -385,6 +393,8 @@ Where:
 RL2 Core defines the following left operand instances:
 * `obligationStateOperand` → queries duty state from Σ (requires `targetNorm`)
 * `dutyPerformerOperand` → queries who fulfilled a duty from Σ (requires `targetNorm`)
+* `promiseStateOperand` → queries promise state from Σ (requires a Promise-valued `targetNorm`)
+* `promisorOperand` → queries who is bound by a promise from Σ (requires a Promise-valued `targetNorm`)
 
 Profiles define domain-specific left operands with resolution paths, such as:
 * `purpose` → `rl2:resolutionPath "context.purpose"`
@@ -409,6 +419,29 @@ The `currentAgent` reference resolves to `Env.Agent` — the agent making the cu
 
 **Security Note**: When `leftOperand` is a dynamic operand like `dutyPerformerOperand`, `rightOperandRef` SHOULD be a `RuntimeReference` (e.g., `currentAgent`), not a static IRI. Hardcoded comparisons like `dutyPerformerOperand eq ex:Bob` bypass dynamic binding semantics and create security vulnerabilities. SHACL validation flags such patterns as warnings.
 
+#### Profile Resolution (O3)
+
+A policy may declare vocabulary dependencies with `rl2:requiresProfile` (each value an `rl2:Profile` carrying an `rl2:profileVersion`). Before evaluation, the loader runs profile resolution against the evaluator's **supported-profile registry** — a set of `(profileIRI, supportedVersion)` pairs that is evaluator state, not part of the policy graph.
+
+**Unknown-profile rule (fail-closed).** For each `requiresProfile P`, the loader MUST find a supported entry whose IRI equals `P`'s IRI and whose version is *compatible*. If any required profile is unsupported or only supported at an incompatible version, the policy is **rejected at load time** — never evaluated with a partially-understood vocabulary, and never silently accepted by ignoring the requirement:
+
+```
+loadOK(Policy, Registry) =
+    ∀ P ∈ requiredProfiles(Policy) :
+        ∃ (iri, supV) ∈ Registry :
+            iri = P.iri ∧ compatible(supV, P.profileVersion)
+    -- otherwise: reject(Policy) at ingestion (a load error, not ⊥ at eval time)
+```
+
+**Version negotiation (SemVer, same-major).** The referenced Profile's declared version is the **minimum required**:
+
+```
+compatible(supV, reqV) =
+    supV.MAJOR = reqV.MAJOR ∧ (supV.MINOR, supV.PATCH) ≥ (reqV.MINOR, reqV.PATCH)
+```
+
+A major-version mismatch is always incompatible (breaking changes); a higher supported minor/patch is compatible (additive changes). This mirrors the SHACL `ProfileShape`/`RequiresProfileShape` structural checks, which only verify the declarations are well-formed — the compatibility decision itself is a runtime check because the registry is not in the graph.
+
 #### deref : Path × Env → Value
 
 The function `deref(path, Env)` traverses a path expression to retrieve a value. This is the **primary mechanism for resolving profile-declared operands** via `rl2:resolutionPath`.
@@ -429,7 +462,7 @@ Constraints:
 - Paths MUST begin with a valid Root
 - The Wildcard `*` is ONLY valid immediately after `Events` (i.e., `state.Events.*`)
 - Identifiers MUST NOT contain `.`, `/`, `..`, or URL-encoded characters
-- Maximum path depth: 10 segments (implementation MAY enforce)
+- Maximum path depth: conformance parameter `MaxPathDepth` (default 10 segments). A conforming implementation **MUST** enforce a finite bound; only the value is implementation/profile-declared (S8a — the bound is mandatory, not `MAY`).
 
 Paths not conforming to this grammar MUST be rejected at parse time, not at evaluation time. This ensures that malformed paths cannot be used to probe for valid segments.
 
@@ -520,7 +553,7 @@ Implementations MUST enforce the following security constraints:
 1. **Root validation**: Reject paths not starting with a canonical root (`agent`, `asset`, `context`, `state`, `request`)
 2. **Grammar validation**: Reject paths containing `..`, `/`, `%`, or other traversal/encoding patterns
 3. **Wildcard restriction**: Reject `*` in any position other than immediately after `state.Events`
-4. **Depth limiting**: MAY reject paths exceeding implementation-defined maximum depth
+4. **Depth limiting**: **MUST** reject paths exceeding `MaxPathDepth` (conformance parameter, default 10). The bound is mandatory; only its value is implementation/profile-declared (S8a).
 5. **Fail-closed**: Return `⊥` (not an error message) for invalid paths to prevent information leakage
 
 These constraints prevent path traversal attacks and unauthorized data access via malformed resolution paths.
@@ -673,7 +706,9 @@ matches(Norm(a, x, s, c), R) =
 Where:
 - `roles(a_req)` returns role memberships of the agent
 - `x_req ⊑ x` indicates action subsumption (e.g., `read ⊑ access`)
-- `members(s)` returns collection members if `s` is an AssetCollection
+- `members(s)` returns the **direct** `rl2:member` individuals of `s` when `s` is an `AssetCollection` (empty otherwise), evaluated against the evaluation snapshot
+
+> **C7 — collections are assets, membership is direct.** `AssetCollection ⊑ Asset`, so a norm may target a collection directly (`s = s_req` matches when the request is *for* the collection) and a collection may itself appear as an `rl2:member` of another collection. Core `members(s)` is **not** transitively closed: if `s_req` is a member of a sub-collection nested inside `s`, that does **not** match in core. Flattening nested collections is a profile/derived concern layered on top of this direct-membership base. Membership is read from the fixed evaluation snapshot, so a norm's asset extension is stable for the duration of an evaluation.
 
 Action subsumption is defined by the transitive closure of `rl2:includedIn`:
 
@@ -692,7 +727,7 @@ performed(a, x, s, Σ) :=
 
 `Σ.Performed` records exact actions as they occur. `performed()` is the query-time subsumption check used in all fulfillment and violation rules. This is the same bounded graph traversal as request matching — no additional reasoning complexity.
 
-**RDF grounding**: Actions are individuals of `rl2:Action`. Action subsumption (`x' ⊑ x`) follows the transitive closure of `rl2:includedIn`; `members(s)` is the closure over `rl2:member` when `s` is an `rl2:AssetCollection`; and `roles(a_req)` derives from the agent's RDF typing/role assignments as defined in the Agent and role classes in the Vocabulary.
+**RDF grounding**: Actions are individuals of `rl2:Action`. Action subsumption (`x' ⊑ x`) follows the transitive closure of `rl2:includedIn`; `members(s)` is the set of **direct** `rl2:member` links when `s` is an `rl2:AssetCollection` (not transitively closed — nested-collection flattening is a profile/derived concern, C7); and `roles(a_req)` derives from the agent's RDF typing/role assignments as defined in the Agent and role classes in the Vocabulary.
 
 ### Norm Denotations
 
@@ -732,14 +767,18 @@ where `contentHolds` is defined below.
 
 ### Hohfeldian Correlatives and Opposites
 
-RL2 supports the full Hohfeldian framework. The correlatives are:
+RL2 reifies **six positive Hohfeldian positions** (Privilege, Duty, Claim, Power,
+Liability, Immunity) plus **Prohibition** as authoring classes. The two *absence*
+positions — **No-Claim** and **Disability** — are **not** modeled as classes; they are
+derived (inferred from the absence of the correlative Claim/Power) and never reified.
+The correlatives are (italicized entries are the derived, non-reified absences):
 
 | Right-holder has | Duty-bearer has |
 |------------------|-----------------|
-| Privilege | No-Claim |
+| Privilege | *No-Claim* (derived) |
 | Claim | Duty |
 | Power | Liability |
-| Immunity | Disability |
+| Immunity | *Disability* (derived) |
 
 **Prohibition in the Hohfeldian square.** RL2 keeps `Prohibition` as a distinct
 class for authoring ergonomics, but semantically a `Prohibition(s, x, o, c)` **is a
@@ -1279,10 +1318,10 @@ RL2's evaluation follows an **I/O logic** pattern (Makinson & van der Torre): de
 
 ### Pre-Resolution Normative Envelope
 
-The function `Out` computes the **unresolved multiset** of normative atoms from a policy universe and environment:
+The function `Out` computes the **unresolved set** of normative atoms from a policy universe and environment (atoms are deduplicated by canonical identity — the `∪` below is set union, not multiset sum):
 
 ```
-Out : (PolicyUniverse U, Env) → NormativeAtoms*
+Out : (PolicyUniverse U, Env) → ℘(NormativeAtoms)
 
 Out(U, Env) =
     let applicablePolicies = ApplicablePolicies(U, Env)
@@ -1297,23 +1336,27 @@ deriveNorms(P, Env) =
 
 ### Monotonicity of Derivation
 
-The derivation function `Out` is **monotone** with respect to facts:
+The derivation function `Out` is **monotone in the policy universe** for a **fixed immutable environment**:
 
 ```
-If Env ⊆ Env' (additional facts only), then Out(U, Env) ⊆ Out(U, Env')
+For a fixed Env, if U ⊆ U' then Out(U, Env) ⊆ Out(U', Env)
 ```
 
-Adding facts to the environment can only add normative conclusions, never remove them. This is the key I/O-logic property: **derivation is monotone; resolution is not**.
-Phase ① avoids negation-as-failure and rule-level negation over derived facts; condition evaluation still allows data-level boolean/comparator predicates such as `rl2:neq` as ground terms.
+Since `Out` is a union of per-clause contributions evaluated independently against the *same* `Env`, adding clauses can only add atoms, and the result is **independent of the order** in which clauses are processed (order-independence of derivation). This is the property Phase ① actually relies on and the one the resolution/audit layer builds upon.
+
+> **`Out` is *not* monotone in the environment.** The earlier form `Env ⊆ Env' ⇒ Out(U, Env) ⊆ Out(U, Env')` is **false**: several conditions are anti-monotone in the facts — `Not(EventConstraint)`, `neq`, `isNoneOf`, and upper time bounds can flip from `true` to `false` as facts are added, *removing* a derived atom. The environment is therefore treated as a single immutable snapshot per evaluation, and no proof, optimization, or caching step may assume atoms survive the enlargement of `Env`.
+
+Phase ① avoids negation-as-failure and rule-level negation over *derived* facts (derivation never negates an atom another clause might still produce); condition evaluation still allows data-level boolean/comparator predicates such as `rl2:neq` and `rl2:isNoneOf` as ground terms over the fixed `Env`.
 
 ### Derivation vs Resolution
 
 | Property | Out (Derivation) | Eval (Full) |
 |----------|------------------|-------------|
-| Monotone | Yes | No |
+| Monotone in policy universe `U` (fixed `Env`) | Yes | No |
+| Monotone in environment `Env` | No (conditions may be anti-monotone) | No |
 | Deterministic | Yes | Yes |
 | Conflict-handling | None (contradiction is data) | Strategy-based |
-| Output | Multiset of atoms | Single decision |
+| Output | Set of atoms (dedup by canonical identity) | Single decision |
 
 The `Eval` function composes `Out` with state updates and conflict resolution:
 
@@ -1326,7 +1369,7 @@ Eval(U, R, Σ, Ctx) =
     in (decision, Σ', duties(envelope))
 ```
 
-The **normative envelope** `Out(U, Env)` is the first-class intermediate result — visible before resolution, available for audit, and formally monotone.
+The **normative envelope** `Out(U, Env)` is the first-class intermediate result — visible before resolution, available for audit, and monotone in the policy universe (for a fixed environment).
 
 Resolution may eliminate norms via priority or strategy, breaking monotonicity. This is by design: `permit(a,x,s) ∧ forbid(a,x,s)` is not a logical contradiction but a **conflict to be resolved procedurally**.
 `resolveDecision` is a parameterized algorithm (strategy + priorities); if these inputs cannot break ties, the evaluator must surface an explicit ambiguity/error rather than applying an implicit specificity heuristic.
@@ -1647,19 +1690,30 @@ For the mapping between semantic concepts and Protocol artifacts, see **RL2_Arch
 
 RL2 evaluation is designed to be **polynomial-time** and **total** under the following constraints.
 
+### Conformance Parameters (S8a)
+
+The core's termination and polynomial-time guarantees depend on a small set of **conformance parameters** — named finite bounds a conforming implementation **MUST** enforce. Only the *values* are implementation- or profile-declared; the existence of each bound is mandatory, not a `MAY`. An implementation that omits any of these bounds is out of core conformance.
+
+| Parameter | Default | Bounds |
+|-----------|---------|--------|
+| `MaxPathDepth` | 10 segments | `deref` path length |
+| `MaxConditionDepth` | 20 | condition tree nesting (fuel is linear in tree size) |
+| `MaxCollectionSize` | implementation-declared | `members(s)` / event sequence length |
+| `MaxPolicyUniverse` | implementation-declared | `|U|` |
+
 ### Structural Constraints
 
-1. **Finite policy universe**: U is a finite set of policies
-2. **Bounded condition nesting**: Conditions have bounded depth (recommended ≤ 20)
+1. **Finite policy universe**: U is a finite set of policies (`≤ MaxPolicyUniverse`)
+2. **Bounded condition nesting**: Conditions have bounded depth (`≤ MaxConditionDepth`, default 20)
 3. **Acyclic conditions**: No self-referential condition definitions
 4. **Finite Σ**: State contains finite sets (Events, Performed, ObligationState)
 5. **No recursive policy references**: Policies cannot invoke evaluation of other policies
 
 ### Path Resolution Constraints
 
-6. **Bounded path depth**: Maximum 10 segments (enforced by grammar)
+6. **Bounded path depth**: `≤ MaxPathDepth` (default 10), enforced by grammar
 7. **No joins**: Path resolution is single-threaded navigation, not graph pattern matching
-8. **No iteration**: `resolutionFunction` must be O(1) or O(log n) per invocation
+8. **No iteration**: `resolutionFunction` must be O(1) or O(log n) per invocation — **and is outside the verified core** (S8a); an opaque function voids the kernel's guarantees unless the profile documents its bounds
 9. **Deterministic selection**: Wildcards resolve to single values via most-recent-wins
 
 ### Complexity Analysis
@@ -1682,7 +1736,7 @@ Under these constraints, `Eval` is **total**: it terminates for all well-formed 
 - Blocks on external resources (resolution is synchronous or fails to ⊥)
 - Diverges due to condition structure (bounded, acyclic)
 
-**Extension warning**: Implementations using unbounded external queries via `resolutionFunction` or `lookupExternal` may exhibit non-polynomial or non-terminating behavior. Such extensions must document their complexity characteristics.
+**Extension warning (S8a)**: `resolutionFunction` and `lookupExternal` are **outside the verified core**. The kernel's totality/complexity guarantees cover only `resolutionPath`-based resolution and the bounded operations above. Implementations using unbounded external queries via `resolutionFunction` or `lookupExternal` may exhibit non-polynomial or non-terminating behavior; such extensions MUST document their determinism and complexity characteristics and are not covered by the core proof obligations.
 
 ---
 

@@ -106,6 +106,9 @@ Resolution:
 No special vocabulary needed — this is inference, not explicit modeling.
 
 ```turtle
+ex:workPeriodOperand a rl2:LeftOperand ;
+    rl2:resolutionPath "context.workPeriod" .
+
 # The Privilege automatically implies No-Claim
 ex:personalUsePrivilege a rl2:Privilege ;
     rl2:subject ex:Employee ;

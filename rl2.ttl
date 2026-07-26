@@ -115,7 +115,12 @@ rl2:priority a owl:DatatypeProperty ;
 rl2:Promise a owl:Class ;
     rdfs:subClassOf rl2:Clause ;
     rdfs:label "Promise" ;
-    rdfs:comment "Voluntary cooperative commitment from promisor to promisee. A Clause (may occupy a policy clause) but NOT a Norm — it creates no correlative until crystallized into a Duty on acceptance." .
+    rdfs:comment """Voluntary cooperative commitment from promisor to promisee. A Clause
+    (may occupy a policy clause) but NOT a Norm — it creates no correlative until
+    crystallized into a Duty on acceptance. The Promise≠Norm distinction is enforced at
+    the concrete-subclass level by rl2-shacl.ttl's PromiseNotConcreteNormShape (C1);
+    full owl:disjointWith with rl2:Norm is deferred to the canonical-AST projection (C5),
+    where the rl2:targetNorm RDFS auto-typing crutch is removed.""" .
 
 rl2:promisor a owl:ObjectProperty ;
     rdfs:domain rl2:Promise ;
@@ -223,8 +228,16 @@ rl2:Asset a owl:Class ;
     rdfs:comment "A resource or object subject to normative control." .
 
 rl2:AssetCollection a owl:Class ;
+    rdfs:subClassOf rl2:Asset ;
     rdfs:label "Asset Collection" ;
-    rdfs:comment "A (possibly dynamic) collection of assets." .
+    rdfs:comment """A collection of assets. C7: an AssetCollection IS an Asset
+    (rdfs:subClassOf rl2:Asset), so a collection may itself be the object of a norm
+    and may itself be a member of another collection. Membership (rl2:member) is
+    evaluated against the evaluation snapshot — the fixed immutable Σ/graph of the
+    current evaluation — so a norm's asset extension does not change mid-evaluation.
+    Core matching uses DIRECT membership only; transitive flattening of nested
+    collections is a profile/derived concern, not core semantics (see RL2_Semantics.md
+    §Request Matching).""" .
 
 rl2:Condition a owl:Class ;
     rdfs:label "Condition" ;
@@ -270,8 +283,9 @@ rl2:targetNorm a owl:ObjectProperty ;
     rdfs:comment """Specifies the norm (or, pre-acceptance inside an Offer, the promise)
     whose state is being queried. Used with rl2:obligationStateOperand or
     rl2:dutyPerformerOperand (Norm-only — see rl2-shacl.ttl's NormStateConstraintShape)
-    or with a promiseStateOperand (Promise-valued; queries PromiseState, e.g.
-    usecases/data-freshness-promise.md). When present, resolve(leftOperand) queries
+    or with rl2:promiseStateOperand / rl2:promisorOperand (Promise-valued; query
+    PromiseState / promisor, e.g. usecases/data-freshness-promise.md,
+    usecases/sla-credit-clause.md). When present, resolve(leftOperand) queries
     state for this specific norm or promise.
     PROM-7: an Offer-stage clause may target a sibling Promise directly (the Promise
     has not crystallized yet). On Agreement formation, materialize() (RL2_Semantics.md
@@ -302,6 +316,27 @@ rl2:dutyPerformerOperand a rl2:LeftOperand ;
     Returns an Agent IRI or ⊥ if not yet fulfilled.
     Requires rl2:targetNorm to specify which duty to query.
     Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
+
+# Promise-state operands — the Promise-valued counterparts of the two Norm-state
+# operands above. They require a Promise-valued rl2:targetNorm (see rl2-shacl.ttl's
+# PromiseStateConstraintShape) and are resolved by a dedicated resolver branch
+# (RL2_Semantics.md §resolve), NOT via resolutionPath. C2/PROM-4: these are core so
+# Promise-state queries are portable; a profile MAY still declare its own operand with
+# an explicit rl2:resolutionPath where a non-target-norm resolution is wanted.
+rl2:promiseStateOperand a rl2:LeftOperand ;
+    rdfs:label "Promise State Operand" ;
+    rdfs:comment """Queries the PromiseState of the target promise from Σ.
+    Returns Pending, Fulfilled, or Violated (never Active — see rl2:PromiseState).
+    Requires rl2:targetNorm to specify which promise to query.
+    The Promise-valued counterpart of rl2:obligationStateOperand.""" .
+
+rl2:promisorOperand a rl2:LeftOperand ;
+    rdfs:label "Promisor Operand" ;
+    rdfs:comment """Queries the agent who made (is bound by) the target promise from Σ.
+    Returns an Agent IRI or ⊥.
+    Requires rl2:targetNorm to specify which promise to query.
+    The Promise-valued counterpart of rl2:dutyPerformerOperand; used with
+    rl2:currentAgent to check promise identity binding.""" .
 
 rl2:currentDateTime a rl2:LeftOperand ;
     rdfs:label "Current Date Time" ;
@@ -352,7 +387,11 @@ rl2:object a owl:ObjectProperty ;
 rl2:member a owl:ObjectProperty ;
     rdfs:domain rl2:AssetCollection ;
     rdfs:range rl2:Asset ;
-    rdfs:comment "Membership relation for asset collections." .
+    rdfs:comment """Direct membership relation for asset collections. Core semantics
+    read rl2:member links directly (not transitively closed); because the range is
+    rl2:Asset and AssetCollection ⊑ Asset, a member may itself be a collection, but
+    core matching does NOT auto-flatten such nesting — that is a profile/derived
+    concern. Membership is resolved against the evaluation snapshot.""" .
 
 rl2:condition a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Norm rl2:Policy) ] ;
@@ -416,6 +455,14 @@ rl2:resolutionFunction a owl:DatatypeProperty ;
     name serves as a contract between policy authors and evaluator implementations.
 
     Example: 'lookupDepartment', 'computeRiskScore', 'countApprovals'
+
+    S8a — OUTSIDE THE VERIFIED CORE. Because the function body is opaque to the kernel,
+    the verified core's determinism/termination guarantees cover ONLY resolutionPath-based
+    resolution (deref over the canonical roots). An operand resolved via resolutionFunction
+    is an unverified extension point: a conforming implementation MUST document the
+    function's determinism and resource bounds (see RL2_Semantics.md §Complexity —
+    resolutionFunction must be O(1)/O(log n) and side-effect-free to stay in-profile), and
+    the verified kernel treats an un-bounded/opaque function as outside its guarantee.
 
     Resolution semantics: invokeFunction(functionName, Env) in RL2_Semantics.""" .
 
@@ -594,8 +641,13 @@ rl2:after a owl:ObjectProperty ;
     rdfs:domain rl2:Event ;
     rdfs:range rl2:Event ;
     rdfs:comment """Temporal sequence relation: subject event must occur after object event.
-    Semantics are implementation-defined; domain profiles may refine with precise
-    temporal logic (e.g., immediately-after vs. eventually-after).""" .
+    S8a — OUTSIDE THE VERIFIED CORE. Its semantics are implementation-defined
+    (immediately-after vs. eventually-after is unspecified), so the verified kernel does
+    NOT evaluate rl2:after; it is an authoring/annotation hint for profiles until precise
+    bounded temporal semantics are specified (see issues.md SEM-8 / WP-4 temporal
+    lifecycle). A conforming core evaluator MUST NOT depend on rl2:after for a decision;
+    domain profiles that give it operational meaning must define its bounded semantics
+    explicitly.""" .
 
 ############################################################
 # 6. Policy Containers
@@ -657,6 +709,40 @@ rl2:clause a owl:ObjectProperty ;
     A Promise is a legitimate clause only in an Offer (its natural home); on
     acceptance it crystallizes into a Duty + correlative Claim, so a well-formed
     Agreement/Set/Privacy/Assertion contains only Norms (enforced by SHACL).""" .
+
+############################################################
+# 6a. Profile Declaration (O3)
+############################################################
+
+rl2:Profile a owl:Class ;
+    rdfs:label "Profile" ;
+    rdfs:comment """A named, versioned extension of RL2 Core that declares domain-specific
+    operands, actions, and classes (see profiles/). A Profile individual carries an IRI
+    (its identity) and an rl2:profileVersion. Policies depend on profiles via
+    rl2:requiresProfile.""" .
+
+rl2:profileVersion a owl:DatatypeProperty ;
+    rdfs:domain rl2:Profile ;
+    rdfs:range xsd:string ;
+    rdfs:label "Profile Version" ;
+    rdfs:comment """The version of a Profile, as a SemVer string ('MAJOR.MINOR.PATCH').
+    When a policy requires a profile, the referenced Profile individual's version is the
+    MINIMUM version the evaluator must support. Negotiation rule: an evaluator supporting
+    (profileIRI, supportedVersion) satisfies a requirement for (profileIRI, requiredVersion)
+    iff supportedVersion.MAJOR = requiredVersion.MAJOR and supportedVersion >= requiredVersion
+    (same-major, at-least-minor). See RL2_Semantics.md §Profile Resolution.""" .
+
+rl2:requiresProfile a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Profile ;
+    rdfs:label "Requires Profile" ;
+    rdfs:comment """Declares that a Policy depends on a profile's vocabulary. O3 —
+    UNKNOWN-PROFILE RULE (fail-closed): a conforming evaluator MUST reject a Policy that
+    rl2:requiresProfile a profile it does not support, or supports only at an incompatible
+    version (see rl2:profileVersion negotiation). Rejection is at ingestion, before
+    evaluation — an unsupported required profile is a load-time error, never a silently
+    ignored annotation. This keeps a policy from evaluating with a partially-understood
+    vocabulary.""" .
 
 rl2:clauseOf a owl:ObjectProperty ;
     owl:inverseOf rl2:clause ;

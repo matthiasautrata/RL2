@@ -252,8 +252,8 @@ When the world deviates from a Promise's invariant (Sein-Sollen), the evaluator 
 | Promise | "Must Do" (Voluntary) | `rl2p:Requirement` (sourceNorm → Promise) |
 | Claim | "Owed To" | `rl2p:Requirement` (with counterparty) |
 | Privilege | "Can Do" | `rl2p:Decision` (Permit) |
-| Power | "Can Change" | `rl2p:Decision` (Permit State Change) |
-| Immunity | "Cannot Be Changed" | `rl2p:Decision` (Deny State Change) |
+| Power | "Can Change" | `Effect (ExercisePower)` — a normative state change, *not* an access `rl2p:Decision` (see RL2_IR.md effect algebra) |
+| Immunity | "Cannot Be Changed" | *(no Decision)* — a precondition blocking `ExercisePower`: `ImmunityActive(a,n) → ¬canExercise(Power(h,n))` (RL2_Semantics.md §Immunity) |
 
 ## Requirement Lifecycle
 

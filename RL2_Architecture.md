@@ -85,7 +85,7 @@ For a given Case, the policy universe **U** is the set of policies in the genera
 
 The transformer is a **pure function** over closed context:
 
-- **Monotone**: Adding facts never removes conclusions
+- **Monotone in the policy universe (order-independent)**: for a *fixed* environment, adding clauses only adds conclusions, and the result is independent of clause order. (Derivation is **not** monotone in the facts — anti-monotone conditions like `Not`, `neq`, `isNoneOf`, and upper time bounds mean enlarging the environment can remove a conclusion; see RL2_Semantics.md §Monotonicity of Derivation.)
 - **Total**: Always produces a result
 - **Deterministic**: Same inputs → same outputs
 - **No conflict handling**: Contradiction is data, not failure
@@ -182,8 +182,8 @@ This wrapping is **evaluator responsibility**, not semantic concern.
 | Claim | "Owed To" | Requirement (with counterparty) |
 | Privilege | "Can Do" | Decision = Permit |
 | Prohibition | "Cannot Do" | Decision = Deny |
-| Power | "Can Change" | Decision = Permit (state change action) |
-| Immunity | "Cannot Be Changed" | Decision = Deny (state change action) |
+| Power | "Can Change" | Effect (ExercisePower) — a normative state change, *not* an access Decision |
+| Immunity | "Cannot Be Changed" | *(no Decision)* — precondition blocking ExercisePower (`ImmunityActive → ¬canExercise`) |
 
 ### State Ownership and Scope
 

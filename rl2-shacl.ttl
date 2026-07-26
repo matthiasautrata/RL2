@@ -122,62 +122,62 @@ rl2:AssertionClauseShape a sh:NodeShape ;
 # Privilege shape
 rl2:PrivilegeShape a sh:NodeShape ;
     sh:targetClass rl2:Privilege ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
-    sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:class rl2:Action ] ;
-    sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ;
+    sh:property [ sh:path rl2:object ; sh:minCount 1 ; sh:maxCount 1 ] .
 
 # Duty shape
 rl2:DutyShape a sh:NodeShape ;
     sh:targetClass rl2:Duty ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
-    sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:class rl2:Action ] ;
-    sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ;
+    sh:property [ sh:path rl2:object ; sh:minCount 1 ; sh:maxCount 1 ] .
 
 # Prohibition shape
 rl2:ProhibitionShape a sh:NodeShape ;
     sh:targetClass rl2:Prohibition ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ] ;
-    sh:property [ sh:path rl2:prohibitedAction ; sh:minCount 1 ; sh:class rl2:Action ] ;
-    sh:property [ sh:path rl2:object ; sh:minCount 1 ] .
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:prohibitedAction ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ;
+    sh:property [ sh:path rl2:object ; sh:minCount 1 ; sh:maxCount 1 ] .
 
 # Claim shape (Hohfeldian correlative to Duty).
 # Claims use the uniform norm roles: subject = right-holder, counterparty = duty-bearer.
 rl2:ClaimShape a sh:NodeShape ;
     sh:targetClass rl2:Claim ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
         sh:message "A Claim must identify a subject (the right-holder)." ] ;
-    sh:property [ sh:path rl2:counterparty ; sh:minCount 1 ; sh:class rl2:Agent ;
+    sh:property [ sh:path rl2:counterparty ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
         sh:message "A Claim must identify a counterparty (the duty-bearer)." ] .
 
 # Power shape (ability to alter normative relations)
 rl2:PowerShape a sh:NodeShape ;
     sh:targetClass rl2:Power ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
         sh:message "A Power must identify a subject (the power-holder)." ] ;
-    sh:property [ sh:path rl2:affectsNorm ; sh:minCount 1 ; sh:class rl2:Norm ;
+    sh:property [ sh:path rl2:affectsNorm ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Norm ;
         sh:message "A Power must identify the norm it can affect." ] .
 
 # Liability shape (exposure to exercise of power)
 rl2:LiabilityShape a sh:NodeShape ;
     sh:targetClass rl2:Liability ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
         sh:message "A Liability must identify a subject (the exposed party)." ] ;
-    sh:property [ sh:path rl2:exposedTo ; sh:minCount 1 ; sh:class rl2:Power ;
+    sh:property [ sh:path rl2:exposedTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Power ;
         sh:message "A Liability must identify the power it is exposed to." ] .
 
 # Immunity shape (protection against power)
 rl2:ImmunityShape a sh:NodeShape ;
     sh:targetClass rl2:Immunity ;
-    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:class rl2:Agent ;
+    sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
         sh:message "An Immunity must identify a subject (the protected party)." ] ;
-    sh:property [ sh:path rl2:immuneFrom ; sh:minCount 1 ; sh:class rl2:Power ;
+    sh:property [ sh:path rl2:immuneFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Power ;
         sh:message "An Immunity must identify the power it protects against." ] .
 
 # Promise shape
 rl2:PromiseShape a sh:NodeShape ;
     sh:targetClass rl2:Promise ;
-    sh:property [ sh:path rl2:promisor ; sh:minCount 1 ; sh:class rl2:Agent ] ;
-    sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:promisor ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ] ;
+    sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ] ;
     sh:xone (
         [ sh:property [ sh:path rl2:promisedAction ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ]
         [ sh:property [ sh:path rl2:promisedState  ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Condition ] ]
@@ -241,6 +241,29 @@ rl2:NormStateConstraintShape a sh:NodeShape ;
         sh:minCount 1 ;
         sh:class rl2:Norm ;
         sh:message "AtomicConstraint with obligationStateOperand or dutyPerformerOperand must specify targetNorm."
+    ] .
+
+# Conditional requirement: targetNorm REQUIRED and Promise-valued for the core
+# promise-state operands. Symmetric with NormStateConstraintShape above (C2/PROM-4).
+# These fire only on the core rl2:promiseStateOperand / rl2:promisorOperand IRIs;
+# profile-declared operands with an explicit rl2:resolutionPath are unaffected.
+rl2:PromiseStateConstraintShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT ?this WHERE {
+                ?this a rl2:AtomicConstraint ;
+                      rl2:leftOperand ?op .
+                FILTER(?op IN (rl2:promiseStateOperand, rl2:promisorOperand))
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2:targetNorm ;
+        sh:minCount 1 ;
+        sh:class rl2:Promise ;
+        sh:message "AtomicConstraint with promiseStateOperand or promisorOperand must specify a Promise-valued targetNorm."
     ] .
 
 # Logical constraints combine sub-conditions via logical operators.
@@ -506,16 +529,20 @@ rl2:ResolutionPathRootShape a sh:NodeShape ;
 # Operand resolution recommendation - warn if neither path nor function specified
 # This is a WARNING-level shape (sh:severity sh:Warning) since operands may
 # use legacy external resolution or be core operands with built-in resolution.
+# Exempt (built-in resolver, not resolutionPath/Function): the core state operands,
+# currentDateTime, and rl2p:requirementFulfilled (V1 — resolved by built-in protocol
+# fulfillment semantics; exempting it lets the warning-free gate reach the full corpus).
 rl2:OperandResolutionRecommendationShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """
             PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
             SELECT ?this WHERE {
                 ?this a rl2:LeftOperand .
                 FILTER NOT EXISTS { ?this rl2:resolutionPath ?p }
                 FILTER NOT EXISTS { ?this rl2:resolutionFunction ?f }
-                FILTER(?this NOT IN (rl2:obligationStateOperand, rl2:dutyPerformerOperand, rl2:currentDateTime))
+                FILTER(?this NOT IN (rl2:obligationStateOperand, rl2:dutyPerformerOperand, rl2:promiseStateOperand, rl2:promisorOperand, rl2:currentDateTime, rl2p:requirementFulfilled))
             }
         """
     ] ;
@@ -625,4 +652,58 @@ Without an EventConstraint, the wildcard may match unintended events.""" ;
                 }
             }
         """
+    ] .
+
+# ----------------------------------------------------------------------------
+# Promise ≠ Norm testability (C1 residual)
+# ----------------------------------------------------------------------------
+# Makes the Promise/Norm distinction testable WITHOUT regressing the deliberate
+# rl2:targetNorm rdfs:range crutch (PROM-7). That crutch RDFS-auto-types a bare
+# targetNorm-valued Promise to the *superclass* rl2:Norm only — never to a concrete
+# Norm subclass. So this shape forbids a Promise from ALSO being a concrete Norm
+# (Privilege/Prohibition/Duty/Claim/Power/Liability/Immunity), catching genuine
+# authoring confusion while leaving the auto-typing shortcut untouched. Full
+# owl:disjointWith(Norm, Promise) is deferred to C5/WP-2, where the entailment
+# crutch is removed by the canonical-AST projection.
+rl2:PromiseNotConcreteNormShape a sh:NodeShape ;
+    sh:targetClass rl2:Promise ;
+    sh:not [
+        sh:or (
+            [ sh:class rl2:Privilege ]
+            [ sh:class rl2:Prohibition ]
+            [ sh:class rl2:Duty ]
+            [ sh:class rl2:Claim ]
+            [ sh:class rl2:Power ]
+            [ sh:class rl2:Liability ]
+            [ sh:class rl2:Immunity ]
+        )
+    ] ;
+    sh:message "A rl2:Promise must not also be a concrete Norm (Privilege/Prohibition/Duty/Claim/Power/Liability/Immunity). Promises crystallize into Duties on acceptance; they are not themselves Norms (C1)." .
+
+# ----------------------------------------------------------------------------
+# Profile Declaration Shapes (O3)
+# ----------------------------------------------------------------------------
+# Structural well-formedness only. The "reject unknown required profile" rule is
+# a runtime/ingestion check against the evaluator's supported-profile registry
+# (which is evaluator state, not present in a single policy graph), so it cannot
+# be expressed in SHACL — see RL2_Semantics.md §Profile Resolution. These shapes
+# ensure the declarations themselves are well-formed enough for that check to run.
+
+rl2:ProfileShape a sh:NodeShape ;
+    sh:targetClass rl2:Profile ;
+    sh:property [
+        sh:path rl2:profileVersion ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[0-9]+\\.[0-9]+\\.[0-9]+$" ;
+        sh:message "A rl2:Profile must declare exactly one rl2:profileVersion as a SemVer string 'MAJOR.MINOR.PATCH'."
+    ] .
+
+rl2:RequiresProfileShape a sh:NodeShape ;
+    sh:targetSubjectsOf rl2:requiresProfile ;
+    sh:property [
+        sh:path rl2:requiresProfile ;
+        sh:class rl2:Profile ;
+        sh:message "rl2:requiresProfile must reference a declared rl2:Profile (with a version), so the evaluator can run the unknown-profile / version-negotiation check."
     ] .

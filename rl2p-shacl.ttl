@@ -229,10 +229,18 @@ rl2p:ContextAssertionShape a sh:NodeShape ;
         sh:class rl2:LeftOperand ;
         sh:message "A ContextAssertion must specify exactly one property (LeftOperand)."
     ] ;
-    # Value: either contextValue (literal) or contextValueRef (resource)
-    sh:or (
-        [ sh:property [ sh:path rl2p:contextValue ; sh:minCount 1 ] ]
-        [ sh:property [ sh:path rl2p:contextValueRef ; sh:minCount 1 ] ]
+    # Value: EXACTLY ONE of contextValue (literal) or contextValueRef (resource) — C4.
+    # sh:xone with mutually-exclusive, single-value branches: a ContextAssertion carries
+    # one value in one form, never both and never multiples.
+    sh:xone (
+        [
+            sh:property [ sh:path rl2p:contextValue ; sh:minCount 1 ; sh:maxCount 1 ] ;
+            sh:property [ sh:path rl2p:contextValueRef ; sh:maxCount 0 ]
+        ]
+        [
+            sh:property [ sh:path rl2p:contextValueRef ; sh:minCount 1 ; sh:maxCount 1 ] ;
+            sh:property [ sh:path rl2p:contextValue ; sh:maxCount 0 ]
+        ]
     ) ;
     sh:property [
         sh:path rl2p:assertedTime ;

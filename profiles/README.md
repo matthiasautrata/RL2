@@ -32,6 +32,30 @@ myprofile:departmentOperand a rl2:LeftOperand ;
     rdfs:range xsd:string .
 ```
 
+## Declaring and Requiring Profiles (O3)
+
+A profile is a versioned `rl2:Profile` individual; a policy declares a dependency on it
+with `rl2:requiresProfile`:
+
+```turtle
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix privacy: <https://rl2.example/profile/privacy#> .
+
+privacy:Profile a rl2:Profile ;
+    rl2:profileVersion "1.2.0" .        # SemVer MAJOR.MINOR.PATCH
+
+ex:myPolicy a rl2:Set ;
+    rl2:requiresProfile privacy:Profile ;   # minimum version = 1.2.0
+    rl2:clause ex:someClause .
+```
+
+**Unknown-profile rule (fail-closed).** An evaluator maintains a registry of supported
+`(profileIRI, version)` pairs. It **rejects a policy at load time** if any required profile
+is unsupported or supported only at an incompatible version — it never evaluates a policy
+against a vocabulary it does not fully understand. **Version negotiation** is SemVer with
+same-major compatibility: a supported `1.4.0` satisfies a required `1.2.0`; a supported
+`2.0.0` does *not* (breaking major). See RL2_Semantics.md §Profile Resolution.
+
 ## Canonical Path Roots
 
 Resolution paths must start with one of these canonical roots:
