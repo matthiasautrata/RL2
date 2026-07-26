@@ -197,10 +197,17 @@ Each needed `AGENTS.md` §7 sign-off before ontology/SHACL edits (granted 2026-0
 - **C6b** — Claim content: make it a required derived projection of a Duty (derive action/object/condition) **or** define its content directly; validate type-pairing and party-role alignment; make correlatives derived *or* authored, not both. *(depends on C5; sharpens CANON-4)*
 
 ### WP-3 — State identity/scope + event model (Class-3 roots)
-**Depends on:** WP-2 · **Status:** Open
-- **S5** — give every runtime key an explicit scope `(tenant, policyGeneration, policyInstance, clauseInstance, subject, asset, case?)`; separate immutable policy identity from materialized agreement/clause identity; pure transition over a versioned snapshot + CAS/serializable commit; identify shared-strong-state vs case-local policies. Enables shared quotas, concurrent seats, Chinese-wall, tenant quotas, multi-materialized Offers, multiple generations. *(new; the `materialize()` fresh-IRI work from PROM-7 is the first slice of this)*
-- **S6** — one append-only event representation (id, sequence, timestamp, type, agent, action, object, case, provenance); derive `Performed`/`DutyPerformer` from the witness event; stable tie-breaking; one event-kind subsumption model (individuals **or** classes, not both). *(new)*
-- **F3 / P3(state)** — pick one authoritative event/state model; redefine core `obligationState`/`promiseState`, semantic maps, and Protocol `requirementStatus` as *projections* of it. *(new; folds F3)*
+**Depends on:** WP-2 · **Status:** In progress — split into 3 steps (user opted for one-step-at-a-time). **Step 3a (S6) ✅ Resolved 2026-07-26**; Steps 3b (S5), 3c (F3/P3) Open.
+
+Dependency order S6 → S5 → F3/P3 (matches fix.md's own note).
+
+- **S6 — ✅ Resolved 2026-07-26 (Step 3a; §7 sign-off; fork decided: event kinds = individuals + `eventKindIncludedIn`, not classes).** Validated corpus `PASS 52 · WARN-ONLY 0 · FAIL 0 · SKIP 1`. Done:
+  - **Append-only witness log.** `RL2_Semantics.md` Σ redesigned: `Events : EventLog` is the authoritative append-only log with an `EventRecord (id, eventSequence, eventTime, kind, operationalAgent, eventAction, eventObject, case, provenance)`. `Σ.Performed` (Boolean) and `Σ.DutyPerformer` (map) **removed as stored fields** — both are now **derived views** over `Σ.Events` (new §Witness Derivation). `processEvent` **appends** every witness event (incl. `ActionPerformed`) with a fresh `eventSequence`; nothing sets a Boolean. D-FULFILL no longer stores the performer.
+  - **Deterministic tie-breaking.** Event selection is `maxByⁱ` over the **total** `(eventTime, eventSequence)` lexicographic order — kills the old `maxBy(eventTime)` tie nondeterminism. `DutyPerformer(d,Σ)` reads the performer from the highest-sequence witnessing event.
+  - **One event-kind subsumption model.** New `rl2:eventKindIncludedIn` (transitive, individual-level — the `rl2:includedIn` counterpart for events); `typeMatches` uses `eventKindIncludedIn*`, no `rdfs:subClassOf`, no OWL class reasoning (I3).
+  - **Ontology/SHACL/Vocab.** rl2.ttl: `eventSequence`, `eventAction`, `eventObject`, `eventKindIncludedIn` + Event class comment. rl2-shacl.ttl `EventShape`: optional `maxCount 1` guards for the new fields (lenient — kind templates carry none, zero corpus churn). `RL2_Vocabulary.md` Event entry + property table updated.
+- **S5 (Step 3b — Open)** — give every runtime key an explicit scope `(tenant, policyGeneration, policyInstance, clauseInstance, subject, asset, case?)`; separate immutable policy identity from materialized agreement/clause identity; pure transition over a versioned snapshot + CAS/serializable commit; identify shared-strong-state vs case-local policies. Enables shared quotas, concurrent seats, Chinese-wall, tenant quotas, multi-materialized Offers, multiple generations. *(the `materialize()` fresh-IRI work from PROM-7 is the first slice of this)*
+- **F3 / P3(state) (Step 3c — Open)** — pick one authoritative event/state model; redefine core `obligationState`/`promiseState`, semantic maps, and Protocol `requirementStatus` as *projections* of it. *(folds F3; builds on 3a's authoritative event log)*
 
 ### WP-4 — Temporal lifecycle + conflict/provenance
 **Depends on:** WP-3 · **Status:** Open

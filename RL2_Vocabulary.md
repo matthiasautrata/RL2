@@ -727,15 +727,20 @@ ex:accessPrivilege a rl2:Privilege ;
 
 ### rl2:Event
 
-**Definition**: An observable occurrence that may trigger obligations or state transitions.
+**Definition**: An observable occurrence that may trigger obligations or state transitions. Events are the witness/evidence model: `Σ.Events` is an **append-only** log keyed by event *kind* (an individual of `rl2:Event`), and `Performed`/`DutyPerformer` are **derived** from the witnessing event (S6).
 
-**Type**: `owl:Class`
+**Type**: `owl:Class` (event *kinds* are individuals of this class; kind subsumption via `rl2:eventKindIncludedIn`, not `rdfs:subClassOf`)
 
 **Optional Properties**:
-- `rl2:eventTime` — When the event occurred
-- `rl2:operationalAgent` — Agent performing the event
+- `rl2:eventTime` — When the event occurred (coarse order; ties broken by `rl2:eventSequence`)
+- `rl2:eventSequence` — **(S6)** Total-order sequence number assigned on append; the deterministic tie-breaker for "most-recent-wins" event selection
+- `rl2:operationalAgent` — Agent performing the event (the witness performer)
+- `rl2:eventAction` — **(S6)** The action an `ActionPerformed` event witnesses (drives `Performed`)
+- `rl2:eventObject` — **(S6)** The asset/resource acted upon
+- `rl2:eventKindIncludedIn` — **(S6)** Transitive individual-level event-kind subsumption (the counterpart of `rl2:includedIn` for actions)
 - `rl2:participant` — General participant in the event
 - `rl2:approver` — Agent whose approval this event represents
+- `rl2p:affectsCase` — The case this event affects (scope)
 - `rl2:after` — Event that must precede this one. **Outside the verified core (S8a)**: implementation-defined semantics, not evaluated by the kernel; an authoring/profile hint until bounded temporal semantics are specified (WP-4).
 
 **SHACL Shape**: `rl2:EventShape`
@@ -1061,7 +1066,11 @@ ex:complianceAssertion a rl2:Assertion ;
 
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
-| `rl2:eventTime` | Event | xsd:dateTime | When event occurred |
+| `rl2:eventTime` | Event | xsd:dateTime | When event occurred (coarse order) |
+| `rl2:eventSequence` | Event | xsd:integer | Total-order sequence, tie-breaker (S6) |
+| `rl2:eventAction` | Event | Action | Action an ActionPerformed event witnesses (S6) |
+| `rl2:eventObject` | Event | — | Asset/resource acted upon (S6) |
+| `rl2:eventKindIncludedIn` | Event | Event | Transitive event-kind subsumption (S6) |
 | `rl2:after` | Event | Event | Temporal sequence (outside verified core, S8a) |
 
 ### Operational Properties

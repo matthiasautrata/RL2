@@ -213,13 +213,24 @@ Formally:
 
 ```
 Σ = (Clock : T,
-     Events : EventType → E*,
-     Performed : A × X × S → Boolean,
+     Events : EventLog,                          -- APPEND-ONLY authoritative witness log (S6)
      Metadata : S → Map,
      Promises : Promise → PromiseRecord,
      ObligationState : Duty → {Pending, Active, Fulfilled, Violated},
-     DutyPerformer : Duty → Agent ∪ {⊥},
      Requirements : RequirementID → RequirementRecord)
+
+EventLog = E*  indexed by kind (Events : EventType → E*), append-only, every e carrying a
+               unique total-order e.eventSequence
+
+EventRecord = (id        : IRI,        -- the event's IRI, its stable identifier
+               eventSequence : ℕ,       -- total order, assigned on append; the tie-breaker
+               eventTime : T,           -- coarse temporal order
+               kind      : EventKind,   -- an individual of rl2:Event; subsumption via eventKindIncludedIn*
+               operationalAgent : Agent,-- the performer
+               eventAction : Action?,   -- for ActionPerformed events
+               eventObject : Resource?, -- for ActionPerformed events
+               case      : Case?,       -- rl2p:affectsCase scope
+               provenance : IRI?)       -- prov:wasDerivedFrom
 
 PromiseRecord = (promisor : Agent,
                  promisee : Agent,
@@ -227,34 +238,45 @@ PromiseRecord = (promisor : Agent,
                  state : PromiseState)
 ```
 
+**`Performed` and `DutyPerformer` are DERIVED, not stored (S6).** They are *views* over the
+append-only `Σ.Events`, never an independent Boolean/agent truth source that could drift from the
+witness log — see *Witness Derivation* below. The earlier "record a Boolean on performance"
+model is withdrawn.
+
 Notes:
 - `PromiseState(p, Σ)` is the derived promise state (see Promise State Derivation). For standalone promises, it coincides with the stored `Σ.Promises[p].state`.
 - `RequirementRecord` carries lifecycle `status` using the same `rl2:ObligationState` individuals (`Pending`, `Active`, `Fulfilled`, `Violated`) defined in the Vocabulary.
 - `ObligationState` is the canonical name (matching `rl2:ObligationState` in the ontology).
 - PromiseState values (`Pending`, `Fulfilled`, `Violated`) reuse the shared state individuals defined in the Vocabulary (promises do not use `Active`).
-- `DutyPerformer` tracks which agent fulfilled a duty. Returns `⊥` if the duty has not been fulfilled. This enables identity binding patterns:
+- `DutyPerformer(d, Σ)` — **derived** (S6) from the witnessing event, returns `⊥` if the duty has not been fulfilled. Enables identity binding patterns:
   - *Tun-sollen* (ought-to-do): `DutyPerformer(d) = currentAgent` — the same agent must fulfill
   - *Sein-sollen* (ought-to-be): Check only `ObligationState(d) = Fulfilled` — anyone may fulfill
   - *Separation of Duty*: `DutyPerformer(d) ≠ currentAgent` — a different agent must fulfill
 
 **Event Log Structure** (normative):
 
-`Σ.Events` is a **typed, temporally-ordered index**: a map from event type to a sequence of events of that type, ordered by `eventTime` (most recent last).
+`Σ.Events` is an **append-only witness log** presented as a typed index: a map from event kind
+to the events of that kind. Each event carries a unique total-order `eventSequence` assigned when
+it is appended. Selection orders **lexicographically by `(eventTime, eventSequence)`** — `eventTime`
+is the coarse temporal order and `eventSequence` is the **total tie-breaker**, so selection is
+deterministic even when timestamps tie.
 
 ```
 Events : EventType → E*
-Events[type] = [e₁, e₂, ..., eₙ]  where eᵢ.eventTime ≤ eᵢ₊₁.eventTime
+Events[kind] = [e₁, e₂, ..., eₙ]  ordered by (eventTime, eventSequence)
 ```
 
-Path access semantics (normative):
+Path access semantics (normative) — `maxByⁱ` = the maximum under the `(eventTime, eventSequence)`
+lexicographic order (S6):
 
 ```
-state.Events.<type>           ≡  maxBy(eventTime, Events[type])  or ⊥ if empty
-state.Events.<type>.<prop>    ≡  (maxBy(eventTime, Events[type])).<prop>
-state.Events.*                ≡  maxBy(eventTime, ⋃ Events[t] for all t)
+state.Events.<kind>           ≡  maxByⁱ(Events[kind])  or ⊥ if empty
+state.Events.<kind>.<prop>    ≡  (maxByⁱ(Events[kind])).<prop>
+state.Events.*                ≡  maxByⁱ(⋃ Events[k] for all k)
 ```
 
-This "most-recent-wins" rule is provable and ensures deterministic event selection.
+Because `eventSequence` is a **total** order, this "most-recent-wins" selection is a total
+function with no residual nondeterminism (the earlier `maxBy(eventTime)` could tie; S6 fixes it).
 
 This model supports both:
 - **Named event access**: `state.Events.breakGlassEvent.operationalAgent`
@@ -394,7 +416,7 @@ resolve(op, Env, targetNorm) =
             if targetNorm ≠ ⊥ then Env.Σ.ObligationState(targetNorm)
             else ⊥
         dutyPerformerOperand →
-            if targetNorm ≠ ⊥ then Env.Σ.DutyPerformer(targetNorm)
+            if targetNorm ≠ ⊥ then DutyPerformer(targetNorm, Env.Σ)   -- derived from the witness log (S6)
             else ⊥
         promiseStateOperand →
             if targetNorm ≠ ⊥ then PromiseState(targetNorm, Env.Σ)
@@ -416,7 +438,7 @@ resolve(op, Env, targetNorm) =
 
 Where:
 * `obligationStateOperand` queries `Σ.ObligationState(targetNorm)` — returns Pending, Active, Fulfilled, or Violated
-* `dutyPerformerOperand` queries `Σ.DutyPerformer(targetNorm)` — returns the Agent who fulfilled the duty, or ⊥
+* `dutyPerformerOperand` queries `DutyPerformer(targetNorm, Σ)` — derived from the witness event; returns the Agent who fulfilled the duty, or ⊥
 * `promiseStateOperand` queries `PromiseState(targetNorm, Σ)` — returns Pending, Fulfilled, or Violated (Promise-valued counterpart of `obligationStateOperand`; `targetNorm` must be a Promise)
 * `promisorOperand` queries `Σ.Promises[targetNorm].promisor` — returns the Agent bound by the promise, or ⊥ (Promise-valued counterpart of `dutyPerformerOperand`)
 * `op.resolutionPath` — path expression declared on the operand via `rl2:resolutionPath`
@@ -567,7 +589,7 @@ When a path contains `state.Events.*`, the following selection rules apply:
 2. **Selection is singular**: Wildcards always resolve to a single value, not a set. This ensures `deref` remains a total function over allowed paths.
 
 3. **Precedence**: Among events matching the `EventConstraint`:
-   - The most recent (by `rl2:eventTime`) is selected
+   - The most recent under the `(eventTime, eventSequence)` lexicographic order is selected — `eventSequence` breaks `eventTime` ties (S6)
    - If no events match, returns ⊥
 
 Formally:
@@ -576,7 +598,7 @@ navigate(Events, "*", constraintInScope) =
     require constraintInScope ≠ ⊥  -- EventConstraint must be present
     let candidates = { e ∈ Events | matches(e, constraintInScope.expectsEvent) }
     in if candidates = ∅ then ⊥
-       else maxBy(eventTime, candidates)
+       else maxByⁱ(candidates)      -- max under (eventTime, eventSequence); total, deterministic
 ```
 
 **Rationale**: Requiring an `EventConstraint` sibling eliminates ambiguity about which event the wildcard selects. Without this constraint, `state.Events.*.operationalAgent` could return the performer of *any* recent event, creating security vulnerabilities in identity-binding patterns.
@@ -614,11 +636,13 @@ The function `matches(e, pattern)` checks if an event matches an expected patter
 matches : Event × EventPattern → Boolean
 
 matches(e, pattern) =
-    typeMatches(e.eventType, pattern.eventType) ∧
+    typeMatches(e.kind, pattern.kind) ∧
     payloadMatches(e.payload, pattern.payload)
 
 typeMatches(actual, expected) =
-    actual = expected ∨ actual ⊑ expected  -- subtype relation
+    actual = expected ∨ reachable(actual, rl2:eventKindIncludedIn, expected)
+    -- S6: individual-level event-kind subsumption (eventKindIncludedIn*), NOT rdfs:subClassOf.
+    -- Same bounded-traversal shape as action subsumption; no OWL class reasoning.
 
 payloadMatches(actual, expected) =
     ∀(k, v) ∈ expected : k ∈ actual ∧ valueMatches(actual[k], v)
@@ -759,14 +783,39 @@ x' ⊑ x  :=  reachable(x', rl2:includedIn, x)
 
 Evaluators MUST support transitive traversal of `rl2:includedIn`. In SPARQL, this is `ASK { ?x' rl2:includedIn* ?x }`. Usage of `rdfs:subClassOf` for action refinement is non-normative in RL2.
 
-Action subsumption applies uniformly across all norm types: request matching, duty fulfillment, and prohibition violation checks. The subsumption-aware performed check is:
+Action subsumption applies uniformly across all norm types: request matching, duty fulfillment, and prohibition violation checks. The subsumption-aware performed check is **derived from the witness log** (S6):
 
 ```
 performed(a, x, s, Σ) :=
-    ∃x' : Σ.Performed(a, x', s) ∧ (x' = x ∨ x' ⊑ x)
+    ∃ e ∈ Σ.Events : kind(e) ⊑ₑ ActionPerformed
+                     ∧ e.operationalAgent = a
+                     ∧ e.eventObject = s
+                     ∧ (e.eventAction = x ∨ e.eventAction ⊑ x)
+    where ⊑ₑ is eventKindIncludedIn* and ⊑ is action includedIn*
 ```
 
-`Σ.Performed` records exact actions as they occur. `performed()` is the query-time subsumption check used in all fulfillment and violation rules. This is the same bounded graph traversal as request matching — no additional reasoning complexity.
+`performed()` is thus a query over the append-only `Σ.Events` — there is no separate
+`Σ.Performed` Boolean to keep in sync (S6). It is the same bounded graph traversal as request
+matching — no additional reasoning complexity.
+
+#### Witness Derivation (S6)
+
+`Performed` and `DutyPerformer` are **derived views** over `Σ.Events`; the witnessing event is the
+single source of truth for who did what, and (crucially) `DutyPerformer` reads its agent from that
+witness rather than from a separately-recorded value:
+
+```
+witness(d, Σ) =
+    let cand = { e ∈ Σ.Events | kind(e) ⊑ₑ ActionPerformed
+                                ∧ e.eventAction ⊑ d.action ∧ e.eventObject = d.object }
+    in if cand = ∅ then ⊥ else maxByⁱ(cand)     -- latest by (eventTime, eventSequence): total, deterministic
+
+DutyPerformer(d, Σ) =
+    let w = witness(d, Σ) in if w = ⊥ then ⊥ else w.operationalAgent
+```
+
+Because `maxByⁱ` uses the total `eventSequence` tie-breaker, `witness` (and hence `DutyPerformer`)
+is deterministic even when two candidate events share an `eventTime`.
 
 **RDF grounding**: Actions are individuals of `rl2:Action`. Action subsumption (`x' ⊑ x`) follows the transitive closure of `rl2:includedIn`; `members(s)` is the set of **direct** `rl2:member` links when `s` is an `rl2:AssetCollection` (not transitively closed — nested-collection flattening is a profile/derived concern, C7); and `roles(a_req)` derives from the agent's RDF typing/role assignments as defined in the Agent and role classes in the Vocabulary.
 
@@ -1034,14 +1083,16 @@ We use the notation `Σ[f ↦ v]` to denote state update:
 
 ```
 Σ[ObligationState(d) ↦ Active] =
-    (Σ.Clock, Σ.Events, Σ.Performed, Σ.Metadata,
-     Σ.Promises, Σ.ObligationState[d ↦ Active])
+    (Σ.Clock, Σ.Events, Σ.Metadata,
+     Σ.Promises, Σ.ObligationState[d ↦ Active], Σ.Requirements)
 
 Σ[PromiseState(p) ↦ Fulfilled] =
-    (Σ.Clock, Σ.Events, Σ.Performed, Σ.Metadata,
+    (Σ.Clock, Σ.Events, Σ.Metadata,
      Σ.Promises[p ↦ Σ.Promises[p] with state = Fulfilled],
-     Σ.ObligationState)
+     Σ.ObligationState, Σ.Requirements)
 ```
+
+(No `Σ.Performed`/`Σ.DutyPerformer` fields to carry — they are derived from `Σ.Events`, S6.)
 
 ### Promise State Derivation
 
@@ -1099,18 +1150,17 @@ An active duty is fulfilled when the required action (or a narrower action subsu
 ```
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 performed(a,x,s,Σ) = true
-performer = R.agent  -- Agent who performed the action
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, DutyActive(a,x,s,c)) →
-    (Σ[ObligationState(Duty(a,x,s,c)) ↦ Fulfilled,
-       DutyPerformer(Duty(a,x,s,c)) ↦ performer],
+    (Σ[ObligationState(Duty(a,x,s,c)) ↦ Fulfilled],
      DutyFulfilled(a,x,s,c))
 ```
 
-Recording the performer enables identity binding patterns:
-- **Tun-sollen check**: `DutyPerformer(d) = currentAgent` (same agent must benefit)
+The transition records only the state change; the performer is **not** stored (S6). Identity
+binding reads `DutyPerformer(d, Σ)` — derived from the witnessing `ActionPerformed` event:
+- **Tun-sollen check**: `DutyPerformer(d, Σ) = currentAgent` (same agent must benefit)
 - **Sein-sollen check**: Only check `ObligationState(d) = Fulfilled` (anyone may fulfill)
-- **Separation of Duty**: `DutyPerformer(d) ≠ currentAgent` (different agent must benefit)
+- **Separation of Duty**: `DutyPerformer(d, Σ) ≠ currentAgent` (different agent must benefit)
 
 ### Duty Violation
 
@@ -1331,13 +1381,19 @@ e ∈ E (incoming events)
 (Σ, R, Ctx, EventSet(E)) → (Σ', EventSet(E \ {e}))
 
 processEvent(e, Σ) =
-    case e.eventType of
-        ActionPerformed(a,x,s) → Σ[Performed(a,x,s) ↦ true]
+    let e⁺ = e with eventSequence = nextSeq(Σ.Events)   -- assign the total-order sequence on append
+    in case kind(e) of
         TimeAdvanced(t)        → Σ[Clock ↦ t]
-        ApprovalGranted(...)   → Σ[Events ↦ Σ.Events ∪ {e}]
         MetadataChanged(s,k,v) → Σ[Metadata(s)[k] ↦ v]
-        _                      → Σ[Events ↦ Σ.Events ∪ {e}]
+        _                      → Σ[Events ↦ append(Σ.Events, e⁺)]   -- append-only; ActionPerformed included
 ```
+
+**S6:** every witness event — including `ActionPerformed` — is **appended** to the log with a
+freshly assigned `eventSequence`; nothing sets a separate `Performed` Boolean. `nextSeq` returns a
+value strictly greater than every existing `eventSequence`, giving the total order that makes
+`performed()`/`witness()`/`DutyPerformer()` deterministic. `TimeAdvanced`/`MetadataChanged` update
+scalar state and are not witness events. Appends are monotonic: the log never rewrites or drops a
+prior event.
 
 ### Privilege Activation
 
@@ -1584,11 +1640,10 @@ Activation is **condition-driven**: when the duty's condition first evaluates to
 Σ.ObligationState(d) = Active
 performed(d.subject, d.action, d.object, Σ) = true
 ─────────────────────────────────────────────────────────
-Σ' = Σ[ObligationState(d) ↦ Fulfilled,
-       DutyPerformer(d) ↦ performer]
+Σ' = Σ[ObligationState(d) ↦ Fulfilled]
 ```
 
-Fulfillment is **event-driven**: when a performed action matches the duty's required action (including narrower actions via `rl2:includedIn` subsumption), the duty is fulfilled. The performing agent is recorded for identity binding.
+Fulfillment is **event-driven**: when a performed action matches the duty's required action (including narrower actions via `rl2:includedIn` subsumption), the duty is fulfilled. The transition records **only** the state change — the performing agent is **not** stored, because `DutyPerformer(d, Σ)` is derived on demand from the witnessing event (S6), so identity binding reads the witness rather than a duplicated field that could drift.
 
 **Rule D-VIOLATE** (Active → Violated):
 ```
@@ -1611,7 +1666,7 @@ updateOneDuty(Env)(Σ, d) =
     case Σ.ObligationState(d) of
         Pending → if ⟦d.condition⟧(Env) then Σ[ObligationState(d) ↦ Active] else Σ
         Active  → if performed(d.subject, d.action, d.object, Σ)
-                  then Σ[ObligationState(d) ↦ Fulfilled, DutyPerformer(d) ↦ performer]
+                  then Σ[ObligationState(d) ↦ Fulfilled]   -- DutyPerformer derived from witness (S6)
                   else if timeout(d.condition, Σ)
                   then Σ[ObligationState(d) ↦ Violated]
                   else Σ

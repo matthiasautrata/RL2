@@ -580,12 +580,54 @@ rl2:isNoneOf a rl2:ComparisonOperator ;
 
 rl2:Event a owl:Class ;
     rdfs:label "Event" ;
-    rdfs:comment "Observable event that may trigger obligations or transitions." .
+    rdfs:comment """Observable event that may trigger obligations or transitions.
+    S6 — RL2's witness/evidence model. Events are individuals of rl2:Event: an event
+    *kind* (e.g. ex:BreakGlassEvent) is itself an individual, and Σ.Events is keyed by
+    that kind IRI. Kind subsumption is the individual-level transitive relation
+    rl2:eventKindIncludedIn (NOT rdfs:subClassOf — one model, not a mix). An event record
+    carries: its IRI (stable id), rl2:eventSequence (a total order assigned append-only,
+    the deterministic tie-breaker when rl2:eventTime ties), rl2:eventTime, kind,
+    rl2:operationalAgent (the performer), rl2:eventAction / rl2:eventObject (for
+    ActionPerformed events), rl2p:affectsCase (case scope), and provenance
+    (prov:wasDerivedFrom). Σ.Events is append-only; Performed and DutyPerformer are
+    DERIVED from the witnessing event, not stored as an independent truth source
+    (RL2_Semantics.md §State and §Witness Derivation).""" .
 
 rl2:eventTime a owl:DatatypeProperty ;
     rdfs:domain rl2:Event ;
     rdfs:range xsd:dateTime ;
-    rdfs:comment "When the event occurred." .
+    rdfs:comment "When the event occurred (coarse temporal order; ties broken by rl2:eventSequence)." .
+
+rl2:eventSequence a owl:DatatypeProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range xsd:integer ;
+    rdfs:label "Event Sequence" ;
+    rdfs:comment """Total-order sequence number assigned to an event as it is appended to
+    the log (S6). Provides a deterministic tie-breaker when two events share an
+    rl2:eventTime: event selection is maxBy (eventTime, eventSequence) lexicographically,
+    so 'most-recent-wins' is total and deterministic. Monotonic and unique within a log.""" .
+
+rl2:eventAction a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Action ;
+    rdfs:label "Event Action" ;
+    rdfs:comment "The action an ActionPerformed event witnesses (used to derive Performed; S6)." .
+
+rl2:eventObject a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:label "Event Object" ;
+    rdfs:comment "The asset/resource an ActionPerformed event acted upon (used to derive Performed; S6)." .
+
+rl2:eventKindIncludedIn a owl:ObjectProperty, owl:TransitiveProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Event ;
+    rdfs:label "Event Kind Included In" ;
+    rdfs:comment """Event-kind taxonomy: kind A eventKindIncludedIn kind B means A is a
+    narrower event kind included within B. Transitive. The individual-level counterpart
+    of rl2:includedIn for actions (S6): event-kind subsumption in EventConstraint matching
+    is `k' = k ∨ k' eventKindIncludedIn* k`, a bounded traversal — no OWL class reasoning
+    (I3). This is the single event-kind subsumption model; rdfs:subClassOf is not used for
+    event kinds.""" .
 
 # Obligation States (enumeration pattern)
 rl2:ObligationState a owl:Class ;

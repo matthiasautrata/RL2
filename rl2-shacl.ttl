@@ -373,6 +373,24 @@ rl2:EventShape a sh:NodeShape ;
         sh:maxCount 1 ;
         sh:class rl2:Agent ;
         sh:message "An Event may have at most one operational agent."
+    ] ;
+    # S6 witness-record fields (optional on kind templates; carried by concrete instances).
+    sh:property [
+        sh:path rl2:eventSequence ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:message "An Event may carry at most one rl2:eventSequence (total-order tie-breaker; S6)."
+    ] ;
+    sh:property [
+        sh:path rl2:eventAction ;
+        sh:maxCount 1 ;
+        sh:class rl2:Action ;
+        sh:message "An Event's rl2:eventAction, if present, must be a single rl2:Action (S6)."
+    ] ;
+    sh:property [
+        sh:path rl2:eventObject ;
+        sh:maxCount 1 ;
+        sh:message "An Event may witness at most one rl2:eventObject (S6)."
     ] .
 
 # State transition shape
