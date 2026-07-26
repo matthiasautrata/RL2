@@ -51,7 +51,14 @@ rl2:Prohibition a owl:Class ;
 rl2:Claim a owl:Class ;
     rdfs:subClassOf rl2:Norm ;
     rdfs:label "Claim" ;
-    rdfs:comment "A correlative entitlement held by another agent." .
+    rdfs:comment """A correlative entitlement: the Hohfeldian correlative of a Duty. C6b —
+    a Claim is a DERIVED PROJECTION of exactly one Duty: it MUST carry exactly one
+    rl2:correlativeTo pointing to a rl2:Duty, and its action/object/condition are DERIVED
+    from that Duty (not authored on the Claim). The Claim only fixes the party roles
+    (rl2:subject = right-holder, rl2:counterparty = duty-bearer), which must mirror the
+    Duty (Duty.subject = Claim.counterparty, Duty.counterparty = Claim.subject). This makes
+    two claims about different actions/objects distinguishable and enforces 1:1 pairing.
+    Correlatives are DERIVED, not independently authored on both sides — see ClaimShape.""" .
 
 rl2:Power a owl:Class ;
     rdfs:subClassOf rl2:Norm ;
@@ -77,7 +84,10 @@ rl2:correlativeTo a owl:ObjectProperty, owl:SymmetricProperty ;
     - Power ↔ Liability (power-holder can alter liability-bearer's position)
     - Immunity ↔ Disability (immune party protected from disabled party's power)
     Note: Privilege correlates with No-Right, but No-Right is not modeled in RL2
-    as it represents absence of claim rather than a positive normative position.""" .
+    as it represents absence of claim rather than a positive normative position.
+    C6b: for a rl2:Claim the correlative is REQUIRED and must be exactly one rl2:Duty
+    (ClaimShape); the Claim's content is derived from that Duty, so the pairing is
+    authored on the Claim side and not duplicated independently.""" .
 
 # Claim roles use the uniform rl2:subject / rl2:counterparty properties (see §3):
 #   rl2:subject      = the right-holder (claim-holder)

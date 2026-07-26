@@ -271,22 +271,32 @@ ex:distributionBan a rl2:Prohibition ;
 **Required Properties**:
 - `rl2:subject` — Agent who holds the claim (the right-holder)
 - `rl2:counterparty` — Agent against whom the claim is held (the duty-bearer)
+- `rl2:correlativeTo` — Exactly one corresponding `rl2:Duty` (C6b). The Claim's content
+  (action/object/condition) is **derived** from this Duty; the Claim does not author its own.
 
-**Optional Properties**:
-- `rl2:correlativeTo` — The corresponding Duty
-- `rl2:condition` — When the claim is active
+**Derived (not authored on the Claim)**: `rl2:action`, `rl2:object`, `rl2:condition` — taken
+from the correlative Duty. The Duty's roles must mirror the Claim (`Duty.subject =
+Claim.counterparty`, `Duty.counterparty = Claim.subject`).
 
 **SHACL Shape**: `rl2:ClaimShape`
 
-**Example**:
+**Example** (the Claim derives its content from `ex:aliceDuty`):
 ```turtle
+ex:aliceDuty a rl2:Duty ;
+    rl2:subject ex:Alice ;        # duty-bearer  = Claim.counterparty
+    rl2:counterparty ex:Bob ;     # right-holder = Claim.subject
+    rl2:action ex:deliver ;
+    rl2:object ex:Report .
+
+ex:deliver a rl2:Action .
+
 ex:bobClaim a rl2:Claim ;
     rl2:subject ex:Bob ;          # right-holder
     rl2:counterparty ex:Alice ;   # duty-bearer
     rl2:correlativeTo ex:aliceDuty .
 ```
 
-**Hohfeldian Context**: Claim is the correlative of Duty. Claims and duties are two sides of the same relationship.
+**Hohfeldian Context**: Claim is the correlative of Duty. Claims and duties are two sides of the same relationship — RL2 authors the Duty and derives the Claim from it (C6b).
 
 ---
 

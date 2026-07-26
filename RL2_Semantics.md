@@ -287,43 +287,84 @@ Including `Request` resolves the prior inconsistency where `deref` dereferenced
 
 Denotational semantics gives timeless meaning to norms and conditions.
 
-We write:
+### Result and Truth Algebra (S2)
+
+Operand resolution and condition evaluation are **partial** — an operand may be missing,
+wrong-typed, multi-valued, or fail to resolve. RL2 makes this total with two typed carriers
+used uniformly across the denotational semantics, the IR (`RL2_IR.md`), the protocol
+(`RL2_Protocol.md`), and the Go API:
 
 ```
-⟦ e ⟧ : Env → Value
+EvalValue<T> = Ok(T)              -- a single well-typed value
+             | Missing(Key)        -- operand resolved to ⊥ / absent (e.g. no targetNorm)
+             | Invalid(Error)      -- malformed lexical value or incompatible datatype
+             | Conflict(Values)    -- resolution produced more than one value
+
+Truth        = True
+             | False
+             | Unknown(Error)      -- a condition whose truth cannot be determined
+```
+
+`resolve : LeftOperand × Env × Norm? → EvalValue<Value>` (the `Value ∪ {⊥}` form below is the
+`Ok`/`Missing` projection of this). **Comparison lifts errors to `Unknown`:** `apply(operator, l, r)`
+returns `True`/`False` only when both sides are `Ok` and type-compatible; any `Missing`, `Invalid`,
+or `Conflict` on either side yields `Unknown(e)`.
+
+**Logical connectives are Kleene strong three-valued logic** — an error is *unobservable* when it
+cannot change the outcome (short-circuit is therefore **specified**, not left implicit):
+
+```
+And:  True∧x = x ;  False∧x = False ;  Unknown∧False = False ;  Unknown∧(True|Unknown) = Unknown
+Or:   False∨x = x ;  True∨x = True ;   Unknown∨True  = True  ;  Unknown∨(False|Unknown) = Unknown
+Not:  ¬True = False ; ¬False = True ;  ¬Unknown = Unknown
+Xone(c₁..cₙ): if any cᵢ = Unknown → Unknown; else True iff exactly one is True, else False
+```
+
+**Normative promotion.** A norm whose condition denotes `Unknown` is **not** silently inactive:
+it contributes **`Indeterminate`** to the normative envelope. Mapping `Indeterminate → Deny` is an
+**enforcement-adapter** policy (fail-closed at the PEP), *not* the semantic result — the evaluator
+reports `Indeterminate` so the ambiguity is visible and auditable. `rl2p:Indeterminate` is the
+protocol carrier for this value.
+
+We write, for the two kinds of denotation:
+
+```
+⟦ e ⟧      : Env → Value    -- terms (operands, right-values)
+⟦ c ⟧      : Env → Truth    -- conditions
 ```
 
 ### Conditions
 
-Atomic constraints:
+Atomic constraints (result is a `Truth`, lifting operand errors to `Unknown`):
 
 ```
-⟦ AtomicConstraint(op, operator, value, targetNorm?) ⟧(Env) =
-     let leftVal = resolve(op, Env, targetNorm)
+⟦ AtomicConstraint(op, operator, value, targetNorm?) ⟧(Env) : Truth =
+     let leftVal  = resolve(op, Env, targetNorm)          -- : EvalValue<Value>
      let rightVal = case value of
-         RuntimeRef(r) → resolveRuntime(r, Env)
-         Literal(v)    → v
-     in apply(operator, leftVal, rightVal)
+         RuntimeRef(r) → resolveRuntime(r, Env)           -- : EvalValue<Value>
+         Literal(v)    → Ok(v)
+     in apply(operator, leftVal, rightVal)                -- Ok∧Ok → True|False; else Unknown(e)
 ```
 
-The optional `targetNorm` parameter specifies which norm's state to query when using `obligationStateOperand` or `dutyPerformerOperand`. The right operand may be a literal value or a runtime reference (e.g., `currentAgent`).
+The optional `targetNorm` parameter specifies which norm's state to query when using `obligationStateOperand` or `dutyPerformerOperand`. The right operand may be a literal value or a runtime reference (e.g., `currentAgent`). If either operand is `Missing`/`Invalid`/`Conflict`, `apply` returns `Unknown` carrying that error — the constraint never silently reads as `False`.
 
-Logical conditions:
+Logical conditions (Kleene strong three-valued — see Result and Truth Algebra):
 
 ```
-⟦ And(c1, c2)  ⟧(Env) = ⟦c1⟧(Env) ∧ ⟦c2⟧(Env)
-⟦ Or(c1, c2)   ⟧(Env) = ⟦c1⟧(Env) ∨ ⟦c2⟧(Env)
-⟦ Not(c)       ⟧(Env) = ¬⟦c⟧(Env)
-⟦ Xone(c1..cn) ⟧(Env) = true iff exactly one of ⟦c1⟧(Env)..⟦cn⟧(Env) is true
-                        (false when zero or more than one)
+⟦ And(c1, c2)  ⟧(Env) = ⟦c1⟧(Env) ∧ᴷ ⟦c2⟧(Env)
+⟦ Or(c1, c2)   ⟧(Env) = ⟦c1⟧(Env) ∨ᴷ ⟦c2⟧(Env)
+⟦ Not(c)       ⟧(Env) = ¬ᴷ⟦c⟧(Env)
+⟦ Xone(c1..cn) ⟧(Env) = Unknown  if any ⟦cᵢ⟧(Env) = Unknown
+                        True      iff exactly one ⟦cᵢ⟧(Env) = True (and none Unknown)
+                        False     otherwise
 ```
 
-Event constraint (approval requirement):
+Event constraint (approval requirement) — a total Σ query, so `True`/`False` only (absence is `False`, not `Unknown`):
 
 ```
 ⟦ EventConstraint(expectsEvent) ⟧(Env) =
-    true  if ∃e ∈ Env.Σ.Events : matches(e, expectsEvent)
-    false otherwise
+    True  if ∃e ∈ Env.Σ.Events : matches(e, expectsEvent)
+    False otherwise
 ```
 
 ---
@@ -731,27 +772,35 @@ performed(a, x, s, Σ) :=
 
 ### Norm Denotations
 
+Each activation is now three-way on the condition's `Truth` (S2): `True` activates the norm,
+`False` leaves it `Inactive`, and **`Unknown` yields `Indeterminate`** — a matched norm whose
+condition could not be evaluated is surfaced, never silently dropped. Matching itself is total
+(`matches` is a structural equality/subsumption check that cannot error).
+
 Privilege activation:
 
 ```
 ⟦Privilege(a,x,s,c)⟧(R, Env) =
-    Permit    if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env) = true
-    Inactive  otherwise
+    Permit         if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env) = True
+    Indeterminate  if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env) = Unknown(_)
+    Inactive       otherwise   -- no match, or ⟦c⟧(Env) = False
 ```
 
 Prohibition activation:
 
 ```
 ⟦Prohibition(a,x,s,c)⟧(R, Env) =
-    Deny      if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env) = true
-    Inactive  otherwise
+    Deny           if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env) = True
+    Indeterminate  if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env) = Unknown(_)
+    Inactive       otherwise
 ```
 
 Duty activation:
 
 ```
 ⟦Duty(a,x,s,c)⟧(R, Env) =
-    Obligation(a,x,s)  if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env) = true
+    Obligation(a,x,s)  if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env) = True
+    Indeterminate      if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env) = Unknown(_)
     Inactive           otherwise
 ```
 
@@ -797,24 +846,41 @@ The correlative Claim is **derived**, not authored: policy authors write only th
 `Prohibition`. Violation of a prohibition uses the subsumption-aware `performed()`
 helper (so performing a narrower action `x′ ⊑ x` violates a prohibition on `x`).
 
-### Claim Denotation
+### Claim Denotation and Content Derivation (C6b)
 
-A Claim expresses that one agent holds a right against another agent for some content:
-
-```
-⟦Claim(subject, counterparty, right)⟧(Env) =
-    ClaimActive(subject, counterparty, right)  if claimCondition(right, Env) = true
-    ClaimInactive                              otherwise
-```
-
-A Claim correlates with a Duty: if agent H (the Claim's `subject`, the right-holder) has a Claim against agent A (the Claim's `counterparty`, the duty-bearer) for X, then A has a Duty to H regarding X. Correlative roles cross over:
+A Claim is the Hohfeldian correlative of **exactly one** Duty, reached by its required
+`rl2:correlativeTo` link (enforced by `ClaimShape`). A Claim does **not** author its own content;
+its action, object, and condition are **derived** from that Duty:
 
 ```
-∀ Claim(h, a, x) : ∃ Duty(a, x_action, x_asset, c) where
-    subject(Duty) = a = counterparty(Claim) ∧
-    counterparty(Duty) = h = subject(Claim) ∧
-    correlatesTo(Claim, Duty)
+ClaimContent(Claim) =
+    let D = correlativeTo(Claim)                     -- exactly one, and D : Duty (ClaimShape)
+    in (action, object, condition) := (D.action, D.object, D.condition)   -- DERIVED, not authored
 ```
+
+with the party roles required to mirror the Duty (validated by `ClaimShape`):
+
+```
+D.subject = Claim.counterparty   (the duty-bearer)   ∧
+D.counterparty = Claim.subject   (the right-holder)
+```
+
+A Claim is *held* exactly when its correlative Duty's condition holds; the Claim inherits the
+Duty's `Truth` (S2), so an `Unknown` Duty condition yields an `Indeterminate` claim rather than a
+silently-inactive one:
+
+```
+⟦Claim(h, a)⟧(Env) =                                 -- h = subject (right-holder), a = counterparty (duty-bearer)
+    let D = correlativeTo(Claim)
+    in ClaimHeld(h, a, ClaimContent(Claim))  if ⟦D.condition⟧(Env) = True
+       Indeterminate                          if ⟦D.condition⟧(Env) = Unknown(_)
+       ClaimInactive                          otherwise
+```
+
+Because content and correlation are derived from the single authored Duty, two claims about
+different actions or objects are always distinguishable (via their distinct Duties), the
+Claim↔Duty pairing is one-to-one, and there is no dual-source encoding where a Claim and its
+Duty could disagree.
 
 ### Power Denotation
 
@@ -896,7 +962,7 @@ Policies may have an optional activation condition. A policy is *applicable* whe
 
 ```
 PolicyApplicable(P, Env) =
-    P.condition = ⊥  ∨  ⟦P.condition⟧(Env) = true
+    P.condition = ⊥  ∨  ⟦P.condition⟧(Env) = True
 ```
 
 Where `⊥` denotes the absence of a condition (unconditionally applicable).
@@ -916,8 +982,13 @@ ApplicablePolicies(U, Env) = { P ∈ U | PolicyApplicable(P, Env) }
 A norm n within policy P is active when both the policy and norm conditions hold:
 
 ```
-NormActive(n, P, Env) = PolicyApplicable(P, Env) ∧ ⟦n.condition⟧(Env) = true
+NormActive(n, P, Env) = PolicyApplicable(P, Env) ∧ ⟦n.condition⟧(Env) = True
 ```
+
+`NormActive` (and the firm `Out` envelope below) admits a norm only on `True`. A norm whose
+condition is `Unknown` is **neither** active **nor** silently discarded: it is collected into
+the `indeterminate` set (see Evaluation Algorithm, S2) and promotes the decision to
+`Indeterminate` when it could affect the outcome.
 
 This is semantically equivalent to:
 
@@ -1015,7 +1086,7 @@ A pending duty becomes active when its activation condition holds:
 
 ```
 Env = mkEnv(R, Σ, Ctx)
-⟦ c ⟧(Env) = true
+⟦ c ⟧(Env) = True
 Σ.ObligationState(Duty(a,x,s,c)) = Pending
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Duty(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Active], DutyActive(a,x,s,c))
@@ -1275,7 +1346,7 @@ Privileges become active when their condition holds:
 ```
 Env = mkEnv(R, Σ, Ctx)
 matches(Privilege(a,x,s,c), R) = true
-⟦ c ⟧(Env) = true
+⟦ c ⟧(Env) = True
 ──────────────────────────────────────────────────────────────────
 PrivilegeActive(a, x, s, c)
 ```
@@ -1296,7 +1367,7 @@ Prohibitions are active when their condition holds and the request matches:
 ```
 Env = mkEnv(R, Σ, Ctx)
 matches(Prohibition(a,x,s,c), R) = true
-⟦ c ⟧(Env) = true
+⟦ c ⟧(Env) = True
 ──────────────────────────────────────────────────────────────────
 ProhibitionActive(a, x, s, c)
 ```
@@ -1328,9 +1399,9 @@ Out(U, Env) =
     in ⋃ { deriveNorms(P, Env) | P ∈ applicablePolicies }
 
 deriveNorms(P, Env) =
-    { permit(a,x,s)    | Privilege(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = true } ∪
-    { forbid(a,x,s)    | Prohibition(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = true } ∪
-    { obligate(d)      | Duty d ∈ P.clauses, matches(d, R), ⟦d.condition⟧(Env) = true } ∪
+    { permit(a,x,s)    | Privilege(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = True } ∪
+    { forbid(a,x,s)    | Prohibition(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = True } ∪
+    { obligate(d)      | Duty d ∈ P.clauses, matches(d, R), ⟦d.condition⟧(Env) = True } ∪
     { violated(d)      | Duty d ∈ P.clauses, Σ.ObligationState(d) = Violated }
 ```
 
@@ -1411,21 +1482,34 @@ Eval(U, R, Σ, Ctx) =
     let matchingProhibitions = { p ∈ P.clauses | P ∈ applicablePolicies ∧ p : Prohibition ∧ matches(p, R) }
     let matchingDuties = { d ∈ P.clauses | P ∈ applicablePolicies ∧ d : Duty ∧ matches(d, R) }
 
-    -- Step 2: Evaluate conditions and determine active norms
-    let activePrivileges = { p ∈ matchingPrivileges | ⟦p.condition⟧(Env) = true }
-    let activeProhibitions = { p ∈ matchingProhibitions | ⟦p.condition⟧(Env) = true }
+    -- Step 2: Evaluate conditions three-valued (S2). A matched norm whose condition
+    -- is Unknown is Indeterminate — collected, never silently dropped.
+    let activePrivileges = { p ∈ matchingPrivileges | ⟦p.condition⟧(Env) = True }
+    let activeProhibitions = { p ∈ matchingProhibitions | ⟦p.condition⟧(Env) = True }
+    let indeterminate = { n ∈ matchingPrivileges ∪ matchingProhibitions ∪ matchingDuties
+                          | ⟦n.condition⟧(Env) = Unknown(_) }
 
-    -- Step 3: Update duty states
-    let Σ' = updateDutyStates(matchingDuties, Env, Σ)
+    -- Step 3: Update duty states (only True-conditioned duties transition)
+    let Σ' = updateDutyStates({ d ∈ matchingDuties | ⟦d.condition⟧(Env) = True }, Env, Σ)
     let activeDuties = { d | Σ'.ObligationState(d) ∈ {Pending, Active} }
     let violatedDuties = { d | Σ'.ObligationState(d) = Violated }
 
     -- Step 4: Apply conflict resolution and compute decision
     let decision = resolveDecision(activePrivileges, activeProhibitions,
-                                    activeDuties, violatedDuties, P.conflictStrategy)
+                                    activeDuties, violatedDuties, indeterminate,
+                                    P.conflictStrategy)
 
     in (decision, Σ', activeDuties)
 ```
+
+**Indeterminate handling (S2).** `resolveDecision` takes the `indeterminate` set as an
+explicit argument. Its policy is fixed and deterministic: if a *conclusive* verdict is
+reached without relying on the indeterminate norms — a `Deny` under prohibit-overrides, or a
+`Permit` with no competing prohibition/indeterminate prohibition — that verdict stands.
+Otherwise, if `indeterminate ≠ ∅` and it could have changed the outcome, the result is
+`Indeterminate`. Mapping `Indeterminate → Deny` is an **enforcement-adapter** decision (a
+fail-closed PEP), **not** the semantic verdict: `Eval` returns `Indeterminate` so the
+ambiguity is auditable.
 
 ### Conflict Resolution
 
@@ -1440,8 +1524,8 @@ The `strategy` parameter in `resolveDecision` below represents evaluator configu
 More sophisticated defeasibility mechanisms—such as exclusionary rules—are available in frameworks like LegalRuleML [LegalRuleML] and may be incorporated in future RL2 profiles.
 
 ```
-resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, strategy) =
-    case strategy of
+resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, indeterminate, strategy) =
+    let base = case strategy of
         ProhibitOverrides →
             if prohibitions ≠ ∅ then Deny
             else baseDecision(privileges, activeDuties, violatedDuties)
@@ -1460,6 +1544,13 @@ resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, strategy
         _ → -- Default: prohibit-overrides
             if prohibitions ≠ ∅ then Deny
             else baseDecision(privileges, activeDuties, violatedDuties)
+    in
+    -- S2: an unresolved (Unknown-conditioned) norm only matters if it could flip the
+    -- verdict. A firm Deny is conclusive regardless; otherwise a non-empty indeterminate
+    -- set makes the result Indeterminate rather than a possibly-wrong Permit/NotApplicable.
+    if base = Deny then Deny
+    else if indeterminate ≠ ∅ then Indeterminate
+    else base
 
 baseDecision(privileges, activeDuties, violatedDuties) =
     if privileges = ∅ then NotApplicable
@@ -1467,6 +1558,10 @@ baseDecision(privileges, activeDuties, violatedDuties) =
     else if activeDuties ≠ ∅ then PermitWithObligations
     else Permit
 ```
+
+`Indeterminate` here is the same value produced per-norm in the denotations above and carried
+by `rl2p:Indeterminate` at the protocol layer; a fail-closed PEP maps it to `Deny`, but that
+mapping lives in the enforcement adapter, not in `resolveDecision`.
 
 Note: `NotApplicable` (no matching rule) is distinct from `Deny` (explicit prohibition). This allows policy composition where a higher-level policy can provide defaults.
 
@@ -1477,7 +1572,7 @@ The duty lifecycle is governed by three inference rules:
 **Rule D-ACTIVATE** (Pending → Active):
 ```
 Σ.ObligationState(d) = Pending
-⟦d.condition⟧(Env) = true
+⟦d.condition⟧(Env) = True
 ─────────────────────────────────────────────────────────
 Σ' = Σ[ObligationState(d) ↦ Active]
 ```

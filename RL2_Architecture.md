@@ -302,17 +302,57 @@ compile : Policy* → (IR, ContextManifest, TargetIndex)
 
 ## Canonical Form
 
-RL2 enforces a **canonical-form invariant**: *for any normative proposition the
-language can express, there is exactly one valid RDF shape that expresses it.*
-Two graphs that differ structurally must differ semantically; where they would
-not, one shape is canonical and the alternatives are rejected (by SHACL) or
-rewritten (by compile-time normalization).
+RL2 enforces a **canonical-form invariant** — but the invariant is scoped to the
+**normalized canonical AST**, not to raw RDF graphs (C5). Precisely: *for any normative
+proposition the language can express, there is exactly one valid **authored** RDF shape (the
+alternatives are SHACL-rejected or compile-time rewritten), and the RDF→AST projection maps it
+to a unique canonical AST.* Semantic equivalence is defined **over the canonical AST**, and two
+policies are equivalent iff their canonical ASTs are equal.
 
-This is the property that makes RL2 suited to automated generation and
-verification. A generator has one target shape per intent — no authoring-
-convenience variation to learn or normalize. Semantic equivalence of two policies
-reduces to graph comparison after normalization, with no bespoke normalizer (the
-place ODRL-style flexibility hides bugs).
+> **Raw-graph isomorphism does *not* decide semantics (C5).** The earlier claim that "two
+> graphs that differ structurally must differ semantically" and that equivalence "reduces to
+> graph comparison with no bespoke normalizer" is **false for RDF** and is withdrawn. Blank-node
+> renaming, RDFS/OWL entailment (asserted vs inferred triples), the symmetry of `correlativeTo`,
+> the unordered/duplicable operands of `And`/`Or`/`Xone`, semantically-inert annotation and
+> profile triples, and the semantic defaults below all mean structurally-distinct graphs can be
+> semantically identical. Canonicality is therefore a property of the **projection**, delivered
+> by a real (specified) normalizer — see *RDF → Canonical AST projection* below and `RL2_IR.md`.
+
+This is the property that makes RL2 suited to automated generation and verification: a
+generator has one authored target shape per intent, and semantic checking is performed on the
+canonical AST the projection produces, not on incidental graph structure.
+
+### RDF → Canonical AST projection (C5)
+
+The normative projection `π : RDF → AST` is what makes the canonical-form invariant true. It is
+specified in `RL2_IR.md` (§Pipeline, §Construct Correspondence) and fixes, at minimum:
+
+- **Entailment regime** — a single, bounded regime applied once at ingestion: RDFS
+  subclass/subproperty + the `rl2:includedIn*` action closure and declared hierarchies
+  (RL2_IR.md §8); no open-ended OWL reasoning at or after projection (I3).
+- **Semantic defaults** — an omitted `rl2:condition` projects to the constant `True`; a
+  policy-level condition is pushed down and conjoined into each norm's `effectiveCondition`.
+- **Cardinality** — singular abstract-syntax fields (one subject/action/object, C3) are single
+  in the AST; any ODRL-style multi-valued import is expanded into separate canonical clauses by
+  the importer, never carried as a multi-valued AST node.
+- **Blank nodes** — eliminated: condition trees and correlatives are given **stable structural
+  IDs**, so blank-node renaming cannot produce a distinct AST.
+- **Operand ordering / dedup** — `And`/`Or`/`Xone` operand *sets* are ordered by canonical key
+  and de-duplicated, so operand order and repetition are not semantically significant.
+- **Annotation stripping** — labels, comments, provenance, and other evaluation-inert triples
+  are dropped from the AST.
+- **Correlatives are derived, not authored twice** — a `Claim` is projected as a derived view
+  of its one correlative `Duty` (C6b), so the symmetric `correlativeTo` never yields two
+  independent AST facts.
+- **Unsupported-extension rejection** — a term or shape with no assigned canonical rewrite is
+  **rejected** at projection (fail-closed), not silently ignored (aligns with the A1 ingestion
+  pipeline).
+- **Norm ≠ Promise is a canonical-AST axiom** — the AST tags each `Clause` as exactly one of
+  `Norm` or `Promise` and the projection **rejects** a node that would be both. The RDF
+  authoring layer keeps `rl2:targetNorm`'s `rdfs:range rl2:Norm` auto-typing crutch (PROM-7) for
+  terse examples; that shortcut lives *below* π and never reaches the AST, so `owl:disjointWith(Norm, Promise)`
+  holds as a **semantic-layer axiom of the AST** without contradicting the RDF-level crutch.
+  (WP-1's `PromiseNotConcreteNormShape` already makes the distinction testable at the RDF layer.)
 
 Instances in the current vocabulary:
 
@@ -489,14 +529,18 @@ evaluate : (IR, PolicyRef*, Context) → (Decision, Requirements)
 
 **Contract:**
 - **Deterministic**: Same inputs → same outputs
-- **Total**: Always produces a decision
+- **Total**: Always produces a decision — partiality is carried in the result algebra, not by getting stuck
 - **Semantics-preserving**: Equivalent to RL2_Semantics.md evaluation rules
 
-**Precondition:** `Context` should cover all operands from `manifest`. If incomplete:
-- Return `Indeterminate` with `Missing*` indicating what's needed, OR
-- Evaluate with available context (some conditions may be indeterminate)
-
-TBD: Specify normative behavior for incomplete context.
+**Incomplete/erroneous context (S2).** Totality is realized by the result/truth algebra
+(RL2_Semantics.md §Result and Truth Algebra): operand resolution returns
+`EvalValue<T> = Ok | Missing | Invalid | Conflict`, condition evaluation returns
+`Truth = True | False | Unknown`, and the logic connectives are **Kleene** three-valued. A
+matched norm whose condition is `Unknown` contributes **`Indeterminate`** to the envelope — it
+is never silently read as inactive. The evaluator therefore returns a firm `Permit`/`Deny`
+when the outcome is robust to the missing data, and `Indeterminate` (carrying the `Missing*`/
+`Invalid`/`Conflict` detail) only when the gap could actually change the verdict. Mapping
+`Indeterminate → Deny` is a **fail-closed enforcement-adapter** policy, not the semantic result.
 
 **Implementation:** Executes the evaluation pipeline (§Evaluation Pipeline). Opaque beyond that.
 

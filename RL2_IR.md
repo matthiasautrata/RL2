@@ -195,14 +195,21 @@ Notes:
 ## 5. Inner IR (condition bytecode)
 
 Conditions compile to a small stack machine — the verifiable subset of Forth from
-research/design-forth-ir.md, **scoped to pure boolean evaluation**. The `EMIT-PERMIT/FORBID/
+research/design-forth-ir.md, **scoped to pure three-valued evaluation**. The `EMIT-PERMIT/FORBID/
 OBLIGATION` opcodes of the original sketch are **removed**: emission is derivation (§7), a set
 operation over the envelope, not a stack effect. What remains is ~30 opcodes with no side
 effects and no external writes.
 
+The VM result carrier realizes the semantics' **Truth = True | False | Unknown** algebra (S2,
+RL2_Semantics.md §Result and Truth Algebra): `VBottom` **is** `Unknown` — the propagated error
+value, not a silent false. A resolve that is Missing/Invalid/Conflict pushes `VBottom`, and the
+logic opcodes are **Kleene** (see below), so a comparison or connective yields `VBottom`
+whenever the outcome genuinely cannot be determined. The tree-walk that consumes a condition
+result (§7 derivation) treats `VBottom` as `Indeterminate` at the norm level — never as inactive.
+
 ```dafny
 datatype Value = VBool(bool) | VInt(int) | VString(string)
-               | VDate(int)  | VURI(string) | VBottom          // ⊥ = absent / eval failure
+               | VDate(int)  | VURI(string) | VBottom          // ⊥ = Unknown (propagated error; S2)
 
 datatype Instr =
   // stack
@@ -228,10 +235,15 @@ The intended invariants (proof obligations for IMPL, not proven here):
   so a `fuel` bound linear in tree size suffices.
 - **Determinism:** `Step` is a function, not a relation.
 - **Type/memory safety:** the stack never underflows on well-typed bytecode; `Xone` and typed
-  comparators reject ill-typed operands to `VBottom` rather than getting stuck.
+  comparators reject ill-typed operands to `VBottom` (= `Unknown`) rather than getting stuck.
+- **Kleene logic (S2):** `IAnd`/`IOr`/`INot`/`Xone` implement strong three-valued logic —
+  `VBool(false) IAnd VBottom = VBool(false)`, `VBool(true) IOr VBottom = VBool(true)`,
+  `INot VBottom = VBottom`, and `Xone` is `VBottom` if any operand is `VBottom`. Short-circuit
+  is therefore fixed by the algebra, not by evaluation order, so which errors are observable is
+  determined, not incidental.
 
 The single exported meaning is `EvalBytecode(prog, env) : Value` returning a `VBool` (or
-`VBottom`). Its correctness statement is §9b.
+`VBottom` = `Unknown`). Its correctness statement is §9b.
 
 ---
 
@@ -408,10 +420,13 @@ and order-independence (§7.1) make this a fold-equivalence; the subsumption-ind
 lemma (§8) is a sub-case.
 
 **(9b) VM-correctness lemma (inner IR).** For every condition `c`,
-`EvalBytecode(lower(c), env) = ⟦c⟧(env)` (RL2_Semantics.md §Conditions), together with the VM
-invariants of §5 (termination, determinism, type/memory safety). Base case: `Atomic`.
-Inductive cases: `And`/`Or`/`Xone`/`Not` by the fold in §3.2. (`EventConstraint` is discharged
-in 9a, not here — it is AST-layer.)
+`EvalBytecode(lower(c), env) = ⟦c⟧(env)` under the `Truth`↔`Value` correspondence
+`True↔VBool(true)`, `False↔VBool(false)`, `Unknown↔VBottom` (RL2_Semantics.md §Conditions and
+§Result and Truth Algebra), together with the VM invariants of §5 (termination, determinism,
+type/memory safety). Base case: `Atomic` (including the `Missing/Invalid/Conflict → Unknown`
+lifting). Inductive cases: `And`/`Or`/`Xone`/`Not` by the Kleene fold in §3.2 — the lemma
+therefore also pins the short-circuit behavior. (`EventConstraint` is discharged in 9a, not
+here — it is AST-layer and total two-valued.)
 
 **(9c) Effect-soundness lemma.** `applyEffects(Σ, fx)` reproduces the `Σ'` that `Eval` computes
 via `updateDutyStates` (§1259) and the operational rules (§Duty Activation/Fulfillment/
@@ -439,10 +454,15 @@ The **kernel** (`evalIR`, the VM, `applyEffects`) is the verified trusted base. 
   primary case, so they must be in the test set). This is the Cedar-spec model — reference
   semantics kept separate from the executable, reconciled by differential testing
   (`research/verification-toolchain-comparison.md` §Lean/Cedar).
-- **CANON shrinks the trusted surface.** Because the RDF is already canonical (Band 0), `Turtle
-  → AST` is a near-mechanical transliteration rather than an optimizing compiler; canonical
-  form is also what makes syntax → AST a *function* (one shape → one node), which is the
-  precondition that makes §9's base cases well-formed.
+- **CANON shrinks the trusted surface.** The canonical-form invariant is scoped to the
+  **AST the projection produces**, not to raw RDF (C5, RL2_Architecture.md §Canonical Form):
+  the RDF authoring layer admits exactly one authored shape per proposition (SHACL-enforced),
+  and the projection `π : RDF → AST` normalizes entailment, defaults, blank nodes, operand
+  ordering/dedup, annotations, and unsupported-extension rejection. Because that authored input
+  is already SHACL-canonical, `π` is a **near-mechanical normalizer** — small and total — rather
+  than an optimizing compiler, and it is `π` (not raw graph structure) that makes syntax → AST a
+  *function* (one canonical AST per proposition), the precondition that makes §9's base cases
+  well-formed. Semantic equivalence is decided over the AST, never by raw-graph isomorphism.
 - **Stretch goal:** the `lower : Condition → bytecode` compiler is a syntax-directed recursion
   over a bounded acyclic datatype — small enough to *verify* in Dafny later. With the hybrid
   split it is far smaller than a full-pipeline compiler, so verifying it is a realistic

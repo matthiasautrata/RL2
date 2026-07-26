@@ -142,12 +142,41 @@ rl2:ProhibitionShape a sh:NodeShape ;
 
 # Claim shape (Hohfeldian correlative to Duty).
 # Claims use the uniform norm roles: subject = right-holder, counterparty = duty-bearer.
+# C6b: a Claim is a DERIVED PROJECTION of exactly one Duty — it carries one correlativeTo
+# to a Duty, mirrors that Duty's roles, and does NOT author its own action/object/condition
+# (those are derived from the Duty). See RL2_Semantics.md §Claim Content Derivation.
 rl2:ClaimShape a sh:NodeShape ;
     sh:targetClass rl2:Claim ;
     sh:property [ sh:path rl2:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
         sh:message "A Claim must identify a subject (the right-holder)." ] ;
     sh:property [ sh:path rl2:counterparty ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ;
-        sh:message "A Claim must identify a counterparty (the duty-bearer)." ] .
+        sh:message "A Claim must identify a counterparty (the duty-bearer)." ] ;
+    sh:property [ sh:path rl2:correlativeTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Duty ;
+        sh:message "A Claim must reference exactly one correlative rl2:Duty (C6b — Claim content is derived from that Duty)." ] ;
+    # Content is derived from the Duty, not authored on the Claim.
+    sh:property [ sh:path rl2:action ; sh:maxCount 0 ;
+        sh:message "A Claim must not author rl2:action — it is derived from the correlative Duty (C6b)." ] ;
+    sh:property [ sh:path rl2:object ; sh:maxCount 0 ;
+        sh:message "A Claim must not author rl2:object — it is derived from the correlative Duty (C6b)." ] ;
+    sh:property [ sh:path rl2:condition ; sh:maxCount 0 ;
+        sh:message "A Claim must not author rl2:condition — it is derived from the correlative Duty (C6b)." ] ;
+    # Party-role alignment: when the correlative Duty's roles are present, they must mirror.
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A Claim's roles must mirror its correlative Duty: Duty.subject = Claim.counterparty and Duty.counterparty = Claim.subject (C6b)." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this WHERE {
+                $this rl2:correlativeTo ?duty ;
+                      rl2:subject ?cs ;
+                      rl2:counterparty ?cc .
+                ?duty a rl2:Duty ;
+                      rl2:subject ?ds ;
+                      rl2:counterparty ?dc .
+                FILTER(?ds != ?cc || ?dc != ?cs)
+            }
+        """
+    ] .
 
 # Power shape (ability to alter normative relations)
 rl2:PowerShape a sh:NodeShape ;
