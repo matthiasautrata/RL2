@@ -367,3 +367,17 @@ rl2p:ApprovedCaseShape a sh:NodeShape ;
         sh:minCount 1 ;
         sh:message "An Approved case must have at least one evaluation in its history."
     ] .
+
+############################################################
+# S5: Global (Offer-tier) operands read shared 'class variable'
+# state; their resolutionPath MUST root at 'global.*'.
+############################################################
+
+rl2p:GlobalLeftOperandShape a sh:NodeShape ;
+    sh:targetClass rl2p:GlobalLeftOperand ;
+    sh:property [
+        sh:path rl2:resolutionPath ;
+        sh:minCount 1 ;
+        sh:pattern "^global\\." ;
+        sh:message "A GlobalLeftOperand must declare a resolutionPath rooted at 'global.' (the Offer tier, S5)."
+    ] .

@@ -435,9 +435,15 @@ rl2:resolutionPath a owl:DatatypeProperty ;
     Canonical path roots (normatively defined):
     - agent.*    : Env.Agent (requesting agent attributes)
     - asset.*    : Env.Asset (requested asset attributes)
-    - state.*    : Σ (events, duty states, clock)
+    - state.*    : Σ (events, duty states, clock) — the current instance/Case
     - context.*  : External request context (purpose, jurisdiction, etc.)
     - request.*  : rl2p:Request fields (requestTime, etc.)
+    - global.*   : Offer-tier resolved snapshot — state shared across all Agreements
+                   materialized from one Offer (S5, the 'class variable' scope). Read-only
+                   aggregates over the Offer's active Agreements, injected into the
+                   ResolvedContext by the resolver. Operands over this root SHOULD be typed
+                   rl2p:GlobalLeftOperand. See RL2_Semantics.md §State Scope, Identity, and
+                   Concurrency.
 
     Examples:
     - 'agent.department'
@@ -446,6 +452,7 @@ rl2:resolutionPath a owl:DatatypeProperty ;
     - 'state.Events.breakGlassEvent.operationalAgent'
     - 'context.purpose'
     - 'state.Clock'
+    - 'global.activeSessions.count'
 
     Resolution semantics are defined by deref(path, Env) in RL2_Semantics.
     SECURITY: Implementations MUST validate paths against allowed roots.""" .

@@ -539,7 +539,7 @@ rl2:LeftOperandShape a sh:NodeShape ;
 
 # Path root validation - ensures resolution paths use canonical roots
 # This shape validates that resolutionPath values start with allowed roots.
-# Canonical roots: agent, asset, state, context, request
+# Canonical roots: agent, asset, state, context, request, global (S5, Offer-tier)
 rl2:ResolutionPathRootShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
@@ -552,7 +552,7 @@ rl2:ResolutionPathRootShape a sh:NodeShape ;
     ] ;
     sh:sparql [
         a sh:SPARQLConstraint ;
-        sh:message "resolutionPath must start with a canonical root: agent, asset, state, context, or request." ;
+        sh:message "resolutionPath must start with a canonical root: agent, asset, state, context, request, or global." ;
         sh:select """
             PREFIX rl2: <https://rl2.example/ontology#>
             SELECT $this ?path WHERE {
@@ -563,11 +563,13 @@ rl2:ResolutionPathRootShape a sh:NodeShape ;
                     !STRSTARTS(?path, "state.") &&
                     !STRSTARTS(?path, "context.") &&
                     !STRSTARTS(?path, "request.") &&
+                    !STRSTARTS(?path, "global.") &&
                     ?path != "agent" &&
                     ?path != "asset" &&
                     ?path != "state" &&
                     ?path != "context" &&
-                    ?path != "request"
+                    ?path != "request" &&
+                    ?path != "global"
                 )
             }
         """

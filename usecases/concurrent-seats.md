@@ -21,37 +21,55 @@ An organization has 50 concurrent licenses. Only 50 users can be active at once.
 
 ## Why RL2?
 
-This requires **Global State**. RL2's state (`Σ`) can track `active_sessions`. A request checks `count(Σ.sessions) < 50`.
+This requires **Offer-tier (shared) state**. The live-seat count is read through `global.*`
+(`rl2p:GlobalLeftOperand`) as `|activeAgreements(Offer)|`; a request checks `global.activeSessions.count < 50`.
 
 ODRL can express "license count = 50" but cannot:
 - Track current consumption
 - Enforce capacity at runtime
 - Model session lifecycle (login/logout events)
 
+## Scope: this is Offer-tier ("class variable") state
+
+The concurrent-seat pool is shared across **every user who accepts the license** — it is not
+private to any one seat. In RL2's scope model (RL2_Semantics.md §State Scope, Identity, and
+Concurrency, S5), the license is an **Offer** (the "class"), each activated seat is an **Agreement**
+(an "instance"), and the live-seat count is an **Offer-tier ("class variable")** read shared across
+all instances. That is exactly what `rl2p:GlobalLeftOperand` and the `global.*` resolution root are
+for. Contrast the *default* per-Agreement ("instance variable") scope — e.g. one customer's private
+usage meter in [usage-metering.md](usage-metering.md) — which needs none of this machinery.
+
+The seat count is **derived, not a mutable counter**: `seatsUsed = |activeAgreements(Offer)|`, a
+read-only aggregate over the Offer's active seats resolved into the immutable `ResolvedContext`
+before evaluation. So there is no shared-counter algebra; the only concurrency concern is the
+check-then-act admission race, handled by the versioned-snapshot + compare-and-swap commit rule (S5,
+see *Scaling Considerations*).
+
 ## Profile-Declared Operands
 
 ```turtle
 @prefix licensing: <https://example.org/profile/licensing#> .
 @prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2p: <https://rl2.example/protocol#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-licensing:activeSessionCountOperand a rl2:LeftOperand ;
+licensing:activeSessionCountOperand a rl2p:GlobalLeftOperand ;
     rdfs:label "Active Session Count" ;
-    rdfs:comment "Current number of active sessions for this license." ;
-    rl2:resolutionPath "state.License.activeSessions.count" ;
+    rdfs:comment "Live seat count = |activeAgreements(Offer)|. Offer-tier, read-only aggregate." ;
+    rl2:resolutionPath "global.activeSessions.count" ;
     rdfs:range xsd:integer .
 
-licensing:maxSeatsOperand a rl2:LeftOperand ;
+licensing:maxSeatsOperand a rl2p:GlobalLeftOperand ;
     rdfs:label "Maximum Seats" ;
-    rdfs:comment "Maximum concurrent sessions allowed." ;
-    rl2:resolutionPath "state.License.maxConcurrentSeats" ;
+    rdfs:comment "Maximum concurrent sessions the Offer grants (Offer-tier capacity constant)." ;
+    rl2:resolutionPath "global.maxConcurrentSeats" ;
     rdfs:range xsd:integer .
 
-licensing:userHasActiveSessionOperand a rl2:LeftOperand ;
+licensing:userHasActiveSessionOperand a rl2p:GlobalLeftOperand ;
     rdfs:label "User Has Active Session" ;
-    rdfs:comment "Whether the current user already has an active session." ;
-    rl2:resolutionPath "state.License.activeSessions.includes(agent)" ;
+    rdfs:comment "Whether the requesting agent already holds an active seat (Offer-tier read, filtered by agent)." ;
+    rl2:resolutionPath "global.activeSessions.currentAgentHasSession" ;
     rdfs:range xsd:boolean .
 ```
 
@@ -123,22 +141,26 @@ ex:capacityProhibition a rl2:Prohibition ;
 ## State Management
 
 ```
-Session State in Σ:
+Offer-tier seat pool (the "class variable"):
 
-┌─────────────────────────────────────┐
-│ state.License.activeSessions        │
-│ ├─ count: 48                        │
-│ └─ sessions: [                      │
-│      { user: alice, started: ... }, │
-│      { user: bob, started: ... },   │
-│      ...                            │
-│    ]                                │
-└─────────────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│ global.activeSessions   (= activeAgreements)   │
+│ ├─ count: 48   (derived: |activeAgreements|)   │
+│ └─ seats: [                                    │
+│      Agreement{ user: alice, active },         │
+│      Agreement{ user: bob,   active },         │
+│      ...                                       │
+│    ]                                           │
+└───────────────────────────────────────────────┘
 
-Events update state:
-  LoginEvent  → count++, add session
-  LogoutEvent → count--, remove session
-  Timeout     → count--, remove session
+A seat is an Agreement in the active set. Its lifecycle (the active() predicate) is the
+temporal concern of WP-4; this step fixes only the set the count aggregates over:
+  LoginEvent  → a seat Agreement enters the active set
+  LogoutEvent → the seat Agreement leaves the active set
+  Timeout     → the seat Agreement leaves the active set
+
+The count is resolved (read-only) into the immutable ResolvedContext before evaluation;
+nothing in the verified core writes a shared counter.
 ```
 
 ## Evaluation
@@ -190,7 +212,7 @@ ex:joinWaitlistDuty a rl2:Duty ;
 ## PNF Considerations
 
 This use case requires:
-- Global state access (`state.License.activeSessions.count`)
+- Offer-tier shared-state access (`global.activeSessions.count`)
 - Numeric comparison (propositional)
 - Session tracking (state management, not policy logic)
 
@@ -198,9 +220,11 @@ The policy itself is propositional. The complexity is in **state management** (t
 
 ## Scaling Considerations
 
-For distributed deployments:
-- Session state must be shared (Redis, etc.)
-- Eventual consistency issues with concurrent logins
-- May need optimistic locking or reservation system
-
-These are implementation concerns outside PNF scope.
+Because admission reads Offer-tier shared state, it is the one policy class that needs strong
+coordination (S5, *shared-strong-state vs case-local*). RL2 makes evaluation a pure function over a
+**versioned snapshot** and requires the effect to **commit under compare-and-swap / a serializable
+transaction**: two evaluators that both read `count = 49` cannot both admit, because only the one
+committing against the still-current snapshot version succeeds; the other re-resolves and
+re-evaluates. The *mechanism* (shared store, locks, reservations, retry) is a deployment concern
+**outside the verified core** (I4); the kernel's obligation is only that the pure decision and
+effect set computed for version `v` are what get applied while `v` is current.

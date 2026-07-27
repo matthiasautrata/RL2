@@ -549,6 +549,7 @@ Rationale: Without these constraints, a malicious path like `state.Events.../../
 | `state` | Σ (system state) | `state.Clock`, `state.Events.BreakGlassEvent.operationalAgent` |
 | `context` | External request context | `context.purpose`, `context.jurisdiction` |
 | `request` | rl2p:Request fields | `request.requestTime`, `request.requestingAgent` |
+| `global` | Offer-tier resolved snapshot (shared across acceptances of one Offer; S5) | `global.activeSessions.count` |
 
 ```
 deref : Path × Env → Value ∪ {⊥}
@@ -561,6 +562,7 @@ deref(path, Env) =
         "context" → Env.Context
         "state"   → Env.Σ
         "request" → Env.Request
+        "global"  → Env.Context.global   -- S5: Offer-tier snapshot, injected by the resolver (see below)
         _         → ⊥
     in foldl(navigate, root, tail(segments))
 
@@ -571,6 +573,17 @@ navigate(obj, segment) =
         Map     → obj[segment] if segment ∈ keys(obj) else ⊥
         _       → ⊥
 ```
+
+**The `global` root (S5).** `global.*` reads the **Offer tier** — state shared across every
+Agreement materialized from one Offer (the "class variable" of §State Scope, Identity, and
+Concurrency). Its values are **resolved into a reserved `global` subtree of the immutable
+`ResolvedContext`** by the evaluator's resolution phase *before* evaluation (the same
+E1/SEM-13 contract that resolves external context), which is why the pure core simply derefs it
+like any other context value — it does not itself walk the Agreement graph. Global reads are
+**read-only aggregates** over the Offer's active Agreements (e.g. a live-seat count); computing
+them is a resolver responsibility **outside the verified core**, on the same footing as an
+aggregating `rl2:resolutionFunction` (S8a). Profiles declare `global.*` operands as
+`rl2p:GlobalLeftOperand` individuals.
 
 `Σ.Events` is indexed **by event type** (keyed by the event type IRI), each mapping to a time-ordered sequence of event instances of that type. The path segment immediately after `Events` MUST be that type key (e.g., `BreakGlassEvent`). Using an instance identifier there will yield `⊥` under these rules. To distinguish multiple events of the same type, add distinguishing properties in the `EventConstraint`; the selection rule then picks the most recent event of that type that matches those properties.
 
@@ -1381,7 +1394,8 @@ e ∈ E (incoming events)
 (Σ, R, Ctx, EventSet(E)) → (Σ', EventSet(E \ {e}))
 
 processEvent(e, Σ) =
-    let e⁺ = e with eventSequence = nextSeq(Σ.Events)   -- assign the total-order sequence on append
+    if e.id ∈ ids(Σ.Events) then Σ                      -- S5: idempotent — a duplicate id is a no-op
+    else let e⁺ = e with eventSequence = nextSeq(Σ.Events)   -- assign the total-order sequence on append
     in case kind(e) of
         TimeAdvanced(t)        → Σ[Clock ↦ t]
         MetadataChanged(s,k,v) → Σ[Metadata(s)[k] ↦ v]
@@ -1394,6 +1408,17 @@ value strictly greater than every existing `eventSequence`, giving the total ord
 `performed()`/`witness()`/`DutyPerformer()` deterministic. `TimeAdvanced`/`MetadataChanged` update
 scalar state and are not witness events. Appends are monotonic: the log never rewrites or drops a
 prior event.
+
+**S5 — duplicate and late-arrival events (normative).** Because events carry a stable `id` (S6)
+and `processEvent` is idempotent on it, **re-delivering the same event is a no-op** — an
+at-least-once transport does not double-count. A **late-arriving** event (one whose `eventTime` is
+earlier than events already in the log, but which reaches the evaluator later) is appended
+normally: it receives the *next* `eventSequence`, so it sorts into position by `eventTime` under
+the `(eventTime, eventSequence)` order while its higher sequence records the true arrival order for
+audit. A late arrival therefore affects only evaluations performed *after* it lands; it **never
+retroactively changes a decision already committed against an earlier snapshot** (see *State Scope,
+Identity, and Concurrency* below — decisions are computed against a versioned snapshot and are
+replay-stable for that version). `ids(Σ.Events)` is the set of event ids already logged.
 
 ### Privilege Activation
 
@@ -1781,6 +1806,100 @@ Conflict resolution reduces to condition calculus:
 **Note on Inheritance**: ODRL's `inheritFrom` mechanism is intentionally not supported in RL2. Policy inheritance introduces complexity (flattening, override semantics, auditability issues) without clear benefit over explicit composition. See **issues.md** § Open Decisions (OPEN-3).
 
 ---
+
+## State Scope, Identity, and Concurrency (S5)
+
+Runtime state must be scoped correctly, or two evaluators can both observe the same count and both
+permit a request that should have been refused. RL2 pins state to **two identity tiers and no
+more**, mirroring the object-oriented distinction between *class variables* and *instance
+variables*.
+
+### The two tiers (class vs instance)
+
+| OOP | RL2 | Holds |
+|-----|-----|-------|
+| **class** (template) | **Offer** — immutable, authored once, accepted many times | class variables: state **shared** across all its acceptances |
+| **instance** (object) | **Agreement** — one per acceptance | instance variables: state **isolated** per acceptance |
+| `new` / constructor | **`materialize(Offer, Acceptance)`** (§Materialization) | mints the instance and its fresh instance-variable cells |
+
+- **Immutable policy identity vs materialized identity.** An **Offer** is a stateless catalog
+  document: it holds no runtime state and is never mutated by evaluation. An **Agreement** is the
+  stateful instance. The two are linked by `Agreement prov:wasDerivedFrom Offer` (recorded by
+  `materialize`, §Materialization). A directly-authored `Set` policy that is never materialized is
+  its own single instance (class and instance coincide).
+- **Instance variables (the default, ~all cases).** `materialize` already mints a **fresh IRI for
+  every clause** it places in an Agreement, so each Agreement's `ObligationState`, counters, and
+  duty state are keyed by IRIs unique to that Agreement. Σ stays keyed by bare IRI; isolation
+  between acceptances is automatic and needs **no new machinery**. This is how the entire existing
+  corpus already behaves.
+- **Class variables (the rare, explicit exception).** Some limits are enforced *across* all live
+  Agreements of one Offer — a pool of *N* concurrent seats, a shared quota. That state belongs to
+  the **Offer tier** and is read through the `global.*` root (above) / `rl2p:GlobalLeftOperand`.
+  It is **never coerced onto the common path**: an operand is Offer-tier only when it explicitly
+  says so.
+
+**The Offer is the ceiling.** There is deliberately no tier above the Offer — no tenant-wide or
+global-across-Offers state. Cross-Offer coupling is out of scope for the core; a deployment that
+needs it layers it outside the verified kernel.
+
+### Active-Agreement set and derived shared limits
+
+Most shared limits are **derived, not stored** — they need no mutable shared cell at all:
+
+```
+activeAgreements(Offer, Σ) = { A | A prov:wasDerivedFrom Offer ∧ active(A, Σ) }
+```
+
+where `active(A, Σ)` holds while Agreement `A` is in force. The predicate's transitions
+(commencement, expiry, termination) are the **temporal lifecycle of WP-4**; this step fixes only
+the *set* it feeds. A concurrent-seat limit is then the read-only aggregate
+
+```
+seatsUsed(Offer, Σ) = |activeAgreements(Offer, Σ)|          -- resolved into global.*, read-only
+```
+
+and admission is the ordinary condition `global.…count < N`. Because nothing is written, there is
+no shared-counter race for the derived case. A genuinely **accumulating** shared counter (a pooled
+quota drawn down and written back across parties) is *not* expressible in the read-only core; a
+profile MAY back a `global.*` operand with an external, resolver-maintained counter, but — like any
+`rl2:resolutionFunction` aggregation (S8a) — it is **outside the verified core** and gets no
+totality/determinism guarantee.
+
+### Versioned snapshot and commit (concurrency)
+
+Even a derived limit has a check-then-act race: two evaluators both read `seatsUsed = N−1` and both
+admit. RL2 makes evaluation a **pure function over a versioned snapshot**, and pushes the race into
+a single commit rule:
+
+```
+Snapshot = (Σ, version : ℕ)          -- version is monotone; each committed transition increments it
+evalIR / Out are pure over a fixed Snapshot (they never mutate Σ; effects are returned, RL2_IR.md §7)
+commit(Snapshot_v, effects):
+    succeeds and yields Snapshot_{v+1} = (applyEffects(effects, Σ), v+1)   iff current version = v
+    otherwise FAILS (conflict) → the caller re-resolves and re-evaluates against the new snapshot
+```
+
+This is compare-and-swap on `version`. A policy that reads Offer-tier (shared) state — i.e. any
+admission against `global.*` — **MUST** commit under this CAS / a serializable transaction, so a
+concurrent admitter cannot slip in between the read and the commit. A purely **case-local** policy
+(only instance-variable state, the common path) MAY commit under snapshot isolation, since its
+writes touch IRIs no other case shares. The *mechanism* — locks, transactions, storage, retry — is
+a deployment concern **outside the verified core** (I4): the kernel's obligation is only that the
+pure transition and effect set it computed for version `v` are exactly what gets applied when `v`
+is still current. Duplicate and late-arriving events are handled by the idempotent, append-only
+`processEvent` rule (§State Update / operational semantics): a committed decision is replay-stable
+for its snapshot version and is never rewritten by a later-arriving earlier-time event.
+
+### Shared-strong-state vs case-local (deployment consequence)
+
+This tier split is exactly the shared-vs-local distinction fix.md (S5) asks for, and it drives
+deployment cost:
+
+- **Case-local** (default, instance variables only): evaluable from a snapshot scoped to the one
+  Case/Agreement; no cross-request coordination; horizontally scalable.
+- **Shared-strong-state** (reads `global.*`): needs a consistent view of the Offer's active-Agreement
+  set and serializable commit; this is the only class of policy that requires strong coordination,
+  and authors opt into it visibly by declaring a `GlobalLeftOperand`.
 
 ## Policy Generations
 

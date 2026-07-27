@@ -263,6 +263,31 @@ rl2p:requirementFulfilled a rl2:LeftOperand ;
     built-in protocol fulfillment semantics (not via rl2:resolutionPath/resolutionFunction),
     so it is exempt from OperandResolutionRecommendationShape — see rl2-shacl.ttl.""" .
 
+rl2p:GlobalLeftOperand a owl:Class ;
+    rdfs:subClassOf rl2:LeftOperand ;
+    rdfs:label "Global Left Operand" ;
+    rdfs:comment """An operand whose value is read at the OFFER tier — state shared across every
+    Agreement materialized from one Offer (S5, the 'class variable' scope, in contrast to the
+    default per-Agreement 'instance variable' scope). Its rl2:resolutionPath MUST root at 'global.*'.
+
+    Semantics (RL2_Semantics.md §State Scope, Identity, and Concurrency):
+    - The value is a READ-ONLY aggregate over the Offer's active Agreements
+      (e.g. a live concurrent-seat count = |activeAgreements(Offer)|), resolved into the
+      immutable ResolvedContext by the evaluator's resolution phase before evaluation. The pure
+      core then derefs 'global.*' like any other context value.
+    - The Offer is the ceiling: there is no tier above it (no tenant-wide / cross-Offer state).
+    - A policy that admits against a GlobalLeftOperand reads shared strong state and MUST commit
+      under compare-and-swap / serializable semantics (S5 concurrency rule).
+
+    OUTSIDE THE VERIFIED CORE for the mutable case: the read-only derived form (counting active
+    Agreements) is in-core, but a genuinely accumulating shared counter (a pooled quota written
+    back across parties) may only be backed by an external resolver, on the same footing as an
+    aggregating rl2:resolutionFunction (S8a) — no totality/determinism guarantee.
+
+    Profile-level extension: RL2 Core defines the 'global' scope tier and deref root; this typed
+    operand surface lives in the protocol/profile layer so authors opt into cross-acceptance
+    coupling visibly.""" .
+
 # Note: rl2p:fulfillmentEvidence is defined in Section 4 (domain-unrestricted).
 # It is used on both rl2p:Requirement (audit trail) and rl2p:ContextAssertion
 # (fulfillment-as-context pattern, see RL2_Protocol.md).
