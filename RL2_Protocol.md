@@ -274,7 +274,11 @@ Requirement uses `rl2:ObligationState` from RL2 Core uniformly:
        └───────────┘            └──────────┘
 ```
 
-**State Mapping Note:** See **RL2_Semantics.md** §Promise and duty states vs protocol requirement status for the canonical mapping. `rl2p:requirementStatus` always uses `rl2:ObligationState`; a promise effective now may surface as an `Active` requirement while its PromiseState remains `Pending`, and terminal states map directly.
+**State Mapping Note:** `rl2p:requirementStatus` is not independently asserted state — it is the
+formal projection `requirementStatus(req, Σ, Env)` defined in **RL2_Semantics.md** §Requirement
+Status Derivation (F3 / P3), always using `rl2:ObligationState`. A promise effective now may surface
+as an `Active` requirement while its PromiseState remains `Pending`, and terminal states map
+directly.
 
 ## Ontology
 
@@ -520,6 +524,11 @@ Transitions:
 * **Approved → Expired**: Expiration time reached
 * **Approved → Revoked**: Explicit revocation
 * **Expired → Pending**: Re-certification initiated (new evaluation cycle)
+
+**State Mapping Note:** The `Pending ↔ {Approved, Denied}` transitions are a formal projection over
+the case's Requirements — `pendingOutcome` in **RL2_Semantics.md** §Case Status Derivation.
+`Expired`/`Revoked` remain explicit, exogenous, one-way transitions (time advancement; an
+administrative revocation event), not functions of Requirement state.
 
 ---
 

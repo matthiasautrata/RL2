@@ -201,6 +201,25 @@ ex:freshnessRequirement a rl2p:Requirement ;
     rl2p:imposedTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
     rl2p:counterparty ex:Consumer ;  # The claim holder
     rl2p:requirementStatus rl2:Active .
+
+# Runtime linkage: the Case whose evaluation surfaced this Requirement (P3).
+ex:freshnessRequest a rl2p:Request ;
+    rl2p:requestedAction ex:maintainFreshness ;
+    rl2p:requestedAsset ex:Dataset ;
+    rl2p:requestingAgent ex:Consumer ;
+    rl2p:requestTime "2026-01-01T00:00:00Z"^^xsd:dateTime .
+
+ex:freshnessEvaluation a rl2p:EvaluationResult ;
+    rl2p:evaluatedRequest ex:freshnessRequest ;
+    rl2p:decision rl2p:PermitWithObligations ;
+    rl2p:evaluationTime "2026-01-01T00:00:00Z"^^xsd:dateTime ;
+    rl2p:activeRequirements ex:freshnessRequirement .
+
+ex:freshnessCase a rl2p:Case ;
+    rl2p:initialRequest ex:freshnessRequest ;
+    rl2p:caseStatus rl2p:CasePending ;
+    rl2p:caseCreated "2026-01-01T00:00:00Z"^^xsd:dateTime ;
+    rl2p:evaluationHistory ex:freshnessEvaluation .
 ```
 
 ---

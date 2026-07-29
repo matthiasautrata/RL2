@@ -138,6 +138,10 @@ ex:reportingRequirement a rl2p:Requirement ;
 ex:someDuty a rl2:Duty ;
     rl2:subject ex:Researcher ; rl2:action ex:access ; rl2:object ex:Dataset .
 
+# ex:dataUsePolicy also carries these two clauses (sourceNorm must be a clause of
+# sourcePolicy — P3); ex:somePromise is declared below.
+ex:dataUsePolicy rl2:clause ex:someDuty, ex:somePromise .
+
 ex:dutyReq a rl2p:Requirement ;
     rl2p:sourceNorm ex:someDuty ;
     rl2p:sourcePolicy ex:dataUsePolicy ;
@@ -155,6 +159,25 @@ ex:promiseReq a rl2p:Requirement ;
     rl2p:requirementStatus rl2:Active ;
     rl2p:imposedTime "2025-01-15T10:00:00Z"^^xsd:dateTime ;
     rl2p:counterparty ex:Consumer .
+
+# Runtime linkage: the Case whose evaluation surfaced these two Requirements (P3).
+ex:universalRequest a rl2p:Request ;
+    rl2p:requestedAction ex:access ;
+    rl2p:requestedAsset ex:Dataset ;
+    rl2p:requestingAgent ex:Researcher ;
+    rl2p:requestTime "2025-01-15T10:00:00Z"^^xsd:dateTime .
+
+ex:universalEvaluation a rl2p:EvaluationResult ;
+    rl2p:evaluatedRequest ex:universalRequest ;
+    rl2p:decision rl2p:PermitWithObligations ;
+    rl2p:evaluationTime "2025-01-15T10:00:00Z"^^xsd:dateTime ;
+    rl2p:activeRequirements ex:dutyReq, ex:promiseReq .
+
+ex:universalCase a rl2p:Case ;
+    rl2p:initialRequest ex:universalRequest ;
+    rl2p:caseStatus rl2p:CasePending ;
+    rl2p:caseCreated "2025-01-15T10:00:00Z"^^xsd:dateTime ;
+    rl2p:evaluationHistory ex:universalEvaluation .
 ```
 
 ## Evaluation Response Format

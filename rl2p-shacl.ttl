@@ -179,6 +179,53 @@ rl2p:RequirementShape a sh:NodeShape ;
         sh:path rl2p:requirementDescription ;
         sh:maxCount 1 ;
         sh:datatype xsd:string
+    ] ;
+    # P3: sourceNorm must actually belong to sourcePolicy — a Requirement cannot claim
+    # provenance from a norm/promise its own sourcePolicy never contains as a clause.
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A Requirement's sourceNorm must be a clause of its sourcePolicy (P3)." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT $this WHERE {
+                $this rl2p:sourceNorm ?n ;
+                      rl2p:sourcePolicy ?p .
+                FILTER NOT EXISTS { ?p rl2:clause ?n }
+            }
+        """
+    ] .
+
+# P3: an Active requirement should be traceable to the evaluated Case that surfaced it —
+# i.e. reachable via some Case's evaluationHistory -> activeRequirements. Warning severity:
+# focused illustrative Requirements (not wrapped in a full Case/EvaluationResult) are
+# legitimate and shouldn't be forced to fail structural validation.
+rl2p:RequirementCaseLinkageShape a sh:NodeShape ;
+    sh:severity sh:Warning ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this WHERE {
+                ?this a rl2p:Requirement ;
+                      rl2p:requirementStatus rl2:Active .
+            }
+        """
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "An Active Requirement should be linked to an evaluated Case via some Case's evaluationHistory -> activeRequirements (P3)." ;
+        sh:select """
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT $this WHERE {
+                FILTER NOT EXISTS {
+                    ?case a rl2p:Case ;
+                          rl2p:evaluationHistory ?ev .
+                    ?ev rl2p:activeRequirements $this .
+                }
+            }
+        """
     ] .
 
 # Fulfillment links: if a requirement is fulfilled, evidence SHOULD be present (warning)
