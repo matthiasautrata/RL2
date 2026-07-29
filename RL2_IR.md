@@ -1,15 +1,15 @@
 ---
 title: "RL2 Intermediate Representation"
 subtitle: "Compilation Target, Construct Correspondence, and Equivalence Obligation"
-version: "0.6"
+version: "0.7"
 status: "Draft"
-date: 2026-07-25
+date: 2026-07-29
 ---
 
 # RL2 Intermediate Representation
 
 This document defines the RL2 **intermediate representation (IR)** — the target of
-`compile : Policy* → IR` — and the equivalence obligation that ties IR evaluation back to
+`compile : PolicyUniverse → CompiledUniverse` — and the equivalence obligation that ties IR evaluation back to
 the denotational semantics. It closes the "IR = TBD" gap in **RL2_Architecture.md** and
 supplies the object every downstream verification step reasons about.
 
@@ -23,13 +23,21 @@ stack-VM design rationale is **research/design-forth-ir.md** (refined and narrow
 
 ## 1. Purpose and Scope
 
-`compile : Policy* → IR` was left undefined, which blocked the evaluator implementation and
-the compile-time-canonicalization story (SEM-4). This document defines the IR so that:
+`compile : PolicyUniverse → CompiledUniverse` was left undefined, which blocked the evaluator
+implementation and the compile-time-canonicalization story (SEM-4). This document defines the
+IR so that:
 
 - **SEM-5** (target matching) has a concrete `targetIndex` to specify an algorithm over;
 - **IMPL-1/2** (Dafny→Go) have a concrete compilation target and proof obligations;
 - the "one canonical RDF shape per proposition" invariant (Band 0, CANON) has a place to be
   *enforced* — normalization is the compiler's job, not a runtime guess.
+
+**I1/SEM-4 (WP-5).** `targetIndex` and conflict strategy are lifted to **universe scope**
+(§4): a request may match clauses drawn from several policies at once, and RL2_Semantics.md's
+`Out`/`Eval` already operate over a `PolicyUniverse`, not a single `Policy` — so the compiled
+form must mirror that shape. `conflictStrategy` is not stored in compiled data at all; it is
+supplied to `evalIR` at evaluation time, per S7's "evaluator configuration, not policy
+vocabulary" ruling (RL2_Semantics.md §Normative Derivation, §Big-Step Semantics).
 
 **In scope:** the IR datatypes (outer AST + inner condition bytecode), the eval-time
 interaction model, the state/effect model, the construct correspondence table, and the
@@ -83,11 +91,20 @@ not relitigate them):
   computed **once at ingestion/compile time** and frozen into static indices; `evalIR` only
   reads pre-materialized values. This is what keeps the kernel a pure total function.
 
+**AST↔bytecode boundary and evaluation order (I1/SEM-4 closure).** These are not open
+questions; I2 already fixes the boundary (typed-AST evaluator is the normative one; bytecode
+is an optional lowering of conditions only, never of the deontic layer), and §5's Kleene logic
+already fixes evaluation order: short-circuit and error-observability are determined by the
+three-valued algebra (`VBool(false) IAnd VBottom = VBool(false)`, etc.), not by the order a
+compiler or VM happens to visit operands in. Both properties hold identically whether a
+condition is evaluated as a tree-walk over the AST or as compiled bytecode — that equivalence
+is exactly what the VM-correctness lemma (§9b) proves. Nothing further needs defining here.
+
 ```
-   ┌──────────────────────────── verified kernel (pure) ────────────────────────────┐
-   │  evalIR : (CompiledPolicy, Request, Σ) → (Decision, DutySet, seq<Effect>)       │
-   │      ① derive  →  ② resolve  →  emit (Decision, DutySet) + effect descriptions  │
-   └────────────────────────────────────────────────────────────────────────────────┘
+   ┌────────────────────────────── verified kernel (pure) ───────────────────────────────┐
+   │  evalIR : (CompiledUniverse, Request, Σ, Ctx, Strategy) → (Decision, DutySet, seq<Effect>) │
+   │      ① derive  →  ② resolve  →  emit (Decision, DutySet) + effect descriptions        │
+   └───────────────────────────────────────────────────────────────────────────────────────┘
                                         │ seq<Effect>
                                         ▼
                     shell (trivial):  Σ' = applyEffects(Σ, effects)
@@ -132,17 +149,27 @@ cases include both `Norm` leaves *and* `Promise` leaves.
 
 | Syntax (canonical RDF) | Semantics (§ref) | Outer-AST ctor | Condition lowering (inner IR) |
 |---|---|---|---|
-| `rl2:AtomicConstraint [leftOperand; operator; rightOperand \| rightOperandRef; targetNorm?]` | ⟦AtomicConstraint⟧ §288 | `Atomic(left, op, right, targetNorm?)` | `RESOLVE left; PUSH right; ⟨op⟩` |
-| `rl2:LogicalConstraint [and (…operands)]` | ⟦And⟧ §301 | `And(seq<Cond>)` | lower each; fold `AND` |
-| `rl2:LogicalConstraint [or (…operands)]` | ⟦Or⟧ §302 | `Or(seq<Cond>)` | lower each; fold `OR` |
-| `rl2:LogicalConstraint [xone (…operands)]` | ⟦Xone⟧ §304 | `Xone(seq<Cond>)` | lower each; `XONE` reducer |
-| `rl2:LogicalConstraint [not operand]` | ⟦Not⟧ §303 | `Not(Cond)` | lower; `NOT` |
+| `rl2:AtomicConstraint [leftOperand; operator ∈ {eq,neq,lt,lte,gt,gte}; rightOperand \| rightOperandRef; targetNorm?]` | ⟦AtomicConstraint⟧ §288 | `Atomic(left, op, right, targetNorm?)` | `RESOLVE left; PUSH right; ⟨op⟩` |
+| `rl2:AtomicConstraint [leftOperand; operator ∈ {isA,isAnyOf,isAllOf,isNoneOf}; rightOperand \| rightOperandRef; targetNorm?]` | ⟦AtomicConstraint⟧ §288 | `Atomic(left, op, right, targetNorm?)` | `RESOLVE left; PUSH right; ⟨IIsA\|IIsAnyOf\|IIsAllOf\|IIsNoneOf⟩` |
+| `rl2:LogicalConstraint [and (…operands)]` | ⟦And⟧ §301 | `And(seq<Cond>)` | lower each; fold `IAnd` |
+| `rl2:LogicalConstraint [or (…operands)]` | ⟦Or⟧ §302 | `Or(seq<Cond>)` | lower each; fold `IOr` |
+| `rl2:LogicalConstraint [xone (…operands)]` | ⟦Xone⟧ §304 | `Xone(seq<Cond>)` | lower each; `IXone(n)` — **not** a chained binary XOR (see §5) |
+| `rl2:LogicalConstraint [not operand]` | ⟦Not⟧ §303 | `Not(Cond)` | lower; `INot` |
 | `rl2:EventConstraint [expectsEvent]` | ⟦EventConstraint⟧ §311 | `EventCond(ev)` | **AST-layer** (queries Σ.Events, not pure env) — no bytecode |
 
 `AtomicConstraint` and each leaf clause are the **base cases**; `LogicalConstraint` and
 conditional/nested clauses are the **inductive cases**. `EventConstraint` and any
 `targetNorm`-parameterized state query read Σ, so they are evaluated in the AST tree-walk via
 the subsumption-aware `performed(...)` helper (§320), never inside the pure condition VM.
+
+**`rightOperandRef` (I1/SEM-4).** When an `AtomicConstraint` carries `rightOperandRef` (a
+`RuntimeReference`, e.g. `currentAgent` — RL2_Semantics.md §Conditions) rather than a literal
+`rightOperand`, the right side is dynamic and must be read from `Env` like the left side.
+`IResolve` (§6) is not left-side-only: the lowering emits `RESOLVE left; RESOLVE right; ⟨op⟩`
+in that case, in place of `RESOLVE left; PUSH right; ⟨op⟩`. Which form applies is a static,
+compile-time choice (`rightOperand` vs `rightOperandRef` are mutually exclusive per
+`AtomicConstraintShape`), so it adds no branching to the VM itself — only to the compiler's
+lowering rule.
 
 ### 3.3 Reading the table backwards
 
@@ -158,13 +185,26 @@ research/design-forth-ir.md Open Question 3 (mapping VM errors back to source) f
 The outer IR is structured data, mirroring the ontology's `rl2:Clause` split. It is **not**
 bytecode: `resolveDecision` and clause matching pattern-match directly on these datatypes.
 
+Compilation targets a `CompiledUniverse`, not a single compiled policy, mirroring
+RL2_Semantics.md's `Out`/`Eval`, which already take a `PolicyUniverse U` (I1/SEM-4 — a request
+can match clauses drawn from several policies at once, so `targetIndex` and
+`subsumptionIndex` must span the whole compiled universe, not one policy's clauses):
+
 ```dafny
+datatype CompiledUniverse = CompiledUniverse(
+  policies         : seq<CompiledPolicy>,
+  targetIndex      : map<Target, set<ClauseRef>>,   // Target → clause refs, ACROSS policies (SEM-5 consumes)
+  subsumptionIndex : map<Action, set<Action>> )      // includedIn* downward closure — STATIC (§8), one
+                                                       // hierarchy per generation (SEM-6), so it is shared
+                                                       // by every policy in the universe, not per-policy
+
+datatype ClauseRef = ClauseRef(policy: nat, clause: nat)  // indices into policies[policy].clauses[clause]
+
 datatype CompiledPolicy = CompiledPolicy(
-  clauses          : seq<Clause>,
-  targetIndex      : map<Target, set<int>>,      // Target → indices into clauses (SEM-5 consumes)
-  subsumptionIndex : map<Action, set<Action>>,   // includedIn* downward closure — STATIC (§8)
-  conflictStrategy : Strategy,                    // evaluator config (RL2_Semantics.md §Conflict Resolution)
-  kind             : PolicyKind )                 // Offer | Agreement | Set | Privacy | Assertion
+  policyId : IRI,                                  // source rl2:Policy — provenance (mirrors S7's
+                                                     // per-atom provenance requirement on the Out side)
+  clauses  : seq<Clause>,
+  kind     : PolicyKind )                           // Offer | Agreement | Set | Privacy | Assertion
 
 datatype Clause = NormEntry(norm: Norm, effCond: Condition)
                 | PromiseEntry(promisor: Agent, promisee: Agent,
@@ -189,6 +229,15 @@ Notes:
   the SHACL constraints added in PROM-1 (`AgreementShape` etc. carry `sh:not [ sh:class
   rl2:Promise ]`). The compiler rejects a Promise in a non-Offer at compile time — the IR
   cannot represent an ill-formed policy.
+- **No `conflictStrategy` field anywhere in compiled data (I1/SEM-4).** S7 established that
+  conflict-resolution strategy is evaluator configuration, not something a policy or the
+  universe authors — so it is not compiled at all. It is supplied directly to `evalIR` as a
+  parameter (§7), exactly mirroring `Eval`'s `strategy` parameter in RL2_Semantics.md
+  §Big-Step Semantics.
+- **`policyId` restores per-clause provenance.** `Out`'s atoms carry `(atom-kind, n, P)` — the
+  producing policy `P` (RL2_Semantics.md S7) — so the compiled form must be able to answer
+  "which policy did this clause come from" too; `ClauseRef.policy` indexes into
+  `CompiledUniverse.policies`, and `CompiledPolicy.policyId` is that policy's source IRI.
 
 ---
 
@@ -208,26 +257,66 @@ whenever the outcome genuinely cannot be determined. The tree-walk that consumes
 result (§7 derivation) treats `VBottom` as `Indeterminate` at the norm level — never as inactive.
 
 ```dafny
-datatype Value = VBool(bool) | VInt(int) | VString(string)
-               | VDate(int)  | VURI(string) | VBottom          // ⊥ = Unknown (propagated error; S2)
+datatype Value =
+    VBool(bool)
+  | VInt(int)
+  | VDecimal(unscaled: int, scale: nat)              // exact fixed-point (no float rounding)
+  | VString(string)
+  | VLangString(string, lang: string)                // rdf:langString
+  | VDateTime(epochSeconds: int, tzOffsetMinutes: int) // xsd:dateTimeStamp — tz offset MANDATORY (S4)
+  | VDuration(seconds: int)                          // xsd:duration, normalized to seconds
+  | VURI(string)
+  | VSet(seq<Value>)                                 // collections — operand of isAnyOf/isAllOf/isNoneOf
+  | VBottom                                          // ⊥ = Unknown (propagated error; S2)
 
 datatype Instr =
   // stack
   | IDup | IDrop | ISwap | IOver | IRot
   // logic
-  | IAnd | IOr | INot | IXor
+  | IAnd | IOr | INot
+  | IXone(n: nat)                                    // N-ary "exactly one true" (see below — replaces IXor)
   // compare (mono + typed)
   | IEq | INeq | ILt | ILte | IGt | IGte
-  | ISEq | IDateLte | IURIEq
+  | ISEq | IDateTimeLte | IURIEq
+  | IIsA | IIsAnyOf | IIsAllOf | IIsNoneOf            // rl2:isA / isAnyOf / isAllOf / isNoneOf (I1/SEM-4)
   // literals
-  | ILitBool(bool) | ILitInt(int) | ILitString(string) | ILitDate(int) | ILitURI(string)
+  | ILitBool(bool) | ILitInt(int) | ILitDecimal(unscaled: int, scale: nat)
+  | ILitString(string) | ILitLangString(string, lang: string)
+  | ILitDateTime(epochSeconds: int, tzOffsetMinutes: int) | ILitDuration(seconds: int)
+  | ILitURI(string) | ILitSet(seq<Value>)
   // control
   | IIf(thn: seq<Instr>, els: seq<Instr>)
-  // the single external-read opcode (§6)
+  // the single external-read opcode (§6) — usable for either operand position (§3.2)
   | IResolve(path: string)
 
 datatype VM = VM(stack: seq<Value>, env: Env, fuel: nat)     // no output channel — pure boolean result
 ```
+
+**`IXone(n)` replaces `IXor` (I1/SEM-4).** The old logic group folded a chain of binary
+`IXor`, which computes *parity* (an odd number of true operands) once folded across three or
+more operands — not "exactly one true," which is what `Xone` means (§3.2's row already
+described an "`XONE` reducer" the `Instr` type never actually backed). `IXone(n)` pops `n`
+operands and reduces them directly per the Kleene rule already stated in §5's invariants
+(`Xone` is `VBottom` if any operand is `VBottom`) — a type-level fix, not a re-derivation of
+the semantic rule itself, which is unchanged.
+
+**`VDateTime` replaces `VDate` (I1/SEM-4, consistent with S4).** `VDate(int)` was an untyped
+epoch value with no timezone, which is inconsistent with S4's `xsd:dateTimeStamp` decision
+(WP-4) mandating a **mandatory** tz offset for `currentDateTime` comparisons. `VDateTime`
+carries `tzOffsetMinutes` explicitly so a comparison can never silently assume UTC.
+`IDateLte` is renamed `IDateTimeLte` to match.
+
+**`VSet` is the operand type for `isAnyOf`/`isAllOf`/`isNoneOf`.** These operators are already
+ontology-defined (`rl2:ComparisonOperator` individuals in `rl2.ttl`: `isA` = "Type/class
+membership check," `isAnyOf` = "Value is any of a specified set," `isAllOf` = "Value satisfies
+all of a specified set," `isNoneOf` = "Value is none of a specified set") — the ontology
+already permits authoring these conditions; this IR previously had no opcode to lower them to,
+which was the actual gap. `IIsA` reuses the same static subsumption-index mechanism already
+generalized in §8 ("the same index mechanism serves any subsumable dimension") for
+hierarchical `leftOperand` domains, falling back to equality for flat ones; `IIsAnyOf` tests
+`left ∩ rightSet ≠ ∅` (or scalar `left ∈ rightSet`); `IIsAllOf` tests `rightSet ⊆ left`'s
+value-set; `IIsNoneOf` tests `left ∩ rightSet = ∅`. All four are Kleene: `VBottom` on either
+side yields `VBottom`, consistent with §5's invariants.
 
 The intended invariants (proof obligations for IMPL, not proven here):
 
@@ -262,6 +351,12 @@ datatype Env = Env(request: Request, agent: AgentView, asset: AssetView,
                    state: StateView, context: ContextView)   // all pre-materialized values
 ```
 
+- **`context: ContextView` is populated from `Ctx`.** `Env` is built by
+  `mkEnv(R, Σ, Ctx) : Env` (RL2_Semantics.md §839), matching the denotational `mkEnv` exactly
+  — `evalIR` threads `Ctx` through the same way it threads `R` and `Σ` (§7.1; I1/SEM-4 fixes a
+  prior mismatch where `evalIR`'s signature and its internal `mkEnv` call omitted `Ctx` even
+  though §9's equivalence obligation already stated it as a top-level parameter).
+
 - **ContextManifest.** The compiler statically extracts, from every condition tree, the exact
   set of paths the policy will `RESOLVE`. That set is the policy's *ContextManifest*. At
   runtime the host pre-materializes precisely those paths into `Env` before evaluation; a
@@ -288,8 +383,15 @@ The denotational `Eval` already returns state as a *value* — `(Decision, State
 the returned `State` into a list of **effect descriptions**:
 
 ```dafny
-evalIR : (CompiledPolicy, Request, Σ) → (Decision, DutySet, seq<Effect>)     // PURE, total
+evalIR : (CompiledUniverse, Request, Σ, Ctx, Strategy) → (Decision, DutySet, seq<Effect>)   // PURE, total
 ```
+
+`CompiledUniverse` (§4) replaces the earlier single-policy `CompiledPolicy` as `evalIR`'s
+input (I1/SEM-4 — a request evaluates against the whole compiled universe, not one policy).
+`Ctx` and `Strategy` are explicit parameters, matching the denotational `Eval`'s signature
+(RL2_Semantics.md §Big-Step Semantics) exactly: `Ctx` was previously dropped between §9's
+equivalence obligation and this signature; `Strategy` was previously smuggled in as a
+`CompiledPolicy` field, which S7 already rejected as policy vocabulary.
 
 - **`(Decision, DutySet)` is the outward result: a verdict plus possible future duties.** The
   verdict is yes/no/indeterminate (`Permit | Deny | PermitWithObligations | NotApplicable |
@@ -323,14 +425,14 @@ Inside `evalIR`, the deontic computation is the I/O-logic two-phase (RL2_Semanti
 §Normative Derivation):
 
 ```
-evalIR(CP, R, Σ) =
-    let env      = mkEnv(R, Σ)
-    -- ① DERIVATION (monotone): collect the pre-resolution envelope
-    let envelope = ⋃ { derive(c, env) | c ∈ CP.clauses, matches(c, R) }     -- Out, §1222
+evalIR(CU, R, Σ, Ctx, strategy) =
+    let env      = mkEnv(R, Σ, Ctx)
+    -- ① DERIVATION (monotone): collect the pre-resolution envelope, across ALL policies
+    let envelope = ⋃ { derive(c, env) | P ∈ CU.policies, c ∈ P.clauses, matches(c, R) }     -- Out, §1222
     -- ② effect collection (still monotone): duty transitions, crystallization on acceptance, …
-    let effects  = deriveEffects(envelope, CP, env)
+    let effects  = deriveEffects(envelope, CU, Σ, env)
     -- ③ RESOLUTION (non-monotone): strategy + priority over the collected envelope
-    let decision = resolveDecision(envelope, applyEffects(Σ, effects), CP.conflictStrategy)
+    let decision = resolveDecision(envelope, applyEffects(Σ, effects), strategy)
     in (decision, duties(envelope), effects)
 ```
 
@@ -338,6 +440,47 @@ evalIR(CP, R, Σ) =
 only there. Duties and crystallization pass through derivation into the output; resolution
 decides only the verdict. Because derivation is monotone and order-independent, the outer
 normalization theorem (§9a) inherits order-independence for free.
+
+**`deriveEffects` (I4).** Each effect kind is produced by a function keyed on the entity it
+transitions, not on the clause that happened to mention it — this is what makes effect
+conflicts unrepresentable rather than something `applyEffects` must arbitrate:
+
+```dafny
+deriveEffects(envelope, CU, Σ, env) : seq<Effect> =
+    dutyFx(envelope, Σ, env) ++ promiseFx(envelope) ++ remedialFx(envelope)
+      ++ caseFx(envelope) ++ powerFx(envelope) ++ historyFx(envelope)
+    -- each sub-sequence canonically ordered by ClauseRef (policy index, then clause index) —
+    -- derivation's Decision is order-independent (§7.1 above) regardless, but AppendHistory's
+    -- literal order feeds the replay/audit log (WP-3 witness events), so evalIR fixes one
+
+dutyFx(envelope, Σ, env) =
+    [ e | d ∈ duties(envelope), e = transitionEffect(d, Σ, env), e ≠ None ]
+
+transitionEffect(d, Σ, env) : Effect? =
+    case Σ.ObligationState(d) of
+        Pending → if ⟦d.condition⟧(env) = True then Some(TransitionDuty(d, Pending, Active)) else None
+        Active  → if performed(d.subject, d.action, d.object, Σ)
+                  then Some(TransitionDuty(d, Active, Fulfilled))
+                  else if timeout(d.condition, Σ) then Some(TransitionDuty(d, Active, Violated))
+                  else None
+        _       → None   -- Fulfilled/Violated terminal (D-FULFILL/D-VIOLATE, RL2_Semantics.md §Duty
+                          -- Activation/Fulfillment/Violation)
+```
+
+`transitionEffect` is `updateOneDuty`'s case dispatch (RL2_Semantics.md `updateDutyStates`,
+§1259) restated to *return* an effect instead of mutating Σ in place. It is a total function of
+`(Σ.ObligationState(d), env)` alone — **not** of which clause matched — and `duties(envelope)`
+is a set, so at most one `TransitionDuty` effect is ever produced per duty per round. A
+same-round `Fulfilled`-vs-`Violated` conflict on one duty (§7.3's original framing) is
+therefore not a case `applyEffects` resolves at commit time; it is precluded at derivation time
+by construction, the same way S7 eliminated per-clause `conflictStrategy` by making resolution
+a single evaluator-supplied parameter rather than something clauses vote on. `promiseFx`,
+`remedialFx`, `caseFx` similarly key each effect by its originating clause (`source: Clause`,
+§7.2) — distinct clauses can never collide because they produce distinct `Effect` values, so
+folding them into Σ is append, not arbitration. `powerFx` (`ExercisePower`) is the one
+remaining open case: SEM-8's state-update verification for `ExercisePower` is explicitly
+deferred (see issues.md), so this document does not claim its conflict-freedom — only that the
+other five kinds are conflict-free by the argument above.
 
 ### 7.2 Crystallization carries orientation
 
@@ -360,17 +503,44 @@ forms map exactly as in RL2_Semantics.md §Crystallization (`PromisedAction` ful
 step that turns an Offer into that Agreement — minting fresh clause IRIs and rewriting
 `targetNorm` references from Offer-stage Promises to their crystallized Duties — is
 `materialize` (RL2_Semantics.md §Materialization), which runs once, before compilation. It
-cannot be an `Effect`/`applyEffects` case: `CompiledPolicy` is immutable during `evalIR`, and
+cannot be an `Effect`/`applyEffects` case: `CompiledUniverse` is immutable during `evalIR`, and
 `applyEffects` only ever produces a new Σ, never a rewritten policy AST — exactly what
 `targetNorm` rewriting requires.
 
 ### 7.3 Effect coherence
 
-`applyEffects` operates on the effect **set**, and must resolve or reject conflicting
-transitions (e.g. one clause emits `TransitionDuty(d, _, Fulfilled)` while another emits
-`TransitionDuty(d, _, Violated)`). This is the `resolveDecision` analogue for the write side —
-a genuine proof obligation, not mechanical application (§9c). Snapshot-consistency (§6) makes
-it well-posed: all effects derive from the same Σ snapshot, so the conflict set is fixed.
+`applyEffects` folds `deriveEffects`'s output into Σ. Given §7.1's `transitionEffect`
+construction, the fold has no conflicts left to arbitrate: each `TransitionDuty` is keyed by a
+distinct duty, each `CrystallizePromise`/`GenerateRemedialDuty`/`CreateCase` by a distinct
+source clause, so `applyEffects` is a commutative, idempotent merge into Σ, well-posed by
+snapshot-consistency (§6 — all effects derive from the same Σ, so the update set is fixed).
+`applyEffects`'s remaining proof obligation (§9c) is therefore reproduction, not arbitration:
+that this merge yields exactly the Σ' the denotational `updateDutyStates`/operational rules
+compute — not that it picks a winner among effects that were never actually in tension.
+
+**Commit-time validation (I4).** `applyEffects` is pure and total over a fixed `(Σ, fx)`; the
+part of "committing a transition" that is *not* pure — persistence, network delivery, retries —
+sits entirely in the deployment shell (RL2_Semantics.md §Versioned snapshot and commit) and is
+out of this document's proof surface. What the kernel *does* obligate the shell to do is
+re-derive, not merely re-apply: a commit against snapshot version `v` is valid only if the
+`fx` being applied is the `fx` that `evalIR` computes fresh against `Snapshot_v`, not an `fx`
+carried over from a possibly-stale prior evaluation:
+
+```
+validateCommit(Snapshot_v, R, Ctx, strategy, fx_claimed) : bool =
+    let (_, _, fx_expected) = evalIR(compile(U), R, Snapshot_v.Σ, Ctx, strategy)
+    in fx_claimed = fx_expected
+```
+
+This closes the gap the CAS check alone does not: version-matching guarantees no *other*
+committed transition slipped in between read and write, but does not by itself guarantee the
+shell is committing the effect set the pure kernel actually computed for that version (e.g. a
+retried request whose `fx` was memoized against an earlier, since-superseded evaluation attempt
+could still carry a matching `v` by coincidence). Recomputing `fx_expected` at commit time —
+rather than trusting a caller-supplied `fx` — makes `commit` idempotent under retry for free:
+a retried commit at unchanged `v` recomputes the same `fx` (§9's determinism) and is a no-op;
+a retry after `v` has moved fails the CAS check and forces re-evaluation against the new
+snapshot, exactly as already specified.
 
 ---
 
@@ -401,11 +571,11 @@ The IR is correct iff it reproduces the denotational semantics. Top-level statem
 threaded functionally and refactored into effects):
 
 ```
-For all policy universes U, requests R, states Σ, contexts Ctx:
+For all policy universes U, requests R, states Σ, contexts Ctx, strategies strategy:
 
-  Eval(U, R, Σ, Ctx) = (dec, Σ', duties)
+  Eval(U, R, Σ, Ctx, strategy) = (dec, Σ', duties)
     ≡
-  let (dec', duties', fx) = evalIR(compile(U), R, Σ)
+  let (dec', duties', fx) = evalIR(compile(U), R, Σ, Ctx, strategy)
   in  dec = dec'  ∧  duties = duties'  ∧  Σ' = applyEffects(Σ, fx)
 ```
 
@@ -430,13 +600,21 @@ here — it is AST-layer and total two-valued.)
 
 **(9c) Effect-soundness lemma.** `applyEffects(Σ, fx)` reproduces the `Σ'` that `Eval` computes
 via `updateDutyStates` (§1259) and the operational rules (§Duty Activation/Fulfillment/
-Violation, §Crystallization, §Remedial Generation). Two sub-lemmas:
+Violation, §Crystallization, §Remedial Generation). Three sub-lemmas:
 
 - **Made-vs-demanded orientation:** for either promise orientation, `CrystallizePromise`
   yields a `Duty` bound to the promisor and a correlative `Claim` bound to the promisee
   (§7.2).
-- **Effect coherence:** `applyEffects` is well-defined on the emitted effect *set*, resolving
-  or rejecting conflicting transitions (§7.3).
+- **Effect coherence (I4):** `deriveEffects` keys `TransitionDuty` by duty (not by clause), so
+  distinct duties/sources never produce colliding effects within one round — `applyEffects` is
+  a commutative, idempotent merge, not an arbitration (§7.3). This is a determinism argument,
+  not a runtime resolution strategy, mirroring how S7 removed per-clause `conflictStrategy`
+  rather than adjudicating between clauses that declared different ones.
+- **Commit validity (I4):** for a shell built on the versioned-snapshot/CAS protocol
+  (RL2_Semantics.md §Versioned snapshot and commit), a committed transition at version `v` is
+  sound only if its applied `fx` equals `evalIR`'s fresh recomputation against `Snapshot_v`
+  (§7.3's `validateCommit`) — persistence, network, and retries stay outside this proof; only
+  the equality obligation on `fx` is in scope.
 
 The split localizes the hard verification to 9b (the pure VM, where evm-dafny is direct
 precedent) and keeps 9a/9c as structural refinements close to the denotational spec.
@@ -477,9 +655,9 @@ Lean, differential-tested) is precedent for the compiler-testing strategy.
 
 ## 11. Handoffs and Deferred Items
 
-- **SEM-5 (target matching).** Consumes `CompiledPolicy.targetIndex`. This document fixes the
-  index *shape* (`map<Target, set<int>>`); SEM-5 owns the *algorithm* and precedence (direct,
-  classification, sub-asset, subsumption) and closed-world defaults.
+- **SEM-5 (target matching).** Consumes `CompiledUniverse.targetIndex`. This document fixes the
+  index *shape* (`map<Target, set<ClauseRef>>`); SEM-5 owns the *algorithm* and precedence
+  (direct, classification, sub-asset, subsumption) and closed-world defaults.
 - **SEM-1 / PROM-5.** `PromisedState` maintenance-duty ObligationState wiring (SEM-1) and
   `PromisedDuty` suretyship remedy (PROM-5) are the two behavioral wirings the crystallization
   *targets* (§7.2) hand off; the IR is well-defined regardless of how they resolve.

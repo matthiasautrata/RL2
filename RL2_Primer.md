@@ -253,13 +253,13 @@ ex:aliceUsePrivilege a rl2:Privilege ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand rl2:currentDateTime ;
             rl2:constraintOperator rl2:gte ;
-            rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+            rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
         ] ;
         rl2:operand [
             a rl2:AtomicConstraint ;
             rl2:leftOperand rl2:currentDateTime ;
             rl2:constraintOperator rl2:lte ;
-            rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
+            rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTimeStamp
         ]
     ] .
 ```
@@ -327,7 +327,7 @@ ex:deletionDuty a rl2:Duty ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-03-15T23:59:59Z"^^xsd:dateTime
+        rl2:rightOperand "2025-03-15T23:59:59Z"^^xsd:dateTimeStamp
     ] .
 ```
 
@@ -668,20 +668,20 @@ ex:validityPeriod a rl2:LogicalConstraint ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:gte ;
-        rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+        rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
     ] ;
     rl2:operand [
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime
+        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTimeStamp
     ] .
 
 # Deadline only: until June 30
 ex:deadline a rl2:AtomicConstraint ;
     rl2:leftOperand rl2:currentDateTime ;
     rl2:constraintOperator rl2:lte ;
-    rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime .
+    rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTimeStamp .
 ```
 
 **Temporal patterns**:
@@ -745,13 +745,13 @@ ex:complexPrivilege a rl2:Privilege ;
                 a rl2:AtomicConstraint ;
                 rl2:leftOperand rl2:currentDateTime ;
                 rl2:constraintOperator rl2:gte ;
-                rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+                rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
             ] ;
             rl2:operand [
                 a rl2:AtomicConstraint ;
                 rl2:leftOperand rl2:currentDateTime ;
                 rl2:constraintOperator rl2:lte ;
-                rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
+                rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTimeStamp
             ]
         ] ;
         rl2:operand [
@@ -1113,7 +1113,7 @@ ex:deletionDuty a rl2:Duty ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-03-15T23:59:59Z"^^xsd:dateTime
+        rl2:rightOperand "2025-03-15T23:59:59Z"^^xsd:dateTimeStamp
     ] .
 ```
 
@@ -1279,13 +1279,13 @@ ex:usePrivilege a rl2:Privilege ;
                 a rl2:AtomicConstraint ;
                 rl2:leftOperand rl2:currentDateTime ;
                 rl2:constraintOperator rl2:gte ;
-                rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+                rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
             ] ;
             rl2:operand [
                 a rl2:AtomicConstraint ;
                 rl2:leftOperand rl2:currentDateTime ;
                 rl2:constraintOperator rl2:lte ;
-                rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
+                rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTimeStamp
             ]
         ] ;
         rl2:operand [
@@ -1312,7 +1312,7 @@ ex:reportDuty a rl2:Duty ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime
+        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTimeStamp
     ] .
 
 # ============================================
@@ -1329,7 +1329,7 @@ ex:deletionDuty a rl2:Duty ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
+        rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTimeStamp
     ] .
 
 # ============================================

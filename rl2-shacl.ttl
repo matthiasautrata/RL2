@@ -423,6 +423,16 @@ rl2:DutyStateShape a sh:NodeShape ;
         sh:message "Duty obligationState must be one of: Pending, Active, Fulfilled, Violated."
     ] .
 
+# Duty mode validation - ensure valid S4 lifecycle discipline
+rl2:DutyModeShape a sh:NodeShape ;
+    sh:targetClass rl2:Duty ;
+    sh:property [
+        sh:path rl2:dutyMode ;
+        sh:maxCount 1 ;
+        sh:in (rl2:Achievement rl2:Maintenance) ;
+        sh:message "Duty dutyMode must be one of: Achievement, Maintenance."
+    ] .
+
 # Promise state validation - ensure valid promise state
 rl2:PromiseStateShape a sh:NodeShape ;
     sh:targetClass rl2:Promise ;

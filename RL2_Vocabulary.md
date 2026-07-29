@@ -220,7 +220,7 @@ ex:reportDuty a rl2:Duty ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTime
+        rl2:rightOperand "2025-06-30T23:59:59Z"^^xsd:dateTimeStamp
     ] .
 ```
 

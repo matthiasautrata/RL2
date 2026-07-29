@@ -152,13 +152,13 @@ ex:v4UsePrivilege a rl2:Privilege ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand rl2:currentDateTime ;
             rl2:constraintOperator rl2:gte ;
-            rl2:rightOperand "2025-10-01T00:00:00Z"^^xsd:dateTime
+            rl2:rightOperand "2025-10-01T00:00:00Z"^^xsd:dateTimeStamp
         ] ;
         rl2:operand [
             a rl2:AtomicConstraint ;
             rl2:leftOperand rl2:currentDateTime ;
             rl2:constraintOperator rl2:lte ;
-            rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTime
+            rl2:rightOperand "2025-12-31T23:59:59Z"^^xsd:dateTimeStamp
         ]
     ] .
 

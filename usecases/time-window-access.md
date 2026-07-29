@@ -119,7 +119,7 @@ ex:expiryWarningDuty a rl2:Duty ;
         a rl2:AtomicConstraint ;
         rl2:leftOperand rl2:currentDateTime ;
         rl2:constraintOperator rl2:gte ;
-        rl2:rightOperand "2026-12-01T00:00:00Z"^^xsd:dateTime
+        rl2:rightOperand "2026-12-01T00:00:00Z"^^xsd:dateTimeStamp
     ] .
 ```
 
@@ -149,13 +149,13 @@ ex:researchDataAccess a rl2:Privilege ;
             a rl2:AtomicConstraint ;
             rl2:leftOperand rl2:currentDateTime ;
             rl2:constraintOperator rl2:gte ;
-            rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTime
+            rl2:rightOperand "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
         ] ;
         rl2:operand [
             a rl2:AtomicConstraint ;
             rl2:leftOperand rl2:currentDateTime ;
             rl2:constraintOperator rl2:lt ;
-            rl2:rightOperand "2027-01-01T00:00:00Z"^^xsd:dateTime
+            rl2:rightOperand "2027-01-01T00:00:00Z"^^xsd:dateTimeStamp
         ]
     ] .
 ```

@@ -350,10 +350,17 @@ rl2:promisorOperand a rl2:LeftOperand ;
 
 rl2:currentDateTime a rl2:LeftOperand ;
     rdfs:label "Current Date Time" ;
+    rdfs:range xsd:dateTimeStamp ;
     rdfs:comment """Resolves to the current system time (Σ.Clock).
     Used in AtomicConstraints for temporal validity checks.
-    Example: currentDateTime lte "2025-01-01T00:00:00Z"^^xsd:dateTime
-    Resolution path: 'state.Clock'.""" ;
+    Example: currentDateTime lte "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
+    Resolution path: 'state.Clock'.
+    rdfs:range is xsd:dateTimeStamp (timezone-mandatory), not xsd:dateTime:
+    a total Clock ordering requires every compared instant to carry a
+    timezone offset. Ingestion MUST normalize bare xsd:dateTime literals
+    compared against this operand to xsd:dateTimeStamp before evaluation.
+    rl2:OperandRangeTypeShape warns if a rightOperand literal's datatype
+    does not match.""" ;
     rl2:resolutionPath "state.Clock" .
 
 # Dynamic reference for current agent
@@ -678,6 +685,38 @@ rl2:obligationState a owl:ObjectProperty ;
     rdfs:domain rl2:Duty ;
     rdfs:range rl2:ObligationState ;
     rdfs:comment "Current state of the duty." .
+
+# Duty Mode (enumeration pattern) — S4: achievement vs maintenance lifecycle
+rl2:DutyMode a owl:Class ;
+    rdfs:label "Duty Mode" ;
+    rdfs:comment """Distinguishes the two ObligationState transition disciplines a Duty can
+    follow (S4). Does not replace rl2:obligationState; it selects which lifecycle rules
+    govern that state's transitions.
+    Achievement: fulfilled once by a single qualifying witness before an extracted
+    deadline; violated only when that deadline expires while still unfulfilled.
+    Maintenance: violated on the first witnessed counterexample while active; fulfilled
+    only when a finite monitoring period closes with no counterexample.
+    Crystallization derives this from Promise content shape (rl2:promisedAction →
+    Achievement; rl2:promisedState → Maintenance) rather than requiring it be
+    separately authored on the Promise. A directly authored Duty states rl2:dutyMode
+    only when it cannot be inferred from the Duty's own form.""" ;
+    owl:oneOf (rl2:Achievement rl2:Maintenance) .
+
+rl2:Achievement a rl2:DutyMode ;
+    rdfs:label "Achievement" ;
+    rdfs:comment "Fulfilled once by a single qualifying witness before an extracted deadline; violated only when that deadline expires unfulfilled." .
+
+rl2:Maintenance a rl2:DutyMode ;
+    rdfs:label "Maintenance" ;
+    rdfs:comment "Violated on the first witnessed counterexample while active; fulfilled only when a finite monitoring period closes with no counterexample." .
+
+rl2:dutyMode a owl:ObjectProperty ;
+    rdfs:domain rl2:Duty ;
+    rdfs:range rl2:DutyMode ;
+    rdfs:comment """Selects the Achievement or Maintenance ObligationState transition
+    discipline for this Duty (S4). Optional: for crystallized Duties it is derived from
+    the source Promise's content shape and need not be authored; direct Duties state it
+    only when the mode cannot be inferred.""" .
 
 rl2:StateTransition a owl:Class ;
     rdfs:label "State Transition" ;

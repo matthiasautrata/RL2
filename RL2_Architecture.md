@@ -502,13 +502,17 @@ resolve : (OperandSpec*, Request, Sources) → (Context, Missing*)
 - **Transparent**: Reports what's missing (not silent failure)
 - **Idempotent**: Same inputs → same outputs
 
-**Interaction modes** (TBD):
+**Interaction modes** — resolved, see `RL2_ExternalData.md`:
 
-| Mode | Description |
-|------|-------------|
-| **In-band** | Evaluator calls external sources directly |
-| **Out-of-band** | Requester supplies all context with request |
-| **Hybrid** | Evaluator resolves some; requester supplies rest |
+| Mode | Description | Status |
+|------|-------------|--------|
+| **Out-of-band** | Requester supplies all context with request | Normative baseline (`RL2_ExternalData.md` §2) |
+| **In-band** | Evaluator calls external sources directly | Optional extension, opt-in per deployment (§4) |
+| **Hybrid** | Evaluator resolves some; requester supplies rest | Optional extension; degrades to out-of-band when in-band bindings are absent (§4, §6) |
+
+`Sources` is formalized as a `SourceRegistry` (`resolutionFunction` name → `SourceBinding`),
+kept outside the policy graph as evaluator/deployment configuration — see
+`RL2_ExternalData.md` §3.
 
 **Implementation:** Opaque.
 
@@ -588,7 +592,9 @@ Requester                              Evaluator
 | **Iterative** | Evaluator returns `NeedContext`; requester supplies; repeat until decision | Interactive flows, progressive disclosure |
 | **Pre-flight** | Requester calls `manifest` first to discover requirements before full request | UI pre-population, access previews |
 
-TBD: Specify which modes are normative vs optional.
+Resolved in `RL2_ExternalData.md` §6: all three are realizable purely through out-of-band
+`resolve` and are normative; only the separate Hybrid/in-band *resolution* mode (§Runtime
+Functions above) is optional.
 
 ### Protocol Mapping
 
@@ -657,8 +663,8 @@ equivalence `evaluate(compile(P).IR, …) ≡ semanticEval(P, …)` is stated as
 | Target matching algorithm | TBD (SEM-5) | Must handle direct, classification, sub-asset, subsumption; index shape fixed in RL2_IR.md |
 | Subsumption reasoning | **Decided** — RL2_IR.md §Subsumption | Declared hierarchy via `includedIn*`, bounded reachability (no OWL inference), eval-time match; matching algorithm → SEM-5 |
 | Attribute-level policies | TBD | How sub-asset targets are represented and matched |
-| Context resolution mode | TBD | In-band vs out-of-band vs hybrid |
-| Incomplete context behavior | TBD | `Indeterminate` vs partial evaluation |
+| Context resolution mode | **Decided** — RL2_ExternalData.md §2, §4, §6 | Out-of-band is the normative baseline; in-band/hybrid are optional, bounded extensions |
+| Incomplete context behavior | **Decided** — RL2_ExternalData.md §2, §4 | Missing `required` operand ⟹ `Indeterminate`/`NeedContext`; missing non-required operand ⟹ evaluate without it |
 | Pre-flight API | TBD | Whether `manifest` is exposed to requesters |
 | NeedContext protocol | TBD | How missing context is communicated |
 

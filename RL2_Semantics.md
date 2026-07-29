@@ -52,10 +52,18 @@ Norm ::=
     Privilege(Agent, Action, Asset, Condition)
   | Duty(Agent, Action, Asset, Condition)
   | Prohibition(Agent, Action, Asset, Condition)
-  | Claim(Agent subject, Agent counterparty, Right)   -- subject = right-holder, counterparty = duty-bearer
-  | Power(Agent, Norm)
-  | Liability(Agent, Norm)
-  | Immunity(Agent, Norm)
+  | Claim(Agent subject, Agent counterparty, Duty correlativeTo)
+      -- subject = right-holder, counterparty = duty-bearer; action/object/condition are
+      -- DERIVED from correlativeTo (C6b), never authored — see Claim Denotation below.
+      -- (F2/SEM-10: replaces a former `Right` field that was undefined anywhere in this
+      -- document, absent from `ClaimShape`, and superseded by this one.)
+  | Power(Agent, Norm affectsNorm, Condition?)
+      -- optional Condition gates the Power's OWN activation (independent of affectsNorm's)
+  | Liability(Agent, Power exposedTo)
+      -- no own Condition: structurally derived from exposedTo's activation (F2/SEM-10;
+      -- mirrors the Claim/Duty derivation pattern of C6b)
+  | Immunity(Agent, Power immuneFrom, Condition?)
+      -- optional Condition gates the Immunity's OWN activation, independent of immuneFrom's
 ```
 
 #### Promises
@@ -690,25 +698,85 @@ contentHolds(promisor, content, Σ) =
         PromisedDuty(d)       → Σ.ObligationState(d) = Fulfilled
 ```
 
-#### timeout : Condition → Boolean
+#### dutyMode : Duty × State → DutyMode
 
-The function `timeout(c)` checks if a temporal deadline has passed. Since time-based conditions use `AtomicConstraint` with `currentDateTime`, we extract deadline values from constraints using `lte` or `lt` operators:
+The function `dutyMode(d, Σ)` selects which ObligationState transition discipline
+governs duty `d` (S4) — **Achievement** (fulfilled once by a single qualifying witness
+before a deadline; violated only when that deadline expires unfulfilled) or
+**Maintenance** (violated on the first witnessed counterexample while active; fulfilled
+only when a finite monitoring period closes with no counterexample). It is total: a
+crystallized duty carries the mode `crystallize` derived from its source Promise's
+content shape (below); a directly authored duty may state `rl2:dutyMode` explicitly;
+absent either, the duty defaults to Achievement — the discipline every Duty followed
+before this distinction existed, so pre-existing Duties with no `rl2:dutyMode` triple
+are unaffected:
+
+```
+dutyMode : Duty × State → DutyMode
+
+dutyMode(d, Σ) =
+    case Σ.dutyMode(d) of
+        Some(m) → m
+        None    → Achievement
+```
+
+#### TimeBound and expiry
+
+A `TimeBound` pairs an instant with the strictness of the comparison that produced it,
+so an `lt` bound and an `lte` bound at the same instant expire at different clock
+readings — the distinction the former `Σ.Clock > t` check collapsed:
+
+```
+TimeBound ::= Bound(t: T, inclusive: Boolean)   -- inclusive = true for `lte`, false for `lt`
+
+expired : TimeBound × T → Boolean
+
+expired(Bound(t, inclusive), now) =
+    if inclusive then now > t     -- `currentDateTime lte t`: still satisfiable at now = t
+    else          now ≥ t         -- `currentDateTime lt t`:  already false at now = t
+```
+
+#### extractDeadline : Condition → TimeBound?
+
+`extractDeadline(c)` is **deliberately partial**. It recognizes exactly one canonical
+upper-bound leaf — `AtomicConstraint(currentDateTime, lte, t)` or
+`AtomicConstraint(currentDateTime, lt, t)` with a static (literal, not
+`RuntimeReference`-valued) `t` — reachable through a top-level conjunction, and returns
+`None` for anything it cannot prove is a single, unambiguous upper bound: `Or`, `Not`,
+`Xone`, more than one recognized bound within an `And`, non-`currentDateTime`
+comparisons, or a dynamic `t`. This replaces the former `min`/`max` synthesis over `And`
+and `Or`, which guessed a bound for arbitrary boolean structure rather than proving one
+exists. A temporal comparison inside a general `Condition` is not automatically a
+temporal window: the raw condition language remains fully usable for activation and
+guards (`⟦c⟧`), but `deadlinePassed` may only consume this deliberately narrow,
+proven-safe fragment. `rl2:currentDateTime rdfs:range xsd:dateTimeStamp` (rl2.ttl)
+guarantees a recognized `t`, once extracted, carries a timezone-qualified total order —
+a bare `xsd:dateTime` without a timezone offset does not, and `rl2:OperandRangeTypeShape`
+warns if a compared literal's datatype does not match.
+
+```
+extractDeadline : Condition → TimeBound?
+
+extractDeadline(c) = case recognizedBounds(c) of
+    {b} → Some(b)    -- exactly one recognized upper-bound leaf
+    _   → None        -- zero, or more than one (ambiguous) — no synthesis
+
+recognizedBounds(c) = case c of
+    AtomicConstraint(currentDateTime, lte, t) where static(t)  → { Bound(t, true) }
+    AtomicConstraint(currentDateTime, lt, t)  where static(t)  → { Bound(t, false) }
+    And(cs)                                                    → ⋃_{c' ∈ cs} recognizedBounds(c')
+    _  -- other AtomicConstraint, Or, Not, Xone, EventConstraint → {}
+```
+
+#### timeout : Condition × State → Boolean
 
 ```
 timeout : Condition × State → Boolean
 
 timeout(c, Σ) =
     case extractDeadline(c) of
-        None      → false
-        Some(t)   → Σ.Clock > t
-
-extractDeadline(c) =
-    case c of
-        AtomicConstraint(currentDateTime, lte, t)  → Some(t)
-        AtomicConstraint(currentDateTime, lt, t)   → Some(t)
-        And(c1, c2)                                → min(extractDeadline(c1), extractDeadline(c2))
-        Or(c1, c2)                                 → max(extractDeadline(c1), extractDeadline(c2))
-        _                                          → None
+        None    → false
+        Some(b) → expired(b, Σ.Clock)
 ```
 
 #### deadline : PromiseContent × State → TimeBound?
@@ -725,15 +793,13 @@ deadline(content, Σ) =
         PromisedState(c)      → extractDeadline(c)
 ```
 
-`TimeBound` values are obtained from temporal comparisons in conditions (e.g., `currentDateTime lte t`) or profile-specific temporal properties that reduce to the same structure.
-
 For evaluation, deadline expiry is checked via:
 
 ```
 deadlinePassed(content, Σ) =
     case deadline(content, Σ) of
         None    → false
-        Some(t) → Σ.Clock > t
+        Some(b) → expired(b, Σ.Clock)
 ```
 
 This predicate is used in the Promise Violation rule to determine when a pending promise has exceeded its temporal bounds without fulfillment.
@@ -906,9 +972,8 @@ claim that `s` not perform `x` on `o`. When no `rl2:counterparty` is asserted on
 prohibition, the correlative claim is held by the policy grantor.
 
 ```
-∀ Prohibition(s, x, o, c) : ∃ Claim(h, s, ¬x@o) where
-    h = counterparty(Prohibition) if present, else grantor(policyOf(Prohibition)) ∧
-    correlatesTo(Claim, Prohibition)
+∀ Prohibition(s, x, o, c) : ∃ Claim(h, s, Duty(s, ¬x, o, c)) where
+    h = counterparty(Prohibition) if present, else grantor(policyOf(Prohibition))
 ```
 
 The correlative Claim is **derived**, not authored: policy authors write only the
@@ -917,21 +982,22 @@ helper (so performing a narrower action `x′ ⊑ x` violates a prohibition on `
 
 ### Claim Denotation and Content Derivation (C6b)
 
-A Claim is the Hohfeldian correlative of **exactly one** Duty, reached by its required
-`rl2:correlativeTo` link (enforced by `ClaimShape`). A Claim does **not** author its own content;
-its action, object, and condition are **derived** from that Duty:
+A Claim is the Hohfeldian correlative of **exactly one** Duty, carried directly as its third
+constructor field `correlativeTo` (enforced by `ClaimShape`: exactly one, and it must be a
+`rl2:Duty`). A Claim does **not** author its own content; its action, object, and condition are
+**derived** from that Duty:
 
 ```
-ClaimContent(Claim) =
-    let D = correlativeTo(Claim)                     -- exactly one, and D : Duty (ClaimShape)
+ClaimContent(k: Claim) =
+    let D = k.correlativeTo                          -- exactly one, and D : Duty (ClaimShape)
     in (action, object, condition) := (D.action, D.object, D.condition)   -- DERIVED, not authored
 ```
 
 with the party roles required to mirror the Duty (validated by `ClaimShape`):
 
 ```
-D.subject = Claim.counterparty   (the duty-bearer)   ∧
-D.counterparty = Claim.subject   (the right-holder)
+D.subject = k.counterparty   (the duty-bearer)   ∧
+D.counterparty = k.subject   (the right-holder)
 ```
 
 A Claim is *held* exactly when its correlative Duty's condition holds; the Claim inherits the
@@ -939,11 +1005,10 @@ Duty's `Truth` (S2), so an `Unknown` Duty condition yields an `Indeterminate` cl
 silently-inactive one:
 
 ```
-⟦Claim(h, a)⟧(Env) =                                 -- h = subject (right-holder), a = counterparty (duty-bearer)
-    let D = correlativeTo(Claim)
-    in ClaimHeld(h, a, ClaimContent(Claim))  if ⟦D.condition⟧(Env) = True
-       Indeterminate                          if ⟦D.condition⟧(Env) = Unknown(_)
-       ClaimInactive                          otherwise
+⟦Claim(h, a, D)⟧(Env) =                     -- h = subject (right-holder), a = counterparty (duty-bearer), D = correlativeTo
+    ClaimHeld(h, a, ClaimContent(Claim(h, a, D)))  if ⟦D.condition⟧(Env) = True
+    Indeterminate                                   if ⟦D.condition⟧(Env) = Unknown(_)
+    ClaimInactive                                    otherwise
 ```
 
 Because content and correlation are derived from the single authored Duty, two claims about
@@ -951,17 +1016,22 @@ different actions or objects are always distinguishable (via their distinct Duti
 Claim↔Duty pairing is one-to-one, and there is no dual-source encoding where a Claim and its
 Duty could disagree.
 
-### Power Denotation
+### Power Denotation (F2 / SEM-10)
 
-A Power is the ability of an agent to alter normative relations:
+A Power is the ability of an agent to alter normative relations, gated by its own optional
+`Condition` — the third constructor field `c` — using the same three-way `Truth` pattern (S2)
+as Privilege/Duty/Prohibition, not a separately-named `powerCondition` predicate (CANON-5: one
+canonical condition-evaluation shape). `c` gates the Power itself, independent of `affectsNorm`'s
+own condition, which separately governs whether *that* norm is active once the power is exercised:
 
 ```
-⟦Power(a, n)⟧(Env) =
-    PowerActive(a, n)   if powerCondition(a, n, Env) = true
+⟦Power(a, n, c)⟧(Env) =
+    PowerActive(a, n)   if c = ⊥ ∨ ⟦c⟧(Env) = True
+    Indeterminate       if c ≠ ⊥ ∧ ⟦c⟧(Env) = Unknown(_)
     PowerInactive       otherwise
 ```
 
-Where `n` is the norm that the agent has power to create, modify, or extinguish.
+Where `n` is the norm that the agent has power to create, modify, or extinguish (`affectsNorm`).
 
 Powers enable:
 * Creating new Privileges, Duties, or Prohibitions
@@ -977,43 +1047,59 @@ ExercisePower(a, n):
     Σ → Σ' where n ∈ Σ'.ActiveNorms
 ```
 
-### Liability Denotation
+### Liability Denotation (F2 / SEM-10)
 
-A Liability is the correlative of a Power — the susceptibility to have one's normative position altered:
-
-```
-⟦Liability(a, n)⟧(Env) =
-    LiabilityActive(a, n)   if ∃ Power(h, n) where subject(n) = a
-    LiabilityInactive       otherwise
-```
-
-When a Power is exercised, the Liability-holder's position changes accordingly.
-
-### Immunity Denotation
-
-An Immunity protects an agent from having their normative position altered:
+A Liability is the correlative of a Power — the susceptibility to have one's normative position
+altered. Like Claim/Duty (C6b), a Liability does not author its own condition: it is a
+**structurally derived** view of a *specific* Power, carried directly as its second constructor
+field `exposedTo` (required, exactly one; enforced by `LiabilityShape`) — not an unlinked
+existential over every Power sharing the same `subject`, which could bind a Liability to an
+unrelated Power:
 
 ```
-⟦Immunity(a, n)⟧(Env) =
-    ImmunityActive(a, n)    if immunityCondition(a, n, Env) = true
+⟦Liability(a, P)⟧(Env) =
+    LiabilityActive(a, P)   if ⟦P⟧(Env) = PowerActive(_, _)
+    Indeterminate            if ⟦P⟧(Env) = Indeterminate
+    LiabilityInactive        otherwise
+```
+
+When `P` is exercised (`ExercisePower`), the Liability-holder's position changes accordingly.
+
+### Immunity Denotation (F2 / SEM-10)
+
+An Immunity protects an agent from having their normative position altered by a *specific* named
+Power, carried directly as its second constructor field `immuneFrom` (required, exactly one;
+enforced by `ImmunityShape`). Unlike Liability, an Immunity's activation is **independently
+condition-gated** — e.g. "immune from the termination Power during the first 90 days" holds on
+its own schedule, regardless of whether the termination Power's own condition currently holds —
+so, like Power, it uses the direct condition-evaluation pattern rather than a Power-derived
+`Truth`:
+
+```
+⟦Immunity(a, P, c)⟧(Env) =
+    ImmunityActive(a, P)   if c = ⊥ ∨ ⟦c⟧(Env) = True
+    Indeterminate           if c ≠ ⊥ ∧ ⟦c⟧(Env) = Unknown(_)
     ImmunityInactive        otherwise
 ```
 
 Immunity blocks Power exercise:
 
 ```
-∀ Power(h, n), Immunity(a, n):
-    ImmunityActive(a, n) → ¬canExercise(Power(h, n))
+∀ P : Power, Immunity(a, P):
+    ImmunityActive(a, P) → ¬canExercise(P)
 ```
 
 ### Sanctions and Remedies
 
-Violations trigger remedial norms via Power/Liability relations:
+Violations trigger remedial norms via Power/Liability relations. `P` must be the *same* Power
+instance on both sides of the rule — `Liability(a, P)`'s `exposedTo` link (F2/SEM-10) is what
+ties the exposed party to this particular sanction, not merely to some other power sharing its
+target:
 
 ```
-DutyViolated(a, x, s) ∧ Power(h, sanction) ∧ Liability(a, sanction)
+DutyViolated(a, x, s) ∧ P = Power(h, sanction, _) ∧ Liability(a, P)
 ─────────────────────────────────────────────────────────────────────
-    h may exercise Power(h, sanction) against a
+    h may exercise P against a
 ```
 
 Typical sanctions include:
@@ -1230,11 +1316,16 @@ Env = mkEnv(R, Σ, Ctx)
 (Σ, R, Ctx, Duty(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Active], DutyActive(a,x,s,c))
 ```
 
-### Duty Fulfillment
+### Duty Fulfillment (Achievement)
 
-An active duty is fulfilled when the required action (or a narrower action subsumed by it) is performed. The performing agent is recorded in `DutyPerformer`:
+An active Achievement-mode duty (S4; `dutyMode(Duty(a,x,s,c), Σ) = Achievement`,
+including the default when `rl2:dutyMode` is absent) is fulfilled by a single
+qualifying witness — the required action (or a narrower action subsumed by it)
+performed while the duty is still active. The performing agent is recorded in
+`DutyPerformer`:
 
 ```
+dutyMode(Duty(a,x,s,c), Σ) = Achievement
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 performed(a,x,s,Σ) = true
 ──────────────────────────────────────────────────────────────────
@@ -1249,18 +1340,63 @@ binding reads `DutyPerformer(d, Σ)` — derived from the witnessing `ActionPerf
 - **Sein-sollen check**: Only check `ObligationState(d) = Fulfilled` (anyone may fulfill)
 - **Separation of Duty**: `DutyPerformer(d, Σ) ≠ currentAgent` (different agent must benefit)
 
-### Duty Violation
+### Duty Violation (Achievement)
 
-An active duty is violated when its deadline passes without fulfillment:
+An active Achievement-mode duty is violated only when its deadline expires while still
+unfulfilled — never merely because the condition is momentarily false:
 
 ```
 Env = mkEnv(R, Σ, Ctx)
+dutyMode(Duty(a,x,s,c), Σ) = Achievement
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 performed(a,x,s,Σ) = false
 timeout(c, Σ) = true
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, DutyActive(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Violated], DutyViolated(a,x,s,c))
 ```
+
+### Duty Fulfillment (Maintenance)
+
+A Maintenance-mode duty (S4; `dutyMode(Duty(a,x,s,c), Σ) = Maintenance` — crystallized
+from a `PromisedState`, see Crystallization) holds a condition `c` as a state-invariant
+rather than requiring a witnessed action; `x`/`s` remain structurally present (the Duty
+grammar always carries an Action slot) but this rule does not consult them. It is
+fulfilled only when its monitoring period **closes** — `c`'s extracted deadline expires
+— with `c` still holding and with no prior counterexample (Violation, below, would
+already have moved the duty out of `Active`). With no recognized end bound
+(`extractDeadline(c) = None`), the duty has no closing event and stays Active — it is
+never declared fulfilled by omission:
+
+```
+Env = mkEnv(R, Σ, Ctx)
+dutyMode(Duty(a,x,s,c), Σ) = Maintenance
+Σ.ObligationState(Duty(a,x,s,c)) = Active
+extractDeadline(c) = Some(b)
+expired(b, Σ.Clock) = true
+⟦c⟧(Env) = True
+──────────────────────────────────────────────────────────────────
+(Σ, R, Ctx, DutyActive(a,x,s,c)) →
+    (Σ[ObligationState(Duty(a,x,s,c)) ↦ Fulfilled],
+     DutyFulfilled(a,x,s,c))
+```
+
+### Duty Violation (Maintenance)
+
+A Maintenance-mode duty is violated on the first witnessed counterexample while
+active — it does not wait for any deadline:
+
+```
+Env = mkEnv(R, Σ, Ctx)
+dutyMode(Duty(a,x,s,c), Σ) = Maintenance
+Σ.ObligationState(Duty(a,x,s,c)) = Active
+⟦c⟧(Env) = False
+──────────────────────────────────────────────────────────────────
+(Σ, R, Ctx, DutyActive(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Violated], DutyViolated(a,x,s,c))
+```
+
+`⟦c⟧(Env) = Unknown(_)` (S2's three-valued `Truth`) advances neither Maintenance rule —
+an indeterminate condition is neither a closing witness nor a counterexample, matching
+the S2 discipline that `Unknown` never silently resolves to a decision.
 
 ### Promise Fulfillment
 
@@ -1316,28 +1452,35 @@ This is distinct from the **Remedial Generation Rule** below: crystallization is
 contract formation); remedial generation is *violation-triggered* and produces a
 restorative Duty only when a live Promise's invariant is breached.
 
-**Crystallization function** (total over the three content forms):
+**Crystallization function** (total over the three content forms). `D.dutyMode` is
+**derived** from `κ`'s shape (S4) — never redundantly authored on the source Promise:
 
 ```
 crystallize(Promise(p, q, κ)) = (D, C)
-    where C = Claim(subject = q, counterparty = p, correlativeTo = D)
+    where D.dutyMode = case κ of
+                            PromisedState(_) → Maintenance
+                            _                → Achievement   -- PromisedAction, PromisedDuty
+          C = Claim(subject = q, counterparty = p, correlativeTo = D)
 ```
 
 | Promise content `κ` | Crystallized Duty `D` | Fulfillment criterion (inherited from the Promise) | Behavioral wiring |
 |---|---|---|---|
-| `PromisedAction(x)` on `o` | `Duty(subject=p, action=x, object=o)` | `D` Fulfilled when `p` has performed `x` (`performed()`, subsumption-aware) | none — standard action-performance duty. **Fully closed.** |
-| `PromisedState(c)` on `o` | state-maintenance `Duty(subject=p, object=o)` whose fulfillment is `c` | Fulfilled while `c` holds; Violated when `c` fails or its deadline passes | ObligationState transitions for a condition-fulfilled ("maintenance") duty + `restoreAction` on breach → **SEM-1** |
-| `PromisedDuty(d)` | second-order (suretyship) `Duty(subject=p)` over `d` | Fulfilled when `d`'s ObligationState reaches `Fulfilled` | the remedy/liability the surety `p` incurs when `d` is Violated (guarantee vs indemnity) → **PROM-5** |
+| `PromisedAction(x)` on `o` | Achievement-mode `Duty(subject=p, action=x, object=o)` | `D` Fulfilled when `p` has performed `x` (`performed()`, subsumption-aware) | none — standard action-performance duty. **Fully closed.** |
+| `PromisedState(c)` on `o` | Maintenance-mode `Duty(subject=p, object=o, condition=c)` | Fulfilled when `c`'s monitoring period closes with `c` still true (Duty Fulfillment (Maintenance)); Violated on the first witnessed counterexample (Duty Violation (Maintenance)) | ObligationState transitions **specified (S4)**; `restoreAction` on breach remains open → **SEM-1** (narrowed) |
+| `PromisedDuty(d)` | Achievement-mode second-order (suretyship) `Duty(subject=p)` over `d` | Fulfilled when `d`'s ObligationState reaches `Fulfilled` | the remedy/liability the surety `p` incurs when `d` is Violated (guarantee vs indemnity) → **PROM-5** |
 
 Each Duty's fulfillment criterion is inherited directly from the promise content's
 *already-defined* semantics (`rl2.ttl`: `promisedAction` / `promisedState` /
 `promisedDuty` all specify fulfillment/violation). Crystallization therefore
 introduces **no new fulfillment semantics** — it re-homes an existing criterion
-onto a Duty and adds the correlative Claim. The two behavioral wirings flagged
-above (how a maintenance duty's ObligationState machine advances; what obligation a
-surety incurs on breach) are residual specification tasks owned by SEM-1 and
-PROM-5; the crystallization *targets* fixed here hold regardless of how those
-resolve, so the Offer→Agreement transition is well-defined for every promise now.
+onto a Duty and adds the correlative Claim. Both crystallized modes' ObligationState
+transitions are now fully specified (S4, above — Duty Fulfillment/Violation
+(Achievement) and (Maintenance)); the one remaining behavioral wiring from the
+`PromisedState` row is what remedial action a breach should trigger
+(`restoreAction`/`remedialActionOf`, SEM-1, narrowed to just this), alongside the
+independent surety-obligation question for `PromisedDuty` (PROM-5). Neither remaining
+item affects the crystallization *targets* fixed here, so the Offer→Agreement
+transition is well-defined for every promise now.
 
 ### Materialization (Offer → Agreement, document level)
 
@@ -1561,11 +1704,22 @@ Out(U, Env) =
     in ⋃ { deriveNorms(P, Env) | P ∈ applicablePolicies }
 
 deriveNorms(P, Env) =
-    { permit(a,x,s)    | Privilege(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = True } ∪
-    { forbid(a,x,s)    | Prohibition(a,x,s,c) ∈ P.clauses, matches(_, R), ⟦c⟧(Env) = True } ∪
-    { obligate(d)      | Duty d ∈ P.clauses, matches(d, R), ⟦d.condition⟧(Env) = True } ∪
-    { violated(d)      | Duty d ∈ P.clauses, Σ.ObligationState(d) = Violated }
+    { permit(n, P)     | n : Privilege ∈ P.clauses, matches(n, R), ⟦n.condition⟧(Env) = True } ∪
+    { forbid(n, P)     | n : Prohibition ∈ P.clauses, matches(n, R), ⟦n.condition⟧(Env) = True } ∪
+    { obligate(d, P)   | d : Duty ∈ P.clauses, matches(d, R), ⟦d.condition⟧(Env) = True } ∪
+    { violated(d, P)   | d : Duty ∈ P.clauses, Σ.ObligationState(d) = Violated }
 ```
+
+**S7 (provenance).** A `NormativeAtom` wraps the full norm object (`n`/`d`, not a projected
+`(a,x,s)` triple) together with its source policy `P` — every atom in the envelope carries the
+clause and policy that produced it, for audit and for `mostSpecific` (below), which needs
+`n.priority`/`n.action`/`n.condition`. Deduplication by canonical identity now means equality
+on `(atom-kind, n, P)`: two policies granting the same `(a,x,s)` shape remain distinct atoms
+with independent provenance (WP-3/C6a's clause-identity guarantee already makes `n` unique per
+policy, so this never accidentally merges two different clauses). `resolveDecision`'s
+`privileges`/`prohibitions`/`activeDuties`/`violatedDuties` arguments are these attributed
+atoms — projecting `n`/`d` recovers the exact object used elsewhere in this document (e.g. the
+Big-Step `Eval` above operates on the same clause objects directly).
 
 ### Monotonicity of Derivation
 
@@ -1594,7 +1748,7 @@ Phase ① avoids negation-as-failure and rule-level negation over *derived* fact
 The `Eval` function composes `Out` with state updates and conflict resolution:
 
 ```
-Eval(U, R, Σ, Ctx) =
+Eval(U, R, Σ, Ctx, strategy) =
     let Env = mkEnv(R, Σ, Ctx)
     let envelope = Out(U, Env)                    -- ① Derivation (monotone)
     let Σ' = updateDutyStates(envelope, Env, Σ)   -- ② State transitions
@@ -1618,7 +1772,7 @@ For architectural context on the full evaluation pipeline, see **RL2_Architectur
 The total decision function takes a policy universe and Request as first-class parameters:
 
 ```
-Eval : (PolicyUniverse U, Request R, State Σ, Context Ctx) → (Decision, State, DutySet)
+Eval : (PolicyUniverse U, Request R, State Σ, Context Ctx, Strategy strategy) → (Decision, State, DutySet)
 ```
 
 Where:
@@ -1626,6 +1780,8 @@ Where:
 * `R = (a_req, x_req, s_req)` is the request (agent, action, asset)
 * `Σ` is the current system state
 * `Ctx` is the external context (assertions from Protocol's ContextAssertion)
+* `strategy` is the evaluator-supplied conflict-resolution strategy (S7: evaluator
+  configuration, not policy vocabulary — no policy or clause carries its own strategy)
 * `Decision ∈ {Permit, Deny, PermitWithObligations, NotApplicable, Indeterminate}`
 * The returned `State` reflects any state updates from evaluation
 * `DutySet` contains duties in Pending or Active state requiring fulfillment
@@ -1633,7 +1789,7 @@ Where:
 ### Evaluation Algorithm
 
 ```
-Eval(U, R, Σ, Ctx) =
+Eval(U, R, Σ, Ctx, strategy) =
     let Env = mkEnv(R, Σ, Ctx)
 
     -- Step 0: Determine applicable policies
@@ -1659,7 +1815,7 @@ Eval(U, R, Σ, Ctx) =
     -- Step 4: Apply conflict resolution and compute decision
     let decision = resolveDecision(activePrivileges, activeProhibitions,
                                     activeDuties, violatedDuties, indeterminate,
-                                    P.conflictStrategy)
+                                    strategy)
 
     in (decision, Σ', activeDuties)
 ```
@@ -1681,9 +1837,52 @@ When multiple norms apply, conflicts must be resolved. RL2 provides two compleme
 
 2. **Evaluator-level strategy**: The evaluator is configured with a conflict resolution strategy (e.g., prohibit-overrides, permit-overrides). This is **evaluator configuration**, not policy vocabulary—analogous to XACML combining algorithms.
 
-The `strategy` parameter in `resolveDecision` below represents evaluator configuration. Policies express norms and priorities; evaluators decide how to combine conflicting results when priorities are equal.
+The `strategy` parameter in `resolveDecision` below represents evaluator configuration. Policies express norms and priorities; evaluators decide how to combine conflicting results when priorities are equal. Four strategies are defined: `ProhibitOverrides`, `PermitOverrides`, `SpecificOverridesGeneral`, and `Invalid`.
 
 More sophisticated defeasibility mechanisms—such as exclusionary rules—are available in frameworks like LegalRuleML [LegalRuleML] and may be incorporated in future RL2 profiles.
+
+#### mostSpecific (SEM-9)
+
+`SpecificOverridesGeneral` needs a total ordering over competing norms. Specificity is a
+lexicographic triple computed statically per norm — action subsumption depth, then condition
+atom count, then declared priority:
+
+```
+actionDepth(x) = |{ y : Action | x ⊑ y, y ≠ x }|   -- count of x's proper ancestors under ⊑
+    -- Static: one traversal of the fixed `rl2:includedIn` closure per action, the same cost
+    -- and direction-dual of the compiler's descendant-oriented `subsumptionIndex` (RL2_IR.md
+    -- §4, `map<Action, set<Action>>`, used for eval-time match membership). NOT the EXPR-2
+    -- runtime quorum counting that is out of scope for the verified core — this is a
+    -- compile-time property of the fixed action hierarchy, bounded per ACT-1/2.
+
+atomCount(oc: Condition?) = case oc of        -- oc is n.condition (optional, per grammar)
+    None    → 0
+    Some(c) → atoms(c)
+
+atoms(c) = case c of
+    AtomicConstraint(_)         → 1
+    EventConstraint(_)          → 1
+    And(cs) | Or(cs) | Xone(cs) → Σ_{c' ∈ cs} atoms(c')
+    Not(c')                     → atoms(c')
+
+specificity(n) = (actionDepth(n.action), atomCount(n.condition), n.priority)  -- lexicographic
+
+SpecificityResult ::= Unique(n: Norm) | Tied(ns: Set<Norm>) | Empty
+
+mostSpecific(norms) =
+    if norms = ∅ then Empty
+    else
+        let maxSpec = lexMax { specificity(n) | n ∈ norms }
+        let winners = { n ∈ norms | specificity(n) = maxSpec }
+        in if |winners| = 1 then Unique(the element of winners)
+           else Tied(winners)
+```
+
+A single lexicographic metric applies uniformly across `Privilege` and `Prohibition` — the
+design choice SEM-9 flagged as needed, not a theorem. This eliminates *incomparability* by
+construction: every norm has a well-defined `specificity` triple under a fixed total order on
+triples, so only genuine *ties* (identical triples) remain, handled explicitly below rather
+than by an implicit tiebreak.
 
 ```
 resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, indeterminate, strategy) =
@@ -1698,10 +1897,19 @@ resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, indeterm
             else baseDecision(privileges, activeDuties, violatedDuties)
 
         SpecificOverridesGeneral →
-            let winner = mostSpecific(privileges ∪ prohibitions)
-            in case winner of
-                Privilege(_) → baseDecision({winner}, activeDuties, violatedDuties)
-                Prohibition(_) → Deny
+            case mostSpecific(privileges ∪ prohibitions) of
+                Empty          → baseDecision(privileges, activeDuties, violatedDuties)
+                Unique(winner) → case winner of
+                    Privilege(_)   → baseDecision({winner}, activeDuties, violatedDuties)
+                    Prohibition(_) → Deny
+                Tied(_)        → Indeterminate  -- S7: an unresolved tie is an explicit
+                                                 -- ambiguity, never a silent default
+
+        Invalid →  -- S7 / ODRL "invalid": a genuine Permission/Prohibition conflict is an
+                   -- explicit error, never adjudicated by priority — the strictest option,
+                   -- for policy authors who want conflicts surfaced, not resolved.
+            if privileges ≠ ∅ ∧ prohibitions ≠ ∅ then Indeterminate
+            else baseDecision(privileges, activeDuties, violatedDuties)
 
         _ → -- Default: prohibit-overrides
             if prohibitions ≠ ∅ then Deny
@@ -1970,6 +2178,20 @@ pure transition and effect set it computed for version `v` are exactly what gets
 is still current. Duplicate and late-arriving events are handled by the idempotent, append-only
 `processEvent` rule (§State Update / operational semantics): a committed decision is replay-stable
 for its snapshot version and is never rewritten by a later-arriving earlier-time event.
+
+**Commit validity is re-derivation, not trust (I4, RL2_IR.md §7.3).** The version check alone
+guarantees no *other* transition landed between read and write; it does not by itself guarantee
+the `effects` being committed are the ones the pure kernel computed for `v` (a retried or
+memoized request could carry a stale `fx` alongside a `v` that happens to still be current).
+`commit` therefore recomputes `fx` from `evalIR(compile(U), R, Snapshot_v.Σ, Ctx, strategy)` at
+commit time rather than accepting a caller-supplied effect set on trust — `RL2_IR.md §7.3`'s
+`validateCommit`. This makes retries free to leave outside the proof: an unchanged-`v` retry
+recomputes the same `fx` (determinism, RL2_IR.md §9) and commits as a no-op; a retry after `v`
+has advanced fails CAS and forces the caller back to re-evaluation against the new snapshot.
+Effect-set conflicts within a single `fx` (e.g. two clauses disputing one duty's next state) are
+precluded at derivation time, not resolved at commit time — `RL2_IR.md §7.1`'s `deriveEffects`
+keys each `TransitionDuty` by the duty it transitions, not by the clause that mentioned it, so
+`Σ.ObligationState(d)` and `Env` alone determine the (at most one) effect for `d`.
 
 ### Shared-strong-state vs case-local (deployment consequence)
 
