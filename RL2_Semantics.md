@@ -2182,8 +2182,8 @@ keys each `TransitionDuty` by the duty it transitions, not by the clause that me
 
 ### Shared-strong-state vs case-local (deployment consequence)
 
-This tier split is exactly the shared-vs-local distinction fix.md (S5) asks for, and it drives
-deployment cost:
+This tier split is exactly the shared-vs-local distinction the S5 review finding (issues.md,
+WP-3) asks for, and it drives deployment cost:
 
 - **Case-local** (default, instance variables only): evaluable from a snapshot scoped to the one
   Case/Agreement; no cross-request coordination; horizontally scalable.

@@ -2,6 +2,16 @@
 
 Single consolidated tracker for RL2 ontology, semantics, protocol, and tooling.
 
+**Updated:** 2026-07-30 (integration sweep merged) — a fresh external review (`fix.md`, dated
+2026-07-29) was merged and the source files (`fix.md`, `fix-codex-original.md`) deleted, same
+disposition as every prior sweep. Its findings live in the new **§ Remediation Roadmap —
+integration sweep (2026-07-29)**: **Class 1 (E1–E16)** — E1/E3–E11/E13/E14 applied in commit
+`ae0026b`, E2/E12/E15/E16 deferred (with reasons); **Class 2 (D1–D25)** and **Class 3
+(C3-1…C3-8)** cross-referenced to the WP/band entries they sharpen or re-open. The headline: the
+execution model is endorsed, but WP-2…WP-5's locally-sound definitions aren't yet *integrated*
+into one deterministic evaluator — integration-follow-up notes were added to the WP-2/3/4/5
+status lines, and §7's dependency-ordered work order is now the authoritative next sequence.
+
 **Updated:** 2026-07-29 — SCOPE-1 terminology and the active execution-model entries were
 aligned with the direct normalized-AST design. Verified-kernel, Forth/bytecode, Dafny/Go, and
 already-tested wording is retained only where an entry explicitly records superseded history.
@@ -201,6 +211,8 @@ Each needed `AGENTS.md` §7 sign-off before ontology/SHACL edits (granted 2026-0
 
 **Depends on:** WP-1 · **Status:** ✅ Resolved 2026-07-26 (§7 sign-off; two forks decided by the user: C5 = AST-level disjointness keeping the RDF crutch, C6b = Claim derived from one Duty) · The two foundations everything downstream needs.
 
+> **Integration follow-up (fix.md 2026-07-29):** **C3-1** finds S2's algebra not yet threaded through `resolve`/`apply`/`Out`/IR; **C3-8** finds the C5 projection still incomplete on entailment/blank-node/dedup/fresh-IDs; **C3-5** finds materialization/crystallization can't execute as specified. Local resolutions stand; the wiring is open — see § Remediation Roadmap — integration sweep (2026-07-29).
+
 **Done this pass (validated: corpus `PASS 52 · WARN-ONLY 0 · FAIL 0 · SKIP 1`; `--strict` exits 0; all touched spec docs FAIL 0). No fix.md divergences — S2/C5/C6b match fix.md verbatim.**
 
 - **S2** — total result/truth algebra defined in `RL2_Semantics.md §Result and Truth Algebra`: `EvalValue<T> = Ok | Missing | Invalid | Conflict` for `resolve`, `Truth = True | False | Unknown` for conditions; `apply` lifts operand errors to `Unknown`; And/Or/Not/Xone specified as **Kleene** strong three-valued (short-circuit fixed by the algebra, not evaluation order). A matched norm with `Unknown` condition contributes **`Indeterminate`** to the envelope (never silently inactive); `resolveDecision` takes the `indeterminate` set and returns `Indeterminate` when it could flip the verdict (a firm `Deny` is still conclusive). `Indeterminate → Deny` is an enforcement-adapter policy, not the semantic result. Wired through `RL2_IR.md` (`VBottom` **is** `Unknown`; Kleene opcodes; §9b correctness lemma pinned to the `Truth↔Value` correspondence) and `RL2_Architecture.md` (resolved the "incomplete context" TBD). All condition denotations normalized `= true → = True`.
@@ -216,6 +228,8 @@ Each needed `AGENTS.md` §7 sign-off before ontology/SHACL edits (granted 2026-0
 ### WP-3 — State identity/scope + event model (Class-3 roots)
 
 **Depends on:** WP-2 · **Status:** ✅ Resolved — all 3 steps done. **Step 3a (S6) ✅ Resolved 2026-07-26**; **Step 3b (S5) ✅ Resolved 2026-07-26**; **Step 3c (F3/P3) ✅ Resolved 2026-07-29**.
+
+> **Integration follow-up (fix.md 2026-07-29):** **C3-3** finds `EventSet` still picks an arbitrary element (order-dependent sequence), `TimeAdvanced`/`MetadataChanged` mutate scalars without appending (not replayable), and witness derivation still ignores subject/Case-scope/activation-window (D4). See § Remediation Roadmap — integration sweep (2026-07-29).
 
 Dependency order S6 → S5 → F3/P3 (matches fix.md's own note).
 
@@ -245,6 +259,8 @@ Dependency order S6 → S5 → F3/P3 (matches fix.md's own note).
 
 **Depends on:** WP-3 · **Status:** ✅ Resolved 2026-07-29 — **S4 (Step 4a)**, **S7 (Step 4b)**, **F2 (Step 4c)** all done (S7/SEM-8 partial — see narrowing below; the two sub-items noted there are tracked, not blocking).
 
+> **Integration follow-up (fix.md 2026-07-29):** **C3-2** finds the Maintenance-duty premises jointly unsatisfiable when one `c` serves as guard, invariant, and deadline source (and Achievement can stay Pending forever if first seen post-deadline); **C3-4** elevates S7's explicitly-deferred "attach duties to their grant" to a stopper (an unrelated violated Duty currently denies any request). See § Remediation Roadmap — integration sweep (2026-07-29).
+
 - **S4 — ✅ Resolved 2026-07-29 (Step 4a; §7 sign-off; design authored directly by the user after prior-art review of Allen's Interval Algebra and OWL-Time — both rejected: OWL-Time distinguishes instants/intervals but has no deontic transition rule and is a heavier dependency than needed; full 13-relation Allen typing is unneeded scope when only `By`/`During`-style lifecycle semantics are required).** Done:
   - **`rl2:DutyMode` (Achievement/Maintenance).** New enum `rl2:DutyMode` (`rl2:Achievement`/`rl2:Maintenance`) + `rl2:dutyMode` (domain `rl2:Duty`) in `rl2.ttl`, mirroring the `ObligationState`/`PromiseState` pattern; `rl2:DutyModeShape` in `rl2-shacl.ttl`. Optional — absent `rl2:dutyMode` defaults to Achievement (the discipline every Duty followed before this distinction existed; zero corpus churn). Crystallization derives it from Promise content shape (`promisedAction`/`promisedDuty` → Achievement, `promisedState` → Maintenance) rather than requiring it be authored on the source Promise.
   - **Sound, partial `extractDeadline`.** `RL2_Semantics.md` `extractDeadline` no longer synthesizes a bound via `min`/`max` over arbitrary `And`/`Or` structure. It recognizes exactly one canonical upper-bound leaf (`currentDateTime lt|lte t`, static `t`) reachable through a top-level conjunction and returns `None` otherwise (`Or`, `Not`, `Xone`, ambiguous multi-bound `And`, dynamic `t`). A temporal comparison inside a general `Condition` is not automatically a temporal window; the raw condition language remains valid for activation/guards (`⟦c⟧`), but `deadlinePassed` only consumes this proven-safe fragment. This is the fix for the previously-unsound extractor, not a new named temporal constructor — see note below on the original phrasing.
@@ -273,6 +289,8 @@ Dependency order S6 → S5 → F3/P3 (matches fix.md's own note).
 ### WP-5 — External data + execution model
 
 **Depends on:** WP-2 (S2), WP-3 · **Status:** ✅ Resolved 2026-07-29 (both I1/SEM-4 and E1/SEM-13 and I4 sub-items closed; see each below)
+
+> **Integration follow-up (fix.md 2026-07-29):** **C3-7** finds `resolveOutOfBand` doesn't handle duplicate/conflicting/stale/wrong-subject assertions and live SourceBinding calls lack a source snapshot/version (no coherent cut); **D14/D15/D16** sharpen SourceBinding keying and the `VDuration`/`VSet` value types; **D20/D21** re-open the I4 effect-merge/`validateCommit` idempotence via stable effect IDs. See § Remediation Roadmap — integration sweep (2026-07-29).
 
 - **E1 / SEM-13 — ✅ Resolved 2026-07-29 (new `RL2_ExternalData.md`; `RL2_Architecture.md` TBDs closed, no ontology change).** Authored `RL2_ExternalData.md` specifying the source-binding step between a `ContextManifest`/`OperandSpec` entry and an actual external data source — the gap between `resolve`'s declared signature and `Sources` being otherwise unspecified. Done:
   - **Out-of-band resolution fixed as the normative baseline.** `resolveOutOfBand : (OperandSpec*, ContextAssertion*) → (Context, Missing*)` — a pure, total, O(|specs|·|assertions|) projection of already-supplied `rl2p:ContextAssertion`s (`RL2_Protocol.md` §Context) onto required operands. No network calls, no timeouts; satisfies the evaluator's totality/determinism assumptions by construction. Missing `required` operands surface as `Missing*` → `NeedContext`/`Indeterminate`, never a silent decision.
@@ -329,6 +347,99 @@ Dependency order S6 → S5 → F3/P3 (matches fix.md's own note).
 - **A1 / LLM-1** — the strict parse→validate→type-check→normalize→compile ingestion pipeline with unknown-term/heuristic-repair rejection + adversarial-input tests. *(sharpens LLM-1, §7)*
 - **R1b** — separate privacy-profile category classes from runtime individuals; add profile SHACL; narrow the GDPR legal claims. *(new; §14)*
 - **D2** (dependent) — final editorial consolidation per the source hierarchy; generate vocabulary/cardinality/namespace tables rather than hand-maintaining them. *(extends Band 5 DOC-2)*
+
+---
+
+## Remediation Roadmap — integration sweep (2026-07-29)
+
+Source: a fresh external review saved as `fix.md` / `fix-codex-original.md` (both scratch, deleted after this merge — same disposition as every prior sweep). It re-reviews the post-SCOPE-1, post-WP-5 state and **endorses the execution model** (direct normalized-AST; no Forth IR / Datalog / OWL reasoner / proof assistant needed). Its headline is that the remaining problem is **integration**: the WP-2…WP-5 result-algebra, event-log, duty-lifecycle, materialization, and external-data definitions are each locally sound but coexist with older, incompatible signatures, so the documents do not yet pin down *one* deterministic evaluator. Findings are classified by *remediation effort* (Class 1 editorial, Class 2 bounded-decision, Class 3 integration stopper); per the review's own §7 — adopted here — drive by **dependency**, not class number: decide the semantic roots (C3-1/C3-2/C3-4/C3-5) first.
+
+This section is the **execution tracker** for the sweep; individual findings cross-reference the WP/band entry they sharpen or re-open. Class 1 was applied in commit `ae0026b` (2026-07-30) except the four deferred items noted below.
+
+### Class 1 — editorial (E1–E16)
+
+| ID | Finding | Disposition |
+|---|---|---|
+| E1 | Grammar cardinalities disagree with SHACL (And/Or/Xone ≥2, Policy clauses ≥1, absent condition → `True`) | ✅ `ae0026b` |
+| E2 | Typed result algebra coexists with `Value ∪ {⊥}`/Boolean signatures | ⏸ deferred — depends on **C3-1** redesign (mechanical replacement now would fix semantics prematurely) |
+| E3 | `global` path root excluded by normative grammar + sandbox list | ✅ `ae0026b` |
+| E4 | `dutyMode` read from nonexistent `Σ.dutyMode` | ✅ `ae0026b` (reads the normalized Duty field) |
+| E5 | Duplicate headings / duplicate normative algorithms | ✅ `ae0026b` |
+| E6 | Architecture vs IR disagree on `TargetIndex` + evaluator signatures | ✅ `ae0026b` (Architecture uses IR datatypes + full `evalIR` sig) |
+| E7 | `RL2_ExternalData.md` still cites verified kernel / `IResolve` / VM / fuel | ✅ `ae0026b` (pure-evaluator boundary) |
+| E8 | ODRL comparison says derivation is monotone in facts | ✅ `ae0026b` (fixed-environment/policy-universe statement) |
+| E9 | ODRL comparison's ontological-status claim ("ontology in the stronger sense") | ✅ `ae0026b` (both described as RDF/OWL models) |
+| E10 | Comparison claims differential testing has occurred | ✅ `ae0026b` ("planned conformance testing") |
+| E11 | Vocabulary tables drifted from TTL/SHACL | ✅ `ae0026b` (current-state repair; auto-generation stays **D2**) |
+| E12 | `rl2p.ttl` says `performer` populates `Σ.DutyPerformer` (contradicts derived-witness model) | ⏸ deferred — protected ontology comment, needs **AGENTS.md §7** sign-off (Vocabulary prose already corrected) |
+| E13 | `issues.md` active-text Dafny/verified-core/Forth references | ✅ `ae0026b` (historical-only) |
+| E14 | Semantics refers to a "Go API" | ✅ `ae0026b` (implementation-neutral) |
+| E15 | `xsd:dateTime` vs `xsd:dateTimeStamp` used inconsistently | ⏸ deferred — needs the datatype decision before coordinated TTL/SHACL/IR/prose edit (relates the WP-4 `dateTimeStamp` work) |
+| E16 | Example namespace + inconsistent version metadata | ⏸ deferred — **OPEN-1** namespace/publication + a release-version table |
+
+### Class 2 — bounded decisions (D1–D25)
+
+Each has a sound recommended resolution in `fix.md` §3 (Class 2 table). Disposition against the existing tracker:
+
+| ID | Topic | Disposition |
+|---|---|---|
+| D1 | Priority before strategy; keep ODRL `invalid` distinct | ✅ done — **WP-4/S7** (SEM-9 + ODRL `Invalid` strategy) |
+| D2 | `Unknown` atoms lose type/provenance in the envelope | Open — extends **C3-1**; needs attributed `indeterminate(norm,policy,error)` |
+| D3 | `roles(agent)` undefined in role expansion | Open (new) — add a bounded role-membership relation + closure, or drop role matching from core; relates **SEM-5** |
+| D4 | Witness selection ignores duty subject + lifecycle interval | Open — folds into **C3-3** |
+| D5 | `latestEvaluation` ordered by timestamp only | Open — add a stable result/event sequence; folds **WP-6/P2** |
+| D6 | Empty Requirement set approves any non-Deny | Open — approve only a definite Permit/PermitWithObligations; folds **WP-6/P4** |
+| D7 | Requirement/Case status called derived but asserted in RDF | Partly done **WP-3/3c** (requirementStatus projection); residual snapshot/version → **WP-6/P3** |
+| D8 | Claims tracked as runtime Requirements | Open — reconcile with **WP-2/C6b** (Claim = derived view of one Duty; don't materialize a Requirement from it) |
+| D9 | `NeedContext` absent from protocol ontology | Open — folds **WP-6** |
+| D10 | EvaluationResult records too little for replay | = **WP-6/P2** |
+| D11 | ContextManifest declares too little (type/cardinality/binding/issuer/freshness) | Open — part of **C3-7** |
+| D12 | ContextAssertion permits untrusted requester assertions | Part of **C3-7** |
+| D13 | External values lack a snapshot identity | Part of **C3-7** |
+| D14 | SourceBinding keyed by an unqualified string | Residual on **WP-5/E1** — key by profile IRI + version + function signature |
+| D15 | `VDuration(seconds)` can't represent general `xsd:duration` | Residual on **WP-5/I1** — preserve XSD value; split year-month/day-time |
+| D16 | `VSet` neither canonical nor a set | Residual on **WP-5/I1** — typed equality, dedup, canonical order |
+| D17 | Raw-RDF "exactly one shape" stronger than SHACL/RDF allow | ✅ addressed **WP-2/C5** (scoped to the AST projection, not raw graphs) |
+| D18 | `compile` injectivity too strong (identifiers/metadata survive) | ✅ addressed **WP-0/D4 + WP-2/C5** (semantic-core projection vs identity/provenance) |
+| D19 | Complexity bounds omit event scans/closure/sort/effects/AST size | Open — folds **WP-8** |
+| D20 | Effect "commutative/idempotent merge" false for ordered append + retries | Re-opens **WP-5/I4** — needs stable effect IDs + set-dedup, append in canonical order inside one version-checked commit |
+| D21 | `validateCommit` recomputes an unbound `U`; retry at unchanged version not auto no-op | Re-opens **WP-5/I4** — validate a *named* compiled generation + effect IDs (CAS + dedup, not recomputation alone) |
+| D22 | Power exercise writes nonexistent `Σ.ActiveNorms` | Open — **SEM-8** (define as a versioned policy-generation change, or drop executable Power this release) |
+| D23 | `nullRequest` undefined for PromisedState | = **SEM-11** (recommendation already adopted, not yet executed) |
+| D24 | No rule converts ContextAssertion fulfillment → authoritative event | Part of **C3-7** / **WP-6** |
+| D25 | Case expiration/re-certification mixes terminal override + re-Pending | Open — folds **WP-6** |
+
+### Class 3 — integration stoppers (C3-1…C3-8)
+
+The review's core claim: WP-2…WP-5 each closed a definition in isolation, but the older signatures they were meant to replace still coexist, so the pipeline isn't yet one deterministic evaluator. Each stopper **re-opens the integration dimension** of an already-"Resolved" WP (or sharpens an open one); the local work stands, the wiring does not. These are recorded as `fix.md` states them — verification against the current text belongs to the pass that picks each up (some are partly pre-empted, e.g. C3-8 vs the C5 AST-projection scoping, C3-6 vs WP-3/3c's requirementStatus projection).
+
+| ID | Integration gap | Re-opens |
+|---|---|---|
+| C3-1 | Result/truth algebra not threaded: `resolve`/`resolveRuntime`/`apply`/`Out` still use `Value ∪ {⊥}`/Boolean; IR resolver ignores `targetNorm`; `VBottom` collapses Missing/Invalid/Conflict; `Out` emits no attributed indeterminate atom | **WP-2/S2** (blocks E2, D2) |
+| C3-2 | Maintenance-duty premises jointly unsatisfiable (same `c` is activation guard, invariant, *and* deadline source); Achievement can stay Pending forever if first seen after deadline; standalone PromisedState is terminal, can't represent an interval | **WP-4/S4** |
+| C3-3 | `EventSet(E)` picks an arbitrary `e` (sequence depends on iteration order); `TimeAdvanced`/`MetadataChanged` mutate scalars but aren't appended (not idempotent/replayable, clock can go backward); witness derivation ignores subject/Case scope/activation window (D4) | **WP-3/S6+S5** |
+| C3-4 | `violated(d,P)` doesn't require the Duty to match the request → an unrelated violated Duty denies any request; no relation attaches a Duty to its grant (prereq/concurrent/post/independent) | **WP-4/S7** — elevates the explicitly-deferred "attach duties to their grant" to a stopper |
+| C3-5 | `CrystallizePromise` fires on a `PromiseEntry` inside an already-materialized Agreement that Agreement-SHACL rejects; crystallization table can't build valid Duties (PromisedState → Maintenance Duty with no `action`; PromisedDuty suretyship incomplete; `correlativeTo` symmetric though only Claim-side is canonical) | **WP-2** materialization + **PROM-7** + the IR effect algebra |
+| C3-6 | Case history called append-only but RDF exposes unordered `evaluationHistory` + mutable `caseStatus`; EvaluationResult lacks replay identity; Approved can't represent a Permit with ongoing post-use obligations | = **WP-6** (P1/P2/P3/P4), still open |
+| C3-7 | `resolveOutOfBand` doesn't handle duplicate/conflicting/ill-typed/stale/wrong-subject assertions; any requester can assert access; live SourceBinding calls omit a source snapshot/version so the Context isn't a coherent cut | **WP-5/E1** (+ D11–D14, D24) |
+| C3-8 | Canonical `project(Graph,Profiles)` still doesn't fully fix entailment regime, blank-node/clause identity, list/dedup, literal normalization, unknown-term behavior, or deterministic fresh IDs | **WP-2/C5** |
+
+### ODRL 2.2 completeness (§4) and coverage gaps (§4.3)
+
+- **Superset claim** — `fix.md §4.1` reiterates that "semantic superset" stays unproven without a term-by-term disposition + behavioral import rules; already tracked as **OPEN-3** / **WP-7 (O1/O2b/O2c)** and the "design goal, not proven" downgrade (WP-0/D3). fix.md adds a concrete artifact shape (per ODRL term: disposition `native|normalized|profile|rejected|metadata-only` · AST mapping · preservation rule · diagnostic · positive/negative/golden fixture) and a minimum coverage list (seven Policy subclasses incl. Request/Ticket, Asset/Party collections, `source`/`partOf`/refinements, all logical+relational operators, `includedIn`/`implies`, compact→atomic expansion, inheritance, remedies/consequences/failure chains, conflict `invalid` default, multi-profile + unknown-profile rejection). Fold into **WP-7**.
+- **Prior-art sweep is stale** — the W3C Workshop on the Future of ODRL (20–21 July 2026) has 20 public contributions not yet indexed: Bonatti/Fornara/Harth *Open Issues in ODRL 2.2 Semantics* (duty-actor quantification, one-time-vs-per-use, future duties — overlaps **C3-2/C3-4**), Cimmino/Fornara *Policy Templates & Variables*, Salas et al. *Evaluation and Comparison Semantics for ODRL*, Salas/Pareti *Policy Comparison Through Normalisation* (compare directly with the C5 canonical AST), Termont et al. *Towards ODRL 3.0* (competing candidate — needs section-by-section disposition), HSBC *Beyond Permit and Prohibit*, DPV/data-space/VC contributions. Extends **OPEN-4**.
+- **Typical-use-case gaps (§4.3)** — recurring/periodic duties, per-use vs one-time fulfillment, any/all/each-actor + quorum, delegation/revocation with executable semantics, policy templates/typed variables, negotiation/comparison, transformations/advice (masking/redaction/minimization), cross-policy fulfillment scope, credential/trust freshness, static consistency/redundancy/unreachable/shadowing diagnostics, bounded remedy/consequence chains, complete Power exercise, native temporal intervals/recurrence. Most already sit in EXPR-1..8 / SEM-8 / WP-7; fix.md's contribution is requiring each to carry an explicit `core | profile | import-only | out-of-scope` disposition rather than being left implicit.
+
+### Work order (§7) — authoritative next sequence
+
+Supersedes the WP-6→7→8 ordering for *what to do next*, per fix.md's dependency argument:
+
+1. **Decide the semantic roots:** C3-1 (result-algebra integration) → C3-2 (temporal duty model) → C3-4 (duty attachment) → C3-5 (materialization).
+2. **Unify state:** C3-3 (event log) → C3-6 (protocol projection) → C3-7 (resolved context).
+3. **Complete ingestion:** C3-8 (canonical projection) + the ODRL compatibility matrix (WP-7).
+4. Apply the bounded **Class 2** decisions against that model.
+5. **Class 1** cleanup continuously where independent (E2 unblocks once C3-1 lands), then one final generated-table pass (D2).
+6. Build the **8 golden conformance vectors** (Achievement duty · Maintenance duty · unknown operand · priority-conflict Permit/Prohibit · unrelated violated Duty · Offer materialization · trusted external assertion · Case replay), each as `source graph + request + initial state/events + resolved context → canonical AST → decision + determining atoms + requirements + effects → next state + protocol projection`. Until these evaluate unambiguously by hand from one normative algorithm, totality/replay/canonicality/superset claims stay unproven. Consumes **T1/VALID-4** (WP-8).
 
 ---
 
