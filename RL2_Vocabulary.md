@@ -563,7 +563,8 @@ ex:sensitiveAssets a rl2:AssetCollection ;
 - One of: `rl2:rightOperand` (literal) or `rl2:rightOperandRef` (resource)
 
 **Optional Properties**:
-- `rl2:targetNorm` — Specifies which norm's state to query (required when using `obligationStateOperand` or `dutyPerformerOperand`)
+- `rl2:targetNorm` — Specifies which duty/norm or Offer-stage promise to query. Required
+  for all four core state-query operands; SHACL selects the required target class by operand.
 
 **SHACL Shapes**: `rl2:AtomicConstraintShape`, `rl2:NormStateConstraintShape`
 
@@ -604,7 +605,7 @@ ex:performerCheck a rl2:AtomicConstraint ;
 
 **Required Properties**:
 - `rl2:constraintOperator` — Logical operator (and, or, xone, not)
-- `rl2:operand` — Sub-conditions (at least one)
+- `rl2:operand` — Sub-conditions (exactly one for `not`; at least two for `and`, `or`, and `xone`)
 
 **SHACL Shape**: `rl2:LogicalConstraintShape`
 
@@ -741,7 +742,9 @@ ex:accessPrivilege a rl2:Privilege ;
 - `rl2:participant` — General participant in the event
 - `rl2:approver` — Agent whose approval this event represents
 - `rl2p:affectsCase` — The case this event affects (scope)
-- `rl2:after` — Event that must precede this one. **Outside the verified core (S8a)**: implementation-defined semantics, not evaluated by the kernel; an authoring/profile hint until bounded temporal semantics are specified (WP-4).
+- `rl2:after` — Event that must precede this one. **Outside the specified evaluator core
+  (S8a)**: implementation-defined semantics, not evaluated by `evalIR`; an authoring/profile
+  hint until bounded temporal semantics are specified (WP-4).
 
 **SHACL Shape**: `rl2:EventShape`
 
@@ -1014,8 +1017,6 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:object` | Norm, Promise | Asset | Asset the norm concerns, or that a promisedAction acts upon |
 | `rl2:condition` | Norm, Policy | Condition | Activation condition |
 | `rl2:correlativeTo` | Norm | Norm | Links correlative Hohfeldian positions |
-| `rl2:subject` | Norm | Agent | Position-bearer; on a Claim, the right-holder |
-| `rl2:counterparty` | Norm | Agent | Correlative party; on a Claim, the duty-bearer |
 | `rl2:affectsNorm` | Power | Norm | Norm that the power can affect |
 | `rl2:exposedTo` | Liability | Power | Power to which liability is exposed |
 | `rl2:immuneFrom` | Immunity | Power | Power from which immunity protects |
@@ -1036,11 +1037,18 @@ ex:complianceAssertion a rl2:Assertion ;
 
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
-| `rl2:clause` | Policy | Norm | Norm contained in the policy |
-| `rl2:clauseOf` | Norm | Policy | Inverse of clause |
+| `rl2:clause` | Policy | Clause | Norm or Promise contained in the policy, subject to policy-type SHACL rules |
+| `rl2:clauseOf` | Clause | Policy | Inverse of clause |
 | `rl2:grantor` | Policy | Agent | Agent issuing the policy |
 | `rl2:grantee` | Policy | Agent | Agent receiving privileges |
 | `rl2:policyGeneration` | Policy | xsd:anyURI | Generation identifier |
+| `rl2:requiresProfile` | Policy | Profile | Required profile; unsupported or incompatible versions cause load-time rejection |
+
+### Profile Properties
+
+| Property | Domain | Range | Description |
+|----------|--------|-------|-------------|
+| `rl2:profileVersion` | Profile | xsd:string | SemVer profile version used for same-major, at-least-required-version negotiation |
 
 ### Role Properties
 
@@ -1058,9 +1066,11 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:constraintOperator` | Condition | Operator | Operator for evaluation |
 | `rl2:rightOperand` | Condition | (literal) | Literal value for comparison |
 | `rl2:rightOperandRef` | Condition | (resource) | Resource for comparison |
-| `rl2:targetNorm` | AtomicConstraint | Norm | Norm whose state to query (for obligationStateOperand/dutyPerformerOperand) |
+| `rl2:targetNorm` | AtomicConstraint | Norm (RDFS); Promise admitted by SHACL | Duty/norm or Offer-stage Promise whose state to query; materialization rewrites Promise targets |
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
 | `rl2:expectsEvent` | EventConstraint | Event | Required event |
+| `rl2:resolutionPath` | LeftOperand | xsd:string | Sandboxed path resolved from the evaluation environment |
+| `rl2:resolutionFunction` | LeftOperand | xsd:string | Profile-defined external/derived resolver name; outside the specified evaluator core |
 
 ### Event Properties
 
@@ -1071,13 +1081,14 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:eventAction` | Event | Action | Action an ActionPerformed event witnesses (S6) |
 | `rl2:eventObject` | Event | — | Asset/resource acted upon (S6) |
 | `rl2:eventKindIncludedIn` | Event | Event | Transitive event-kind subsumption (S6) |
-| `rl2:after` | Event | Event | Temporal sequence (outside verified core, S8a) |
+| `rl2:after` | Event | Event | Temporal sequence (outside the specified evaluator core, S8a) |
 
 ### Operational Properties
 
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
 | `rl2:obligationState` | Duty | ObligationState | Current duty state |
+| `rl2:dutyMode` | Duty | DutyMode | Achievement or Maintenance transition discipline |
 | `rl2:triggeredBy` | StateTransition | Event | Triggering event |
 | `rl2:fromState` | StateTransition | (any) | State before transition |
 | `rl2:toState` | StateTransition | (any) | State after transition |
@@ -1139,6 +1150,8 @@ ex:complianceAssertion a rl2:Assertion ;
 |------------|------|-------------|
 | `rl2:obligationStateOperand` | LeftOperand | Queries Σ.ObligationState(targetNorm) |
 | `rl2:dutyPerformerOperand` | LeftOperand | Queries Σ.DutyPerformer(targetNorm) |
+| `rl2:promiseStateOperand` | LeftOperand | Queries Σ.PromiseState(targetNorm) |
+| `rl2:promisorOperand` | LeftOperand | Queries the target Promise's promisor |
 | `rl2:currentDateTime` | LeftOperand | Resolves to Σ.Clock. Used for temporal validity checks. |
 
 ### Runtime Reference Instances
@@ -1168,7 +1181,7 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:DutyShape` | rl2:Duty | Requires subject, action, object |
 | `rl2:DutyStateShape` | rl2:Duty | Valid obligationState values |
 | `rl2:ProhibitionShape` | rl2:Prohibition | Requires subject, prohibitedAction, object |
-| `rl2:ClaimShape` | rl2:Claim | Requires subject, counterparty |
+| `rl2:ClaimShape` | rl2:Claim | Requires subject, counterparty, and exactly one correlative Duty; rejects authored action/object/condition and enforces mirrored party roles |
 | `rl2:PowerShape` | rl2:Power | Requires subject, affectsNorm |
 | `rl2:LiabilityShape` | rl2:Liability | Requires subject, exposedTo |
 | `rl2:ImmunityShape` | rl2:Immunity | Requires subject, immuneFrom |
@@ -1185,8 +1198,9 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | Shape | Target | Validates |
 |-------|--------|-----------|
 | `rl2:AtomicConstraintShape` | rl2:AtomicConstraint | Requires leftOperand, ComparisonOperator, rightOperand or rightOperandRef; validates targetNorm if present |
-| `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires targetNorm |
-| `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires LogicalOperator, at least one operand |
+| `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires exactly one Norm-valued targetNorm |
+| `rl2:PromiseStateConstraintShape` | AtomicConstraint with promiseStateOperand/promisorOperand | Requires exactly one Promise-valued targetNorm |
+| `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires one LogicalOperator; operator-specific shapes require one operand for not and at least two for and/or/xone |
 | `rl2:EventConstraintShape` | rl2:EventConstraint | Requires expectsEvent |
 | `rl2:DynamicOperandPairingShape` | AtomicConstraint with dutyPerformerOperand | Warns if rightOperandRef is not a RuntimeReference |
 
@@ -1276,11 +1290,57 @@ ex:dataQualityReq a rl2p:Requirement ;
 | Claim | `rl2p:Requirement` (with counterparty) |
 | Privilege | `rl2p:Decision` (Permit) |
 | Power | `Effect (ExercisePower)` — see `RL2_IR.md`'s effect algebra; not a `rl2p:Decision`, since exercising a Power changes normative positions rather than authorizing a request |
-| Immunity | Not an effect or a `rl2p:Decision` — a precondition that blocks `ExercisePower`: `ImmunityActive(a, n) → ¬canExercise(Power(h, n))` (`RL2_Semantics.md:807-821`) |
+| Immunity | Not an effect or a `rl2p:Decision` — a precondition that blocks `ExercisePower`: `ImmunityActive(a, n) → ¬canExercise(Power(h, n))` (see `RL2_Semantics.md`, “Powers and Immunities”) |
 
 ---
 
-### Protocol Property Reference
+### Request Property Reference
+
+| Property | Domain | Range | Description |
+|----------|--------|-------|-------------|
+| `rl2p:requestingAgent` | Request | Agent | Agent that would perform the requested action |
+| `rl2p:requestor` | Request | Agent | Agent submitting the request; may differ from requestingAgent |
+| `rl2p:requestedAction` | Request | Action | Requested action |
+| `rl2p:requestedAsset` | Request | Asset | Asset on which the action is requested |
+| `rl2p:requestTime` | Request | xsd:dateTime | Submission time |
+
+### Context Assertion Property Reference
+
+| Property | Domain | Range | Description |
+|----------|--------|-------|-------------|
+| `rl2p:forRequest` | ContextAssertion | Request | Request for which the assertion supplies context |
+| `rl2p:contextSubject` | ContextAssertion | rdfs:Resource | Resource about which a value is asserted |
+| `rl2p:contextProperty` | ContextAssertion | LeftOperand | Operand/property being asserted |
+| `rl2p:contextValue` | ContextAssertion | (literal) | Literal value; exclusive with contextValueRef |
+| `rl2p:contextValueRef` | ContextAssertion | (resource) | Resource value; exclusive with contextValue |
+| `rl2p:assertedBy` | ContextAssertion | Agent | Agent or system reporting the assertion |
+| `rl2p:assertedTime` | ContextAssertion | xsd:dateTime | Assertion time |
+| `rl2p:performer` | ContextAssertion | Agent | Agent that performed the witnessed action; distinct from assertedBy and consumed by witness derivation |
+
+### Case Property Reference
+
+| Property | Domain | Range | Description |
+|----------|--------|-------|-------------|
+| `rl2p:initialRequest` | Case | Request | Request that created the Case |
+| `rl2p:caseCreated` | Case | xsd:dateTime | Creation time |
+| `rl2p:caseStatus` | Case | CaseStatus | Current materialized status projection |
+| `rl2p:policyGeneration` | Case | xsd:anyURI | Immutable policy generation selected at Case creation |
+| `rl2p:evaluationHistory` | Case | EvaluationResult | Evaluations associated with the Case |
+| `rl2p:expirationTime` | Case | xsd:dateTime | Expiration time, when applicable |
+| `rl2p:caseNote` | Case | xsd:string | Administrative note |
+
+### Evaluation Result Property Reference
+
+| Property | Domain | Range | Description |
+|----------|--------|-------|-------------|
+| `rl2p:evaluatedRequest` | EvaluationResult | Request | Request evaluated |
+| `rl2p:decision` | EvaluationResult | Decision | Evaluation decision |
+| `rl2p:evaluationTime` | EvaluationResult | xsd:dateTime | Evaluation time |
+| `rl2p:matchedPolicies` | EvaluationResult | Policy | Policies evaluated for the request |
+| `rl2p:matchedNorms` | EvaluationResult | Norm | Matching normative clauses |
+| `rl2p:explanation` | EvaluationResult | xsd:string | Human-readable explanation |
+
+### Requirement Property Reference
 
 | Property | Domain | Range | Description |
 |----------|--------|-------|-------------|
@@ -1291,7 +1351,7 @@ ex:dataQualityReq a rl2p:Requirement ;
 | `rl2p:imposedTime` | Requirement | xsd:dateTime | When requirement was created |
 | `rl2p:fulfilledByAction` | Requirement | Action | Action that fulfilled the requirement |
 | `rl2p:fulfilledByEvent` | Requirement | Event | Event evidencing fulfillment |
-| `rl2p:fulfillmentEvidence` | Requirement | (any) | Reference to supporting evidence |
+| `rl2p:fulfillmentEvidence` | Requirement \| ContextAssertion | (any) | Supporting evidence; deliberately domain-unrestricted for both audit and fulfillment-as-context use |
 | `rl2p:requirementLabel` | Requirement | xsd:string | Human-readable label |
 | `rl2p:requirementDescription` | Requirement | xsd:string | Human-readable description |
 | `rl2p:activeRequirements` | EvaluationResult | Requirement | Requirements that must be fulfilled |

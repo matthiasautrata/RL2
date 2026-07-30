@@ -209,8 +209,8 @@ RL2 processing divides into two phases:
 
 | Phase | Functions | Artifacts |
 |-------|-----------|-----------|
-| **Compile-time** | `compile` | IR, ContextManifest, TargetIndex |
-| **Runtime** | `lookup`, `manifest`, `resolve`, `evaluate` | Decision, Requirements |
+| **Compile-time** | `compile` | CompiledUniverse, ContextManifest |
+| **Runtime** | `lookup`, `manifest`, `resolve`, `evalIR` | Decision, DutySet, Effects |
 
 ```
                     Compile-Time
@@ -223,42 +223,43 @@ RL2 processing divides into two phases:
   │ compile │            │
   └─────────┘            │
        │                 │
-       ├──────────────────┼──────────────────┐
-       │                 │                   │
-       ▼                 ▼                   ▼
-      IR          ContextManifest       TargetIndex
-       │                 │                   │
-═══════╪═════════════════╪═══════════════════╪══════════
-       │                 │                   │
-       │            Runtime                  │
-       │            ═══════                  │
-       │                 │                   │
-       │                 │         Request   │
-       │                 │            │      │
-       │                 │            ▼      │
-       │                 │       ┌────────┐  │
-       │                 │       │ lookup │◀─┘
-       │                 │       └────────┘
-       │                 │            │
-       │                 │            ▼
-       │                 │       PolicyRef*
-       │                 │            │
-       │                 ▼            │
-       │            ┌──────────┐      │
-       │            │ manifest │◀─────┘
-       │            └──────────┘
-       │                 │
-       │                 ▼
-       │            OperandSpec*
-       │                 │
-       │                 ▼
-       │            ┌─────────┐
-       │            │ resolve │◀──── Sources
-       │            └─────────┘
-       │                 │
-       │                 ├─────────────┐
-       │                 │             │
-       │                 ▼             ▼
+       ├───────────────────────────────┐
+       │                               │
+       ▼                               ▼
+ CompiledUniverse                ContextManifest
+ (policies + indexes)
+       │                               │
+═══════╪═══════════════════════════════╪══════════
+       │                               │
+       │            Runtime             │
+       │            ═══════             │
+       │                               │
+       │                    Request    │
+       │                       │       │
+       │                       ▼       │
+       │                  ┌────────┐   │
+       │                  │ lookup │◀──┘ targetIndex
+       │                  └────────┘
+       │                       │
+       │                       ▼
+       │                  ClauseRef*
+       │                       │
+       │                       ▼
+       │                  ┌──────────┐
+       │                  │ manifest │
+       │                  └──────────┘
+       │                       │
+       │                       ▼
+       │                  OperandSpec*
+       │                       │
+       │                       ▼
+       │                  ┌─────────┐
+       │                  │ resolve │◀──── Sources
+       │                  └─────────┘
+       │                       │
+       │                       ├─────────────┐
+       │                       │             │
+       │                       ▼             ▼
        │             Context       Missing*
        │                 │             │
        │                 │      (if non-empty:
@@ -266,7 +267,7 @@ RL2 processing divides into two phases:
        │                 │
        ▼                 ▼
   ┌──────────────────────────┐
-  │        evaluate          │
+  │          evalIR          │
   └──────────────────────────┘
              │
              ▼
@@ -280,19 +281,20 @@ RL2 processing divides into two phases:
 ### compile
 
 ```
-compile : Policy* → (IR, ContextManifest, TargetIndex)
+compile : PolicyUniverse → (CompiledUniverse, ContextManifest)
 ```
 
 **Input:**
-- `Policy*` — Set of RL2 policies (RDF/Turtle)
+- `PolicyUniverse` — Finite set of RL2 policies in the active generation (RDF/Turtle)
 
 **Output:**
-- `IR` — Intermediate representation for evaluation
+- `CompiledUniverse` — Normalized policies plus the universe-scoped
+  `targetIndex` and `subsumptionIndex` defined by `RL2_IR.md`
 - `ContextManifest` — Operands required per policy/norm
-- `TargetIndex` — Mapping from targets to applicable policies
 
 **Contract:**
-- Semantics-preserving: `evaluate(IR, ...) ≡ eval(Policy*, ...)`
+- Semantics-preserving:
+  `evalIR(CompiledUniverse, R, Σ, Ctx, strategy) ≡ Eval(PolicyUniverse, R, Σ, Ctx, strategy)`
 - Total: Always produces output for valid policies
 - Deterministic: Same policies → same artifacts
 
@@ -394,16 +396,18 @@ normalization theorem plus an interpreter-correctness lemma plus an effect-sound
 - Closed-form: No external references requiring resolution at evaluation time
 - Indexed: Efficient lookup by policy reference
 - Semantics-preserving: Evaluation equivalence with source policies
-- Canonical: policy-level conditions are pushed down into each norm's
-  `effectiveCondition` = `And(P.condition, n.condition)`, so the IR holds
-  conditions only on norms — one shape per proposition (see Canonical Form)
+- Canonical: policy- and clause-level conditions are combined by
+  `effectiveCondition` using the four normalization cases from
+  `RL2_Semantics.md`: `True` when both conditions are absent, the sole condition
+  when exactly one is present, and `And(P.condition, clause.condition)` when both
+  are present. The IR stores the result on each clause.
 
 ### ContextManifest
 
 Declares which operands each policy/norm requires for evaluation.
 
 ```
-ContextManifest : PolicyRef → NormRef → OperandSpec*
+ContextManifest : ClauseRef → set<OperandSpec>
 ```
 
 **OperandSpec:**
@@ -418,10 +422,10 @@ ContextManifest : PolicyRef → NormRef → OperandSpec*
 
 ### TargetIndex
 
-Maps targets to applicable policies.
+Maps targets to applicable clause references across the compiled universe.
 
 ```
-TargetIndex : Target → PolicyRef*
+TargetIndex : Target → set<ClauseRef>
 ```
 
 **Target matching modes** (TBD — design must accommodate all):
@@ -447,7 +451,7 @@ target-matching *algorithm* that applies it across the four modes is SEM-5.
 ### lookup
 
 ```
-lookup : (TargetIndex, Target) → PolicyRef*
+lookup : (TargetIndex, Target) → set<ClauseRef>
 ```
 
 **Input:**
@@ -455,11 +459,12 @@ lookup : (TargetIndex, Target) → PolicyRef*
 - `Target` — Requested target (URI, classification, or attribute path)
 
 **Output:**
-- `PolicyRef*` — References to applicable policies
+- `set<ClauseRef>` — References to clauses that may apply. Each reference carries
+  its containing-policy index.
 
 **Contract:**
-- **Complete**: Returns all policies that could apply to the target
-- **Sound**: Only returns policies whose target constraints are satisfied
+- **Complete**: Returns all clauses that could apply to the target
+- **Sound**: Only returns clauses whose target constraints are satisfied
 - **Mode-agnostic**: Handles direct, classification, sub-asset, and subsumption matching
 
 **Implementation:** Opaque.
@@ -467,19 +472,19 @@ lookup : (TargetIndex, Target) → PolicyRef*
 ### manifest
 
 ```
-manifest : (ContextManifest, PolicyRef*) → OperandSpec*
+manifest : (ContextManifest, set<ClauseRef>) → OperandSpec*
 ```
 
 **Input:**
 - `ContextManifest` — Compiled context requirements
-- `PolicyRef*` — Applicable policies (from `lookup`)
+- `set<ClauseRef>` — Applicable clauses (from `lookup`)
 
 **Output:**
-- `OperandSpec*` — Union of operands required by all applicable policies
+- `OperandSpec*` — Union of operands required by all applicable clauses
 
 **Contract:**
 - Returns minimal sufficient set (no duplicates)
-- Aggregates across all norms in all applicable policies
+- Aggregates across the referenced clauses
 
 **Implementation:** Opaque.
 
@@ -517,20 +522,24 @@ kept outside the policy graph as evaluator/deployment configuration — see
 
 **Implementation:** Opaque.
 
-### evaluate
+### evalIR
 
 ```
-evaluate : (IR, PolicyRef*, Context) → (Decision, Requirements)
+evalIR : (CompiledUniverse, Request, Σ, Ctx, Strategy)
+      → (Decision, DutySet, seq<Effect>)
 ```
 
 **Input:**
-- `IR` — Compiled policy representation
-- `PolicyRef*` — Applicable policies (from `lookup`)
-- `Context` — Resolved operand values (from `resolve`)
+- `CompiledUniverse` — Normalized policies and indexes
+- `Request` — Request being evaluated
+- `Σ` — Versioned input-state snapshot
+- `Ctx` — Resolved operand values
+- `Strategy` — Evaluator conflict-resolution configuration
 
 **Output:**
 - `Decision` — One of: `Permit`, `PermitWithObligations`, `Deny`, `Indeterminate`, `NotApplicable`
-- `Requirements` — Active duties/promises/claims (if decision permits with obligations)
+- `DutySet` — Duties selected by the semantic evaluation
+- `seq<Effect>` — Proposed state/protocol effects, applied only after evaluation
 
 **Contract:**
 - **Deterministic**: Same inputs → same outputs
@@ -565,7 +574,7 @@ Requester                              Evaluator
     │                                      │
     │                             lookup(target)
     │                                      │
-    │                             manifest(policies)
+    │                             manifest(ClauseRef*)
     │                                      │
     │                             resolve(operands, request, sources)
     │                                      │
@@ -578,7 +587,7 @@ Requester                              Evaluator
     │  SupplyContext(values)               │
     ├─────────────────────────────────────▶│
     │                                      │
-    │                             evaluate(IR, policies, context)
+    │                             evalIR(CU, request, Σ, context, strategy)
     │                                      │
     │  Result(Decision, Requirements)      │
     │◀──────────────────────────────────────┤
@@ -606,7 +615,7 @@ The functional model maps to Protocol artifacts:
 | `lookup` | `rl2p:Request.requestedAsset` | (internal) |
 | `manifest` | (internal) | `rl2p:NeedContext` (TBD) |
 | `resolve` | `rl2p:ContextAssertion*` | (internal) |
-| `evaluate` | (internal) | `rl2p:EvaluationResult` |
+| `evalIR` | (internal) | `rl2p:EvaluationResult` |
 
 ---
 
@@ -617,17 +626,20 @@ The functions compose with these guarantees:
 **1. Lookup Completeness**
 
 ```
-∀ target, policy ∈ Policy* :
-  applies(policy, target) ⟹ policy ∈ lookup(TargetIndex, target)
+let (CU, M) = compile(Policy*) in
+∀ target, P ∈ Policy*, clause ∈ P.clauses :
+  applies(clause, target) ⟹ ref(P, clause) ∈ lookup(CU.targetIndex, target)
 ```
 
-All policies that could affect the target are returned.
+All clauses that could affect the target are returned; their `ClauseRef` values
+retain containing-policy provenance.
 
 **2. Manifest Sufficiency**
 
 ```
-∀ policies, context :
-  manifest(policies) ⊆ dom(context) ⟹ evaluate returns definite Decision
+∀ refs, context :
+  manifest(M, refs) ⊆ dom(context)
+    ⟹ evalIR does not return Indeterminate because of missing context
 ```
 
 If all required operands are provided, evaluation does not return `Indeterminate` due to missing context.
@@ -635,7 +647,9 @@ If all required operands are provided, evaluation does not return `Indeterminate
 **3. Evaluation Equivalence**
 
 ```
-evaluate(compile(P).IR, lookup(...), resolve(...)) ≡ semanticEval(P, ...)
+let (CU, M) = compile(P) in
+  evalIR(CU, R, Σ, Ctx, strategy)
+    ≡ semanticEval(P, R, Σ, Ctx, strategy)
 ```
 
 Compiled evaluation is equivalent to direct semantic evaluation per RL2_Semantics.md.
@@ -643,16 +657,16 @@ Compiled evaluation is equivalent to direct semantic evaluation per RL2_Semantic
 **4. Determinism**
 
 ```
-identical normalized inputs and configuration (IR, request, Σ, resolved context)
+identical normalized inputs and configuration (CompiledUniverse, request, Σ, resolved context, strategy)
   ⟹ identical result, effects, diagnostics, and next state
 ```
 
 This is *same-input determinism*, not injectivity. Distinct contexts routinely yield the
-same decision, so the converse `evaluate(…, ctx₁) = evaluate(…, ctx₂) ⟹ ctx₁ = ctx₂` does
+same decision, so the converse `evalIR(…, ctx₁) = evalIR(…, ctx₂) ⟹ ctx₁ = ctx₂` does
 **not** hold and is not claimed. The related **canonicalization** property —
 `compile(P₁) = compile(P₂) ⟺ P₁ ≡ P₂` (up to blank-node renaming) — is a property of
 *compilation* (the Band-0 canonical-form thesis), distinct from determinism; the source/IR
-equivalence `evaluate(compile(P).IR, …) ≡ semanticEval(P, …)` is stated as item 3 above.
+equivalence in item 3 is stated over the `CompiledUniverse` returned by `compile`.
 
 ---
 
@@ -747,7 +761,12 @@ RL2 semantics are designed to be:
 5. **Operational** — Policies evolve through events and actions
 6. **Analytically useful** — Supports reasoning about compliance and violations
 
-**Scope:** RL2's current scope is design — the ontology, semantics, and IR specifications in this repository, validated by the SHACL gate and cross-checked by differential testing against hand-worked use cases. There is no reference implementation yet, verified or otherwise; a future implementation must reproduce this specification's decisions but is not itself part of this project's current deliverables (SCOPE-1, `issues.md`, 2026-07-29).
+**Scope:** RL2's current scope is design — the ontology, semantics, and IR
+specifications in this repository, with structural examples checked by the SHACL
+gate. There is no reference implementation and no differential test run yet. A
+future implementation must reproduce this specification's decisions and be
+checked against semantic conformance vectors, but is not part of the current
+deliverables (SCOPE-1, `issues.md`, 2026-07-29).
 
 ---
 
@@ -813,7 +832,9 @@ Any system that can produce Requests and consume Cases can integrate with RL2 ev
 
 ### Compilation and IR
 
-The Functional Model (§Functional Model) defines `compile` as producing an **Intermediate Representation (IR)** along with auxiliary artifacts (`ContextManifest`, `TargetIndex`). This separation enables:
+The Functional Model (§Functional Model) defines `compile` as producing a
+**CompiledUniverse**—normalized policies plus its `TargetIndex` and
+`subsumptionIndex`—alongside a `ContextManifest`. This separation enables:
 
 * **Pre-computed policy indexing** — Target matching without runtime policy parsing
 * **Pre-computed context requirements** — Know what's needed before evaluation

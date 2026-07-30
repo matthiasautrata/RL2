@@ -160,7 +160,7 @@ temporal concern of WP-4; this step fixes only the set the count aggregates over
   Timeout     → the seat Agreement leaves the active set
 
 The count is resolved (read-only) into the immutable ResolvedContext before evaluation;
-nothing in the verified core writes a shared counter.
+nothing in the specified evaluator core writes a shared counter.
 ```
 
 ## Evaluation
@@ -226,5 +226,5 @@ coordination (S5, *shared-strong-state vs case-local*). RL2 makes evaluation a p
 transaction**: two evaluators that both read `count = 49` cannot both admit, because only the one
 committing against the still-current snapshot version succeeds; the other re-resolves and
 re-evaluates. The *mechanism* (shared store, locks, reservations, retry) is a deployment concern
-**outside the verified core** (I4); the kernel's obligation is only that the pure decision and
+**outside the specified evaluator core** (I4); `evalIR`'s obligation is only that the pure decision and
 effect set computed for version `v` are what get applied while `v` is current.

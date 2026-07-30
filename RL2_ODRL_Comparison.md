@@ -1,7 +1,7 @@
 # RL2 vs. ODRL: A Comparative Analysis
 
 **Version:** 1.1  
-**Date:** 2026-07-26  
+**Date:** 2026-07-29
 **Status:** Draft
 
 > **Maintenance note (2026-07-26, DOC-4 superseded).** This document is a
@@ -13,8 +13,9 @@
 > claim is now confirmed accurate against `RL2_Semantics.md`, and §2.1 reflects
 > the current crystallization model. §3.2's mechanization-toolchain framing
 > (2026-07-26) was later superseded by **SCOPE-1** (2026-07-29, `issues.md`):
-> RL2 dropped the Dafny→Go mechanization plan in favor of a specified,
-> differential-tested design — see the updated §3.2 below.
+> RL2 dropped the Dafny→Go mechanization plan in favor of a single-lowering,
+> directly interpreted AST design. Conformance testing is planned but no
+> implementation or differential test suite currently exists; see §3.2.
 
 ## Executive Summary
 
@@ -37,11 +38,13 @@ RL2's ontology suite measured against four major W3C ontologies — ODRL 2.2 (th
 | **PROV-O** | 1,321 | 69 | 39 | 42 | 6 | 23 | 50 | 0 |
 | **DCAT 3** | 1,840 | 200 | 10 | 30 | 9 | 8 | 18 | 0 |
 | **ODRL 2.2** | 2,274 | 91 | 19 | ~37¹ | ~37¹ | 14 | 24 | 10 disj |
-| **RL2 core** | 679 | 28 | 33 | 36 | 6 | 20 | 1 | 4 enum |
-| **RL2 full²** | 2,018 | 79 | 40 | 62 | 18 | 20 | 1 | 6 enum |
+| **RL2 core** | 863 | 39 | 35 | 41 | 8 | 20 | 1 | 5 enum |
+| **RL2 suite²** | 2,438 | 102 | 43 | 67 | 20 | 21 | 1 | 7 enum |
 
 ¹ ODRL 2.2 uses SKOS Concepts for vocabulary organization — `rdfs:domain` lines proxy for property count. It has 216 `skos:member` entries covering the full vocabulary.
-² RL2 full = `rl2.ttl` + `rl2p.ttl` + `rl2-shacl.ttl` + `rl2p-shacl.ttl`
+² RL2 suite line/size totals include `rl2.ttl`, `rl2p.ttl`, `rl2-shacl.ttl`, and
+`rl2p-shacl.ttl`; ontology-term counts combine the two ontology files. Measurements are from
+the repository state dated 2026-07-29.
 
 ### Complexity: what's inside each ontology
 
@@ -49,16 +52,19 @@ RL2's ontology suite measured against four major W3C ontologies — ODRL 2.2 (th
 |-----------|----------|-----|
 | **Class hierarchy depth** | 3 levels (Policy→Set/Offer/Agreement; Rule→Permission/Prohibition/Duty) | 4 levels (Clause→Norm→Duty/Privilege/Claim/Power/...; Condition→Atomic/Logical/Event) |
 | **Normative framework** | Deontic triple (Permission, Prohibition, Obligation) | Seven modeled positions: six positive Hohfeldian positions (Privilege, Duty, Claim, Power, Liability, Immunity) + Prohibition. The two absence positions (No-Right, Disability) are derived, not reified as classes. |
-| **Promise Theory** | None | Full layer: Promise, promisor/promisee, 3 disjoint promise types (action/state/duty), crystallization to Duty+Claim |
+| **Promise Theory** | None | Promise, promisor/promisee, three exclusive content forms, and specified crystallization to Duty+Claim; some lifecycle integration remains open |
 | **Axiom type count** | Standard RDFS domain/range + skos:member organization + disjoint classes | RDFS domain/range + `owl:oneOf` enumerations + transitive `includedIn` + inverse properties + compound domain unions |
-| **Constraint language** | No SHACL in ODRL spec (ODRL Profiles handle this externally) | 628-line SHACL shapesheet with mandatory/optional shape distinction |
-| **Operational semantics** | Implicit — described in prose IM spec, not in ontology | Explicit: ObligationState enum, Event class, StateTransition, temporal `after` property |
+| **Constraint language** | No SHACL in ODRL spec (ODRL Profiles handle this externally) | Separate core and protocol SHACL shape files with mandatory/optional shape distinction |
+| **Operational semantics** | Processing behavior described in the Information Model; no normative transition calculus | Separate formal semantics for obligation state and events; `after` remains outside the specified evaluator core |
 | **Policy container types** | 5 (Set, Offer, Agreement, Assertion, Privacy) + Ticket, Request | 5 (Set, Offer, Agreement, Assertion, Privacy) — matches ODRL subset |
 | **Namespace purity** | Uses skos:, foaf:, vcard:, schema:, cc: — 14 external prefixes | 7 prefixes — minimal external dependency |
 
 ### Understandability
 
-**ODRL 2.2** is easier for a *first read* because it follows a flat, vocabulary-catalog pattern — SKOS collections group terms by topic, each term gets a label and a short comment. The ontology is a reference dictionary. The harder lift comes from the *implicit semantics* — what "duty implies obligation" actually means in evaluation terms lives in a separate 40-page prose spec. You can't reason about correctness from the TTL alone.
+**ODRL 2.2** is easier for a *first read* because it follows a vocabulary-catalog pattern:
+SKOS collections group terms by topic, and the Information Model supplies the processing
+semantics. Correct evaluation therefore requires the ontology and the prose specification,
+not the TTL alone.
 
 **RL2** is harder on first read because the class hierarchy is deeper and the Hohfeldian positions are unfamiliar to most practitioners. But it's *more understandable once you get past that* — because the formal semantics (`RL2_Semantics.md`) are aligned with the ontology vocabulary. `rl2:ObligationState` is an explicit `owl:oneOf` enumeration, not prose. `rl2:triggeredBy` → `rl2:StateTransition` is in the ontology, not an implicit convention. The SHACL shapesheet gives you machine-checkable answers to "is this a valid X?" without hunting through prose.
 
@@ -71,16 +77,18 @@ The RL2 approach trades *first-read simplicity* for *operational clarity* — yo
 | **Express a simple license** (Creative Commons-style) | ✓ Best — flat vocabulary, one Permission with constraints | Overengineered for this |
 | **Express a bilateral contract** with reciprocal obligations | Awkward — no Claim, correlative relations implicit | ✓ Native — Duty↔Claim, Power↔Liability via `correlativeTo` |
 | **Model GDPR/consent** | Partial — Privacy subclass exists but no subject-rights vocabulary | ✓ Privacy profile (427 lines) + data subject rights as Claims |
-| **Multi-party supply chain** with promises → crystallized duties | Not expressible — no promise/acceptance model | ✓ Full Promise Theory layer with `promisedAction/State/Duty` |
-| **Policy orchestration** (escalation, delegation, approval workflows) | No event model, no state machine | ✓ Event + StateTransition + obligation states |
+| **Multi-party supply chain** with promises → crystallized duties | No explicit promise/acceptance model | Designed directly with `promisedAction/State/Duty`; lifecycle integration still has open issues |
+| **Policy orchestration** (escalation, delegation, approval workflows) | Requires application logic beyond the core model | Event, StateTransition, and obligation-state model; end-to-end trace integration remains incomplete |
 | **Automated compliance/audit** | Requires external logic | Partial — SHACL checks structural validity and `ObligationState` is a deterministic state enum; full audit (evidence semantics, trusted inputs, event ordering, replay) is not yet implemented |
 | **Cross-domain profiles** | In-practice fragmentation (Mpeg21, LDR, IDS each fork) | Designed for profile extensibility via `LeftOperand` resolution paths |
 
 ### The key structural difference
 
-ODRL 2.2 is a **vocabulary** — a SKOS-organized dictionary of terms with RDFS domain/range constraints. Its 216 `skos:member` entries cover exhaustively what you can *say*, but the *what-it-means* lives in a separate prose document.
-
-RL2 is an **ontology** in the stronger sense — it encodes not just vocabulary but also the operational types (enumerations, state machines, transition triggers) that let you reason about correctness from the TTL+SHACL alone. The price: deeper hierarchy, the unfamiliar Hohfeldian positions, and a Promise Theory layer that ODRL simply doesn't have.
+Both languages use RDF/OWL vocabularies plus prose specifications. ODRL prioritizes an
+interoperable Information Model, vocabulary, and profile mechanism. RL2 adds separate SHACL,
+formal-semantics, IR, and protocol layers, at the price of a deeper model and additional
+Hohfeldian and Promise concepts. RL2 evaluation correctness still depends on the complete
+file set; TTL+SHACL alone are structural, not operational.
 
 If ODRL 2.2 is a dictionary, RL2 is a dictionary + grammar + a formal semantics appendix — all in the same file set.
 
@@ -145,8 +153,8 @@ This leads to confusion in processing engines about whether a duty must be done 
 **Problem:** ODRL does not distinguish between "I will do X" (Promise) and "I am required to do X" (Duty). It also lacks a formal mechanism for what happens when a rule is broken (other than a generic `remedy` property).
 
 **RL2 Solution:** Remedial Generation.
-*   RL2 implements **Promise Theory**: A violated Promise (invariant) automatically generates a remedial **Duty** (action) to restore the state.
-*   This enables "self-healing" policy systems.
+*   RL2 models Promise content and a remedial-Duty generation path.
+*   The complete trigger and transition integration for that path remains open specification work.
 
 ---
 
@@ -156,7 +164,10 @@ RL2 is built on a formal foundation designed to be precise and testable.
 
 ### 3.1 I/O Logic (Input/Output Logic)
 RL2 utilizes **Makinson & van der Torre’s I/O Logic** for its derivation engine.
-*   **Derivation (Monotone):** The engine first derives *all* potential norms (candidates) from the policy and state. This phase is monotonic (adding facts never removes derived norms).
+*   **Derivation (Monotone):** For a fixed environment, adding policy clauses or policies
+    does not remove previously derived normative atoms. This claim does not say that changing
+    runtime facts preserves derivations: negated and otherwise non-monotone conditions can
+    change truth value when the environment changes.
 *   **Resolution (Non-Monotone):** A separate strategy phase applies evaluator-configured priorities to resolve conflicts (e.g., a `prohibit-overrides` strategy, analogous to XACML combining algorithms) — priority is evaluator configuration, not fixed policy vocabulary.
 *   This separation ensures that the core reasoning is logically sound and precisely specified.
 
@@ -165,7 +176,7 @@ RL2's current scope is a thoroughly specified semantics and IR (`RL2_Semantics.m
 `RL2_IR.md`), not a mechanized proof or a reference implementation (**SCOPE-1**, `issues.md`,
 2026-07-29). Safety properties such as "a specific prohibition can never be bypassed" are
 stated as documented design properties (RL2_Semantics.md §Proof Obligations) precise enough to
-test an implementation against by differential testing, rather than proof obligations
+test a future implementation against using semantic conformance and differential testing, rather than proof obligations
 discharged in a proof assistant. An earlier plan to mechanize the evaluator in Dafny with Go
 extraction was considered and dropped; `research/verification-toolchain-comparison.md` records
 that comparison for historical reference only.

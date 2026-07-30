@@ -41,7 +41,8 @@ Let:
 * **T** = time domain
 * **Env** = evaluation environment
 * **Σ** = system state
-* **⊥** = bottom/undefined; represents absence of value or evaluation failure
+* **⊥** = legacy notation for an absent value; the typed carrier is
+  `Missing(Key)` in the Result and Truth Algebra below
 
 We define RL2 expressions as:
 
@@ -50,7 +51,7 @@ We define RL2 expressions as:
 ```
 Norm ::= 
     Privilege(Agent, Action, Asset, Condition)
-  | Duty(Agent, Action, Asset, Condition)
+  | Duty(Agent, Action, Asset, Condition; dutyMode: DutyMode?)
   | Prohibition(Agent, Action, Asset, Condition)
   | Claim(Agent subject, Agent counterparty, Duty correlativeTo)
       -- subject = right-holder, counterparty = duty-bearer; action/object/condition are
@@ -65,6 +66,10 @@ Norm ::=
   | Immunity(Agent, Power immuneFrom, Condition?)
       -- optional Condition gates the Immunity's OWN activation, independent of immuneFrom's
 ```
+
+The semicolon separates the Duty's optional normalized `dutyMode` field from its
+normative action content. Equations that write `Duty(a,x,s,c)` omit this field when
+it is irrelevant; `dutyMode(d)` below reads it and supplies the default.
 
 #### Promises
 
@@ -88,15 +93,16 @@ encoded several ways — see the canonical-form invariant.)
 ```
 Condition ::=
       AtomicConstraint(leftOperand, operator, rightOperand)
-    | And(Condition+)
-    | Or(Condition+)
-    | Xone(Condition+)
+    | And(Condition{2,})
+    | Or(Condition{2,})
+    | Xone(Condition{2,})
     | Not(Condition)
     | EventConstraint(expectsEvent: Event)
 ```
 
 Notes:
-- `And`, `Or`, and `Xone` take one or more conditions
+- `And`, `Or`, and `Xone` take at least two conditions, matching
+  `AndOrXoneOperandCardinalityShape`
 - `EventConstraint` models approval requirements; holds when the expected event is present in Σ.Events
 - `leftOperand` is drawn from profile-defined operands (RL2 Core defines `rl2:LeftOperand` class plus `currentDateTime`, `obligationStateOperand`, `dutyPerformerOperand`, `promiseStateOperand`, `promisorOperand` instances)
 - Time-based conditions use `AtomicConstraint` with `leftOperand = currentDateTime` (e.g., `currentDateTime lte deadline`)
@@ -123,12 +129,25 @@ Clause ::= Norm | Promise      -- mirrors rl2:Clause; only an Offer admits a Pro
 
 Policy ::= Policy {
   condition : Condition?,   -- optional policy-level activation condition
-  clauses   : Clause*,
+  clauses   : Clause+,      -- non-empty, matching PolicyShape
   meta      : Metadata
 }
 ```
 
-When a policy condition is present, the effective condition for a norm is the conjunction of the policy condition and the norm condition: `n.effectiveCondition = And(P.condition, n.condition)`, consistent with the `PolicyApplicable` and `NormActive` definitions below.
+Conditions on Policies and clauses are optional in RDF. Normalization maps an
+absent condition to the constant `True` and avoids manufacturing a unary `And`:
+
+```
+effectiveCondition(P, clause) =
+    case (P.condition, clause.condition) of
+        (None, None)       → True
+        (Some(p), None)    → p
+        (None, Some(c))    → c
+        (Some(p), Some(c)) → And(p, c)
+```
+
+The canonical AST therefore contains a total condition for every clause while
+preserving the logical-operator arities enforced by SHACL.
 
 ---
 
@@ -329,7 +348,7 @@ Denotational semantics gives timeless meaning to norms and conditions.
 Operand resolution and condition evaluation are **partial** — an operand may be missing,
 wrong-typed, multi-valued, or fail to resolve. RL2 makes this total with two typed carriers
 used uniformly across the denotational semantics, the IR (`RL2_IR.md`), the protocol
-(`RL2_Protocol.md`), and the Go API:
+(`RL2_Protocol.md`), and any implementation interface:
 
 ```
 EvalValue<T> = Ok(T)              -- a single well-typed value
@@ -530,7 +549,7 @@ All path expressions MUST conform to the following grammar:
 
 ```
 Path       ::= Root ('.' Segment)*
-Root       ::= 'agent' | 'asset' | 'context' | 'state' | 'request'
+Root       ::= 'agent' | 'asset' | 'context' | 'state' | 'request' | 'global'
 Segment    ::= Identifier | Wildcard
 Identifier ::= [a-zA-Z_][a-zA-Z0-9_]*
 Wildcard   ::= '*'
@@ -549,7 +568,8 @@ Paths not conforming to this grammar MUST be rejected at parse time, not at eval
 Implementations MUST enforce a strict sandbox for `deref` operations. The evaluator MUST reject any path that:
 
 1. Contains directory traversal sequences (e.g., `..`, `/`, `\`)
-2. References roots other than the canonical set (`agent`, `asset`, `context`, `state`, `request`)
+2. References roots other than the canonical set (`agent`, `asset`, `context`,
+   `state`, `request`, `global`)
 3. Contains URL-encoded characters or escape sequences
 4. Attempts to access host system variables or environment settings not explicitly mapped to the `Env` object
 
@@ -596,7 +616,7 @@ Concurrency). Its values are **resolved into a reserved `global` subtree of the 
 E1/SEM-13 contract that resolves external context), which is why the pure core simply derefs it
 like any other context value — it does not itself walk the Agreement graph. Global reads are
 **read-only aggregates** over the Offer's active Agreements (e.g. a live-seat count); computing
-them is a resolver responsibility **outside the verified core**, on the same footing as an
+them is a resolver responsibility **outside the specified evaluator core**, on the same footing as an
 aggregating `rl2:resolutionFunction` (S8a). Profiles declare `global.*` operands as
 `rl2p:GlobalLeftOperand` individuals.
 
@@ -641,11 +661,14 @@ correctly resolve to the performer of the **triggering event** specified by the 
 
 Implementations MUST enforce the following security constraints:
 
-1. **Root validation**: Reject paths not starting with a canonical root (`agent`, `asset`, `context`, `state`, `request`)
+1. **Root validation**: Reject paths not starting with a canonical root (`agent`,
+   `asset`, `context`, `state`, `request`, `global`)
 2. **Grammar validation**: Reject paths containing `..`, `/`, `%`, or other traversal/encoding patterns
 3. **Wildcard restriction**: Reject `*` in any position other than immediately after `state.Events`
 4. **Depth limiting**: **MUST** reject paths exceeding `MaxPathDepth` (conformance parameter, default 10). The bound is mandatory; only its value is implementation/profile-declared (S8a).
-5. **Fail-closed**: Return `⊥` (not an error message) for invalid paths to prevent information leakage
+5. **Fail-closed**: Reject syntactically invalid paths at policy load. For a
+   syntactically valid path whose selected field or value is absent at evaluation,
+   return `Missing(path)` without exposing host details.
 
 These constraints prevent path traversal attacks and unauthorized data access via malformed resolution paths.
 
@@ -698,9 +721,9 @@ contentHolds(promisor, content, Σ) =
         PromisedDuty(d)       → Σ.ObligationState(d) = Fulfilled
 ```
 
-#### dutyMode : Duty × State → DutyMode
+#### dutyMode : Duty → DutyMode
 
-The function `dutyMode(d, Σ)` selects which ObligationState transition discipline
+The function `dutyMode(d)` selects which ObligationState transition discipline
 governs duty `d` (S4) — **Achievement** (fulfilled once by a single qualifying witness
 before a deadline; violated only when that deadline expires unfulfilled) or
 **Maintenance** (violated on the first witnessed counterexample while active; fulfilled
@@ -712,10 +735,10 @@ before this distinction existed, so pre-existing Duties with no `rl2:dutyMode` t
 are unaffected:
 
 ```
-dutyMode : Duty × State → DutyMode
+dutyMode : Duty → DutyMode
 
-dutyMode(d, Σ) =
-    case Σ.dutyMode(d) of
+dutyMode(d) =
+    case d.dutyMode of
         Some(m) → m
         None    → Achievement
 ```
@@ -1318,14 +1341,14 @@ Env = mkEnv(R, Σ, Ctx)
 
 ### Duty Fulfillment (Achievement)
 
-An active Achievement-mode duty (S4; `dutyMode(Duty(a,x,s,c), Σ) = Achievement`,
+An active Achievement-mode duty (S4; `dutyMode(Duty(a,x,s,c)) = Achievement`,
 including the default when `rl2:dutyMode` is absent) is fulfilled by a single
 qualifying witness — the required action (or a narrower action subsumed by it)
 performed while the duty is still active. The performing agent is recorded in
 `DutyPerformer`:
 
 ```
-dutyMode(Duty(a,x,s,c), Σ) = Achievement
+dutyMode(Duty(a,x,s,c)) = Achievement
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 performed(a,x,s,Σ) = true
 ──────────────────────────────────────────────────────────────────
@@ -1347,7 +1370,7 @@ unfulfilled — never merely because the condition is momentarily false:
 
 ```
 Env = mkEnv(R, Σ, Ctx)
-dutyMode(Duty(a,x,s,c), Σ) = Achievement
+dutyMode(Duty(a,x,s,c)) = Achievement
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 performed(a,x,s,Σ) = false
 timeout(c, Σ) = true
@@ -1357,7 +1380,7 @@ timeout(c, Σ) = true
 
 ### Duty Fulfillment (Maintenance)
 
-A Maintenance-mode duty (S4; `dutyMode(Duty(a,x,s,c), Σ) = Maintenance` — crystallized
+A Maintenance-mode duty (S4; `dutyMode(Duty(a,x,s,c)) = Maintenance` — crystallized
 from a `PromisedState`, see Crystallization) holds a condition `c` as a state-invariant
 rather than requiring a witnessed action; `x`/`s` remain structurally present (the Duty
 grammar always carries an Action slot) but this rule does not consult them. It is
@@ -1369,7 +1392,7 @@ never declared fulfilled by omission:
 
 ```
 Env = mkEnv(R, Σ, Ctx)
-dutyMode(Duty(a,x,s,c), Σ) = Maintenance
+dutyMode(Duty(a,x,s,c)) = Maintenance
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 extractDeadline(c) = Some(b)
 expired(b, Σ.Clock) = true
@@ -1387,7 +1410,7 @@ active — it does not wait for any deadline:
 
 ```
 Env = mkEnv(R, Σ, Ctx)
-dutyMode(Duty(a,x,s,c), Σ) = Maintenance
+dutyMode(Duty(a,x,s,c)) = Maintenance
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 ⟦c⟧(Env) = False
 ──────────────────────────────────────────────────────────────────
@@ -1852,7 +1875,7 @@ actionDepth(x) = |{ y : Action | x ⊑ y, y ≠ x }|   -- count of x's proper an
     -- Static: one traversal of the fixed `rl2:includedIn` closure per action, the same cost
     -- and direction-dual of the compiler's descendant-oriented `subsumptionIndex` (RL2_IR.md
     -- §4, `map<Action, set<Action>>`, used for eval-time match membership). NOT the EXPR-2
-    -- runtime quorum counting that is out of scope for the verified core — this is a
+    -- runtime quorum counting that is out of scope for the specified core — this is a
     -- compile-time property of the fixed action hierarchy, bounded per ACT-1/2.
 
 atomCount(oc: Condition?) = case oc of        -- oc is n.condition (optional, per grammar)
@@ -1937,65 +1960,28 @@ Note: `NotApplicable` (no matching rule) is distinct from `Deny` (explicit prohi
 
 ### Duty State Updates
 
-The duty lifecycle is governed by three inference rules:
+`updateDutyStates` in the Evaluation Function is the batch application of the
+single-duty rules in **Duty Activation**, **Duty Fulfillment (Achievement)**,
+**Duty Violation (Achievement)**, **Duty Fulfillment (Maintenance)**, and
+**Duty Violation (Maintenance)** above. Those rules are the sole normative
+definition; this section does not define a second lifecycle algorithm.
 
-**Rule D-ACTIVATE** (Pending → Active):
-```
-Σ.ObligationState(d) = Pending
-⟦d.condition⟧(Env) = True
-─────────────────────────────────────────────────────────
-Σ' = Σ[ObligationState(d) ↦ Active]
-```
-
-Activation is **condition-driven**: when the duty's condition first evaluates to true, the duty becomes active. This typically occurs when temporal preconditions are met (e.g., "after contract signing").
-
-**Rule D-FULFILL** (Active → Fulfilled):
-```
-Σ.ObligationState(d) = Active
-performed(d.subject, d.action, d.object, Σ) = true
-─────────────────────────────────────────────────────────
-Σ' = Σ[ObligationState(d) ↦ Fulfilled]
-```
-
-Fulfillment is **event-driven**: when a performed action matches the duty's required action (including narrower actions via `rl2:includedIn` subsumption), the duty is fulfilled. The transition records **only** the state change — the performing agent is **not** stored, because `DutyPerformer(d, Σ)` is derived on demand from the witnessing event (S6), so identity binding reads the witness rather than a duplicated field that could drift.
-
-**Rule D-VIOLATE** (Active → Violated):
-```
-Σ.ObligationState(d) = Active
-performed(d.subject, d.action, d.object, Σ) = false
-timeout(d.condition, Σ) = true
-─────────────────────────────────────────────────────────
-Σ' = Σ[ObligationState(d) ↦ Violated]
-```
-
-Violation is **time-driven**: when the deadline passes without fulfillment (no exact or subsumed action performed), the duty is violated.
-
-**Algorithmic form** (for implementation):
-
-```
-updateDutyStates(duties, Env, Σ) =
-    foldl(updateOneDuty(Env), Σ, duties)
-
-updateOneDuty(Env)(Σ, d) =
-    case Σ.ObligationState(d) of
-        Pending → if ⟦d.condition⟧(Env) then Σ[ObligationState(d) ↦ Active] else Σ
-        Active  → if performed(d.subject, d.action, d.object, Σ)
-                  then Σ[ObligationState(d) ↦ Fulfilled]   -- DutyPerformer derived from witness (S6)
-                  else if timeout(d.condition, Σ)
-                  then Σ[ObligationState(d) ↦ Violated]
-                  else Σ
-        _       → Σ  -- Fulfilled/Violated are terminal
-```
+For every selected Duty, at most one legal transition is emitted from the input
+snapshot. `Fulfilled` and `Violated` are terminal, and an `Unknown` condition
+emits no transition. Updates to distinct Duties are combined as disjoint
+`ObligationState` map updates.
 
 ### PermitWithObligations Semantics
 
 When `Eval` returns `PermitWithObligations`:
-* Access is conditionally granted
+* The semantic decision is `PermitWithObligations`
 * The returned `DutySet` contains duties that must be fulfilled
 * Duties may be in `Pending` (activation condition not yet met) or `Active` (must be performed)
 * The Protocol's Requirement class captures these for tracking
 
-This allows pre-access duties (must fulfill before action) and post-access duties (must fulfill after action) to be distinguished by their conditions.
+The current core does not yet distinguish blocking, concurrent, and post-use
+Duties. Conditions determine activation, but do not by themselves define an
+enforcement phase; that association remains part of C3-4/P4.
 
 ### Note on Evaluation Complexity
 
@@ -2151,7 +2137,7 @@ and admission is the ordinary condition `global.…count < N`. Because nothing i
 no shared-counter race for the derived case. A genuinely **accumulating** shared counter (a pooled
 quota drawn down and written back across parties) is *not* expressible in the read-only core; a
 profile MAY back a `global.*` operand with an external, resolver-maintained counter, but — like any
-`rl2:resolutionFunction` aggregation (S8a) — it is **outside the verified core** and gets no
+`rl2:resolutionFunction` aggregation (S8a) — it is **outside the specified core** and gets no
 totality/determinism guarantee.
 
 ### Versioned snapshot and commit (concurrency)
@@ -2173,7 +2159,7 @@ admission against `global.*` — **MUST** commit under this CAS / a serializable
 concurrent admitter cannot slip in between the read and the commit. A purely **case-local** policy
 (only instance-variable state, the common path) MAY commit under snapshot isolation, since its
 writes touch IRIs no other case shares. The *mechanism* — locks, transactions, storage, retry — is
-a deployment concern **outside the verified core** (I4): the kernel's obligation is only that the
+a deployment concern **outside the specified evaluator core** (I4): the evaluator's obligation is only that the
 pure transition and effect set it computed for version `v` are exactly what gets applied when `v`
 is still current. Duplicate and late-arriving events are handled by the idempotent, append-only
 `processEvent` rule (§State Update / operational semantics): a committed decision is replay-stable
@@ -2181,10 +2167,11 @@ for its snapshot version and is never rewritten by a later-arriving earlier-time
 
 **Commit validity is re-derivation, not trust (I4, RL2_IR.md §7.3).** The version check alone
 guarantees no *other* transition landed between read and write; it does not by itself guarantee
-the `effects` being committed are the ones the pure kernel computed for `v` (a retried or
+the `effects` being committed are the ones the pure evaluator computed for `v` (a retried or
 memoized request could carry a stale `fx` alongside a `v` that happens to still be current).
-`commit` therefore recomputes `fx` from `evalIR(compile(U), R, Snapshot_v.Σ, Ctx, strategy)` at
-commit time rather than accepting a caller-supplied effect set on trust — `RL2_IR.md §7.3`'s
+`commit` therefore obtains `(CU, _) = compile(U)` and recomputes `fx` from
+`evalIR(CU, R, Snapshot_v.Σ, Ctx, strategy)` at commit time rather than accepting a
+caller-supplied effect set on trust — `RL2_IR.md §7.3`'s
 `validateCommit`. This makes retries free to leave outside the proof: an unchanged-`v` retry
 recomputes the same `fx` (determinism, RL2_IR.md §9) and commits as a no-op; a retry after `v`
 has advanced fails CAS and forces the caller back to re-evaluation against the new snapshot.
@@ -2269,7 +2256,7 @@ The core's termination and polynomial-time guarantees depend on a small set of *
 | Parameter | Default | Bounds |
 |-----------|---------|--------|
 | `MaxPathDepth` | 10 segments | `deref` path length |
-| `MaxConditionDepth` | 20 | condition tree nesting (fuel is linear in tree size) |
+| `MaxConditionDepth` | 20 | condition tree nesting; evaluation work is linear in tree size |
 | `MaxCollectionSize` | implementation-declared | `members(s)` / event sequence length |
 | `MaxPolicyUniverse` | implementation-declared | `|U|` |
 
@@ -2285,7 +2272,7 @@ The core's termination and polynomial-time guarantees depend on a small set of *
 
 6. **Bounded path depth**: `≤ MaxPathDepth` (default 10), enforced by grammar
 7. **No joins**: Path resolution is single-threaded navigation, not graph pattern matching
-8. **No iteration**: `resolutionFunction` must be O(1) or O(log n) per invocation — **and is outside the verified core** (S8a); an opaque function voids the kernel's guarantees unless the profile documents its bounds
+8. **No iteration**: `resolutionFunction` must be O(1) or O(log n) per invocation — **and is outside the specified core** (S8a); an opaque function falls outside the core guarantees unless the profile documents its bounds
 9. **Deterministic selection**: Wildcards resolve to single values via most-recent-wins
 
 ### Complexity Analysis

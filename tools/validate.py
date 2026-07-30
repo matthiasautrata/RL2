@@ -17,7 +17,7 @@ Usage:
     uv run tools/validate.py                       # all usecases/*.md
     uv run tools/validate.py usecases/foo.md ...   # specific files
     uv run tools/validate.py --shapes-only         # just load ontology + shapes
-    uv run tools/validate.py -v                     # print full violation report
+    uv run tools/validate.py -v                     # print full warning/violation reports
     uv run tools/validate.py --strict               # also fail (exit 1) on warnings
 
 SHACL conformance (`sh:conforms`) is true exactly when a graph has no `sh:Violation`
@@ -166,6 +166,8 @@ def validate_whole(target: Path, rel, ont: Graph, shapes: Graph, verbose: bool) 
         wtxt = f"  (⚠ {w} warning(s))" if w else ""
         glyph = "⚠" if w else "✓"
         print(f"{glyph} {rel}  ({len(data)} triples){wtxt}")
+        if verbose and w:
+            print("\n".join("    " + ln for ln in report_text.splitlines()))
         return "warn" if w else "pass"
     wtxt = f", {w} warning(s)" if w else ""
     print(f"✗ {rel}  ({n} violation(s){wtxt})")
@@ -188,6 +190,7 @@ def validate_per_fence(target: Path, rel, ont: Graph, shapes: Graph, verbose: bo
 
     tot_viol = tot_warn = 0
     bad: list[str] = []
+    reports: list[str] = []
     for start_line, body in fences:
         loc = f"{rel}:{start_line}"
         g = Graph()
@@ -203,20 +206,28 @@ def validate_per_fence(target: Path, rel, ont: Graph, shapes: Graph, verbose: bo
             bad.append(f"    ✗ fence@{start_line}: VALIDATION ERROR: {str(exc).splitlines()[0]}")
             continue
         tot_warn += w
+        if verbose and w:
+            reports.append(f"    SHACL report for fence@{start_line}:")
+            reports.append("\n".join("        " + ln for ln in report_text.splitlines()))
         if n:
             tot_viol += n
             bad.append(f"    ✗ fence@{start_line}: {n} violation(s)")
-            if verbose:
-                bad.append("\n".join("        " + ln for ln in report_text.splitlines()))
+            if verbose and not w:
+                reports.append(f"    SHACL report for fence@{start_line}:")
+                reports.append("\n".join("        " + ln for ln in report_text.splitlines()))
 
     ok = len(fences) - sum(1 for b in bad if b.lstrip().startswith("✗"))
     if not bad:
         wtxt = f"  (⚠ {tot_warn} warning(s))" if tot_warn else ""
         glyph = "⚠" if tot_warn else "✓"
         print(f"{glyph} {rel}  ({len(fences)} fence(s)){wtxt}")
+        if reports:
+            print("\n".join(reports))
         return "warn" if tot_warn else "pass"
     print(f"✗ {rel}  ({ok}/{len(fences)} fence(s) OK, {tot_viol} violation(s))")
     print("\n".join(bad))
+    if reports:
+        print("\n".join(reports))
     return "fail"
 
 
@@ -224,7 +235,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="RL2 SHACL validator")
     ap.add_argument("targets", nargs="*", help="Markdown or Turtle files to validate")
     ap.add_argument("--shapes-only", action="store_true", help="Only load ontology + shapes")
-    ap.add_argument("-v", "--verbose", action="store_true", help="Print full SHACL reports")
+    ap.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print full SHACL reports for warnings and violations",
+    )
     ap.add_argument(
         "--per-fence",
         action="store_true",

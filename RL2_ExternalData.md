@@ -1,6 +1,6 @@
 ---
 title: "RL2 External Data Integration"
-subtitle: "Source Binding, Interaction Modes, and the Verified-Kernel Boundary"
+subtitle: "Source Binding, Interaction Modes, and the Pure-Evaluator Boundary"
 version: "0.1"
 status: "Draft"
 date: 2026-07-29
@@ -32,11 +32,11 @@ the gap *inside* them: how an `OperandSpec` becomes an actual value.
 Recall the pipeline (`RL2_Architecture.md` §Runtime Functions, `RL2_IR.md` §6):
 
 ```
-compile(U)  →  IR, ContextManifest, TargetIndex
+compile(U)  →  CompiledUniverse, ContextManifest
                     │
-lookup(TargetIndex, target)  →  applicable policies
+lookup(CompiledUniverse.targetIndex, target)  →  ClauseRef*
                     │
-manifest(ContextManifest, policies)  →  OperandSpec*      -- WHAT is needed
+manifest(ContextManifest, ClauseRef*)  →  OperandSpec*      -- WHAT is needed
                     │
 resolve(OperandSpec*, Request, Sources)  →  (Context, Missing*)   -- HOW it is obtained (this document)
                     │
@@ -50,18 +50,17 @@ below (`evalIR`) is already specified. `resolve`'s *contract* — best-effort, t
 idempotent — was already stated in `RL2_Architecture.md`; what was missing is what `Sources`
 *is* and what an evaluator is and is not allowed to do while implementing it.
 
-**The verified kernel never calls out.** `RL2_IR.md` §6 already establishes this:
-`IResolve` reads a fully-populated `Env`, "it never blocks on I/O." Nothing in this document
-changes that. External interaction — whatever form it takes — happens entirely in `resolve`,
-*before* `Env` is constructed and `evalIR` begins. This document is therefore scoped entirely
-to the **evaluator shell**, not the kernel; it constrains an unverified component, the same way
-`RL2_IR.md` §10 (Compiler Trust Model) scopes trust for the compiler.
+**The pure evaluator never calls out.** `RL2_IR.md` §6 establishes that condition evaluation
+reads a fully populated `Env` and never blocks on I/O. External interaction — whatever form it
+takes — happens entirely in `resolve`, *before* `Env` is constructed and `evalIR` begins.
+This document specifies that resolution boundary; it does not extend the guarantees of
+`evalIR` to external systems.
 
 ---
 
 ## 2. Normative Baseline: Out-of-Band Resolution
 
-**For the verified core, out-of-band is the only normative interaction mode.** The requester
+**For the specified evaluator core, out-of-band is the only normative interaction mode.** The requester
 supplies every operand value the applicable policies require, as `rl2p:ContextAssertion`s
 (`RL2_Protocol.md` §Context), before `resolve` runs. `resolve`'s job in this mode is not to
 *fetch* anything — it is to **project** the supplied assertions onto the required
@@ -91,14 +90,13 @@ supplies the missing assertions (querying whatever source it needs to, on its ow
 the evaluation) and resubmits. The evaluator itself never becomes a client of HR systems,
 directories, or asset catalogs in this mode — it only ever reads what it was given.
 
-**Why this is the baseline, not an option among equals.** Totality, determinism, and
-fuel-boundedness (`RL2_IR.md` §5's VM invariants; `RL2_Semantics.md`'s S2 result algebra) are
-proved against a `resolve` that cannot itself get stuck, time out, or return inconsistent
-answers across retries. Out-of-band resolution is the only mode with that property by
-construction. XACML's PIP (Policy Information Point) pattern — the evaluator calling out
+**Why this is the baseline, not an option among equals.** The totality, determinism, and
+structural bounds specified for `evalIR` assume that resolution completes before evaluation
+begins. Out-of-band resolution satisfies that assumption by construction. XACML's PIP
+(Policy Information Point) pattern — the evaluator calling out
 mid-decision — is the cautionary counter-example: it makes decision latency and availability
 depend on arbitrary external systems, and a PIP outage becomes a silent authorization failure
-mode. RL2's kernel is built specifically to not have that failure mode; out-of-band resolution
+mode. RL2's evaluator is designed specifically to avoid that failure mode; out-of-band resolution
 is what preserves it up to the evaluator boundary.
 
 ---
@@ -155,7 +153,7 @@ conforming binding.
 **In-band resolution — the evaluator calling a `SourceBinding`'s system live during
 `resolve` — is an explicitly non-core extension**, never a substitute for out-of-band
 resolution and never something a policy can require. It exists for deployments that accept the
-trade-off for convenience (no `NeedContext` round trip) and are willing to give up the kernel's
+trade-off for convenience (no `NeedContext` round trip) and are willing to give up the evaluator's
 totality guarantee over that portion of `resolve`.
 
 **Constraints (mandatory wherever in-band is used at all):**
@@ -189,11 +187,11 @@ totality guarantee over that portion of `resolve`.
   ("every read in a single evaluation observes Σ as of entry") is about `Σ`, not about
   `Sources`; a `SourceBinding` call and `Env` construction are the same "context materialization"
   step (`RL2_Architecture.md` §Evaluation Pipeline, ① Context Materialization) — nothing reads
-  a live source *during* the pure kernel's run.
+  a live source *during* the pure evaluator's run.
 
-**What in-band resolution does not get:** the verified kernel's proof obligations (§9
-equivalence in `RL2_IR.md`) cover `evalIR`, not `resolve`. An in-band `SourceBinding` is, like
-`resolutionFunction`/`lookupExternal` generally, **outside the verified core**
+**What in-band resolution does not get:** the evaluator equivalence obligation
+(`RL2_IR.md` §9) covers `evalIR`, not `resolve`. An in-band `SourceBinding` is, like
+`resolutionFunction`/`lookupExternal` generally, **outside the specified evaluator core**
 (`RL2_Semantics.md` §Path Resolution Constraints, S8a) — using it is a deployment choice that
 must be documented, not a claim that the deployment inherits the same guarantees as
 path-based, out-of-band resolution.
@@ -211,10 +209,9 @@ of live systems:
 MockSource = MockSource(function: string, canned: map<Request, Value>)
 ```
 
-This mirrors `RL2_IR.md` §10's compiler-testing model directly: the compiler is
-"tested, not verified" via differential testing against the denotational reference on the
-52-use-case corpus; the same discipline applies here — a policy that uses `resolutionFunction`
-operands should be differential-tested against a `MockSource` registry that pins expected
+This supplies deterministic fixtures for a future implementation. No RL2 compiler or
+differential test suite currently exists. A policy that uses `resolutionFunction`
+operands should be tested against a `MockSource` registry that pins expected
 inputs/outputs, so a test run never depends on a live external system's availability or
 current data. A `MockSource` is also how `required: true` operand handling (both the
 `ToBottom` and `ToMissing` failure paths, §4) gets exercised deterministically — a mock can be
@@ -273,6 +270,7 @@ rather than reopening all four modes.
   `lookupExternal`), §Path Resolution Constraints (S8a extension warning), §Profile Resolution
   (O3 — the analogous evaluator-local registry pattern this document reuses for
   `SourceRegistry`).
-- **RL2_IR.md** — §6 Eval-time Interaction (`IResolve`, snapshot-consistency), §10 Compiler
-  Trust Model (the tested-not-verified precedent this document's §5 follows).
+- **RL2_IR.md** — §6 Eval-time Interaction (pure context resolution and
+  snapshot-consistency), §10 Compiler Trust Model (the future conformance-testing strategy
+  followed by this document's §5).
 - **RL2_Protocol.md** — §Context (`rl2p:ContextAssertion`, the out-of-band supply mechanism).

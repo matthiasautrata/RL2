@@ -9,7 +9,7 @@ date: 2026-07-29
 # RL2 Intermediate Representation
 
 This document defines the RL2 **intermediate representation (IR)** — the target of
-`compile : PolicyUniverse → CompiledUniverse` — and the equivalence obligation that ties IR evaluation back to
+`compile : PolicyUniverse → (CompiledUniverse, ContextManifest)` — and the equivalence obligation that ties IR evaluation back to
 the denotational semantics. It closes the "IR = TBD" gap in **RL2_Architecture.md** and
 supplies the object every downstream reasoning step (differential testing, review, a future
 implementation) works against.
@@ -27,7 +27,7 @@ retained for historical rationale only.
 
 ## 1. Purpose and Scope
 
-`compile : PolicyUniverse → CompiledUniverse` was left undefined, which blocked the evaluator
+`compile : PolicyUniverse → (CompiledUniverse, ContextManifest)` was left undefined, which blocked the evaluator
 design and the compile-time-canonicalization story (SEM-4). This document defines the IR so
 that:
 
@@ -138,12 +138,10 @@ cases include both `Norm` leaves *and* `Promise` leaves.
 | `rl2:Promise [promisor; promisee; promisedState]` | §923–§1035; §1036 | `PromiseEntry(p, q, PromisedState(c), effCond)` |
 | `rl2:Promise [promisor; promisee; promisedDuty]` | §923–§1035; §1036 | `PromiseEntry(p, q, PromisedDuty(d), effCond)` |
 
-> **Correspondence note (PROM-1 residue, now aligned).** The semantics abstract syntax
-> previously declared `Policy ::= { clauses : Norm* }`, predating the ontology's `rl2:Clause`
-> (Norm ⊔ Promise) added in PROM-1. It has been aligned to `clauses : Clause*` with a
-> `Clause ::= Norm | Promise` production (RL2_Semantics.md §Policies), matching this IR and the
-> ontology — no change of meaning (the type-filtered comprehensions in `Out`/`Eval` already
-> exclude Promise clauses from norm matching; promises participate only via crystallization).
+> **Correspondence note.** The semantics uses non-empty `clauses : Clause+`, where
+> `Clause ::= Norm | Promise` (`RL2_Semantics.md` §Policies), matching `PolicyShape` and the
+> ontology. Type-filtered comprehensions in `Out`/`Eval` exclude Promise clauses from norm
+> matching; promises participate through their own lifecycle and crystallization rules.
 
 ### 3.2 Conditions (base and inductive cases)
 
@@ -219,8 +217,10 @@ datatype PromiseContent = PromisedAction(action: Action, object: Asset)
 Notes:
 
 - **`effCond` carries the CANON-1 push-down.** The compiler computes
-  `effCond = And(policyCondition, clauseCondition)` (RL2_Semantics.md §Policies) so the
-  evaluator never re-derives policy-level activation. This is a *normalization*, and its
+  `effCond = effectiveCondition(policy, clause)` (RL2_Semantics.md §Policies):
+  no conditions becomes `True`, one condition is retained directly, and two
+  conditions become `And(policyCondition, clauseCondition)`. The evaluator never
+  re-derives policy-level activation. This is a *normalization*, and its
   decision-preservation is part of the equivalence obligation (§9a).
 - **No `matchesAction` field.** Action/purpose matching is *eval-time* (§8): the request's
   chosen value is unknown at compile time. The compiler precomputes the `subsumptionIndex`;
@@ -345,7 +345,8 @@ datatype Env = Env(request: Request, agent: AgentView, asset: AssetView,
   though §9's equivalence obligation already stated it as a top-level parameter).
 
 - **ContextManifest.** The compiler statically extracts, from every condition tree, the exact
-  set of paths the policy will `RESOLVE`. That set is the policy's *ContextManifest*. At
+  set of paths the clause will resolve:
+  `ContextManifest : ClauseRef → set<OperandSpec>`. At
   runtime the host pre-materializes precisely those paths into `Env` before evaluation; a
   `RESOLVE` of an un-manifested path is a hard reject. Interaction is thus **bounded and
   declared** — no surprise fetch mid-evaluation.
@@ -509,20 +510,20 @@ compute — not that it picks a winner among effects that were never actually in
 **Commit-time validation (I4).** `applyEffects` is pure and total over a fixed `(Σ, fx)`; the
 part of "committing a transition" that is *not* pure — persistence, network delivery, retries —
 sits entirely in the deployment shell (RL2_Semantics.md §Versioned snapshot and commit) and is
-out of this document's proof surface. What the kernel *does* obligate the shell to do is
+out of this document's proof surface. What the evaluator contract obligates the deployment to do is
 re-derive, not merely re-apply: a commit against snapshot version `v` is valid only if the
 `fx` being applied is the `fx` that `evalIR` computes fresh against `Snapshot_v`, not an `fx`
 carried over from a possibly-stale prior evaluation:
 
 ```
-validateCommit(Snapshot_v, R, Ctx, strategy, fx_claimed) : bool =
-    let (_, _, fx_expected) = evalIR(compile(U), R, Snapshot_v.Σ, Ctx, strategy)
+validateCommit(CU, Snapshot_v, R, Ctx, strategy, fx_claimed) : bool =
+    let (_, _, fx_expected) = evalIR(CU, R, Snapshot_v.Σ, Ctx, strategy)
     in fx_claimed = fx_expected
 ```
 
 This closes the gap the CAS check alone does not: version-matching guarantees no *other*
 committed transition slipped in between read and write, but does not by itself guarantee the
-shell is committing the effect set the pure kernel actually computed for that version (e.g. a
+deployment is committing the effect set the pure evaluator actually computed for that version (e.g. a
 retried request whose `fx` was memoized against an earlier, since-superseded evaluation attempt
 could still carry a matching `v` by coincidence). Recomputing `fx_expected` at commit time —
 rather than trusting a caller-supplied `fx` — makes `commit` idempotent under retry for free:
@@ -563,7 +564,8 @@ For all policy universes U, requests R, states Σ, contexts Ctx, strategies stra
 
   Eval(U, R, Σ, Ctx, strategy) = (dec, Σ', duties)
     ≡
-  let (dec', duties', fx) = evalIR(compile(U), R, Σ, Ctx, strategy)
+  let (CU, M) = compile(U)
+  let (dec', duties', fx) = evalIR(CU, R, Σ, Ctx, strategy)
   in  dec = dec'  ∧  duties = duties'  ∧  Σ' = applyEffects(Σ, fx)
 ```
 
@@ -573,7 +575,8 @@ named lemmas:
 **(9a) Normalization theorem (outer IR).** `compile` is decision-preserving: pushing policy
 conditions into `effCond`, precomputing `targetIndex`, and materializing `subsumptionIndex`
 change *how* the answer is stored, not *what* is computed. Formally, `Out(U, Env)` (§1222)
-equals the envelope collected by the AST tree-walk over `compile(U)`. Derivation's monotonicity
+equals the envelope collected by the AST tree-walk over the `CompiledUniverse` returned by
+`compile(U)`. Derivation's monotonicity
 and order-independence (§7.1) make this a fold-equivalence; the subsumption-index caching
 lemma (§8) is a sub-case.
 
@@ -607,22 +610,23 @@ Violation, §Crystallization, §Remedial Generation). Three sub-lemmas:
   the equality obligation on `fx` is in scope.
 
 The split keeps 9a/9c as structural refinements close to the denotational spec, and localizes
-9b to a single pure function whose cases mirror the denotational rules directly — the
-differential-testing strategy of §10 is what gives this confidence in practice, since the
-project's scope stops at specification (SCOPE-1).
+9b to a single pure function whose cases mirror the denotational rules directly. Section 10
+defines how a future implementation is to test this correspondence; the current project stops
+at the specification (SCOPE-1).
 
 ---
 
 ## 10. Compiler Trust Model
 
 There is no separate verified kernel to trust and an untrusted shell around it (SCOPE-1): the
-whole pipeline — `compile` and `evalIR` alike — is a **specified, tested** design, not a
-mechanized one. Confidence comes from:
+whole pipeline — `compile` and `evalIR` alike — is a **specified design**, not a
+mechanized or implemented one. A future implementation is to be checked by:
 
-- **Differential testing** against the denotational reference on the 52-use-case corpus *and*
+- **Differential testing** against an independently executable reference on semantic
+  conformance vectors derived from the 52-use-case corpus *and*
   on generated policies (the canonical-form thesis makes machine-generated policies the
-  primary case, so they must be in the test set). This is the **Cedar-spec** model — reference
-  semantics kept separate from the executable, reconciled by differential testing
+  primary case, so they must be in the test set). This follows the **Cedar-spec** model —
+  reference semantics kept separate from the production executable and reconciled by differential testing
   (`research/verification-toolchain-comparison.md` §Lean/Cedar, retained as a historical
   precedent for this methodology even though its toolchain recommendation is superseded).
 - **CANON shrinks the surface that needs testing.** The canonical-form invariant is scoped to
@@ -646,8 +650,6 @@ mechanized one. Confidence comes from:
 - **SEM-1 / PROM-5.** `PromisedState` maintenance-duty ObligationState wiring (SEM-1) and
   `PromisedDuty` suretyship remedy (PROM-5) are the two behavioral wirings the crystallization
   *targets* (§7.2) hand off; the IR is well-defined regardless of how they resolve.
-- **PROM-1 residue.** Align RL2_Semantics.md abstract syntax `clauses : Norm* → Clause*` (§3.1
-  note) — a one-line follow-up.
 - **Implementation, out of scope entirely (SCOPE-1).** Building an actual evaluator (in any
   language), error-report surfacing, and step/debug tooling are not part of this project's
   current scope, which stops at specification. `research/design-forth-ir.md` records the
