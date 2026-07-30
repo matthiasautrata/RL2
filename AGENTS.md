@@ -122,8 +122,18 @@ If an instruction is unclear, ask. Don't guess. Reasonable assumptions often are
 | `RL2_Protocol.md` | Runtime evaluation protocol |
 | `RL2_Vocabulary.md` | Complete class/property reference (derived from TTL) |
 | `RL2_Primer.md` | Tutorial introduction |
-| `issues.md` | Consolidated issue tracker with priority bands |
+| `issues.md` | Active issue tracker — open issues, open decisions, current remediation backlog |
+| `issues-log.md` | Archive — resolved entries (with rationale), full changelog, deep-sweep WP-0…5, § Resolved |
 | `tools/validate.py` | SHACL validation harness for use cases and spec examples |
+
+**Issue-tracker workflow.** The tracker is split by status: `issues.md` holds only active work
+(open issues, open decisions, the current remediation backlog), and `issues-log.md` is the
+append-only archive (resolved entries with their rationale, the full changelog, deep-sweep
+WP-0…5, and the § Resolved decisions). Read `issues.md` for what's next; consult `issues-log.md`
+when an active entry cross-references a resolved decision ("SEM-9 (Resolved)", "WP-4/S7", "C6b").
+**On resolving an issue:** move its entry (with decision + rationale) to `issues-log.md`, and leave
+a one-line pointer in its band in `issues.md` if open work still references it. New review sweeps
+append to the log's changelog. Keep the split intact — don't reintroduce resolved detail into `issues.md`.
 
 ## 13. Validation
 

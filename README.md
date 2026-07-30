@@ -52,7 +52,8 @@ RL2 aims to be a semantic superset of ODRL 2.2 (a design goal — a complete ter
 
 | Document | Description |
 |----------|-------------|
-| [issues.md](issues.md) | Issue tracker, open decisions, resolved log, and merged review findings/remediation roadmap |
+| [issues.md](issues.md) | Active issue tracker — open issues, open decisions, current remediation backlog |
+| [issues-log.md](issues-log.md) | Archive — resolved entries, full changelog, and historical roadmap detail |
 | [RL2_References.md](RL2_References.md) | Citations and glossary |
 
 ## Quick Example
