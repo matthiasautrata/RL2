@@ -1,7 +1,13 @@
 # Verification Toolchain Comparison for Verified Stack-VM Policy Evaluator
 
+> **Superseded (SCOPE-1, 2026-07-29).** RL2 dropped both the stack-VM IR this comparison
+> targets and the Dafny/Go mechanization plan it recommends — the project's scope now stops at
+> specification, validated by differential testing (RL2_IR.md §10), not mechanized proof. This
+> document is retained for its research value (a snapshot comparison of formal-verification
+> toolchains circa mid-2026) but no longer reflects RL2's direction.
+
 **Research date:** July 25, 2026
-**Use case:** Stack-based VM, ~45 opcodes, needs termination/determinism/memory-safety proofs, extraction to deployable language. Project RL2 currently plans **Dafny→Go**.
+**Use case:** Stack-based VM, ~45 opcodes, needs termination/determinism/memory-safety proofs, extraction to deployable language. Project RL2 previously planned **Dafny→Go** (superseded, see note above).
 
 ---
 

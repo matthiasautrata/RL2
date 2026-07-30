@@ -113,7 +113,7 @@ This architecture ensures:
 2. **Formal grounding** — All access maps to `resolve`/`deref` in RL2_Semantics
 3. **Type safety** — Operands declare `rdfs:range`
 4. **Validation** — SHACL can verify correct usage
-5. **Mechanization** — Clear path to the Dafny→Go verified kernel
+5. **Specifiability** — Clear, precise mapping to the `evalCondition`/`evalIR` design (RL2_IR.md)
 6. **Interoperability** — Different backends implement resolution differently
 
 See [RL2_Semantics.md](../RL2_Semantics.md) for the formal `resolve` and `deref` specifications.

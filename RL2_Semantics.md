@@ -408,7 +408,7 @@ Event constraint (approval requirement) — a total Σ query, so `True`/`False` 
 
 ### Helper Function Specifications
 
-The condition semantics rely on several helper functions. For a verified kernel, these must be precisely specified.
+The condition semantics rely on several helper functions. For a testable evaluator, these must be precisely specified.
 
 #### resolve : LeftOperand × Env × Norm? → Value
 
@@ -465,7 +465,7 @@ Where:
 **Architectural Principle**: All runtime and contextual data access SHOULD go through declared `rl2:LeftOperand` instances with explicit `rl2:resolutionPath` or `rl2:resolutionFunction`. This ensures:
 - Type safety (operands can declare expected ranges)
 - Validation (SHACL can verify operand usage)
-- Mechanization (clear mapping to formal verification targets)
+- Specifiability (clear mapping to a precise, testable evaluator design)
 - Auditability (all data access points are declared)
 
 RL2 Core defines the following left operand instances:
@@ -2129,7 +2129,7 @@ variables*.
 
 **The Offer is the ceiling.** There is deliberately no tier above the Offer — no tenant-wide or
 global-across-Offers state. Cross-Offer coupling is out of scope for the core; a deployment that
-needs it layers it outside the verified kernel.
+needs it layers it outside the specified core.
 
 ### Active-Agreement set and derived shared limits
 
@@ -2308,60 +2308,32 @@ Under these constraints, `Eval` is **total**: it terminates for all well-formed 
 - Blocks on external resources (resolution is synchronous or fails to ⊥)
 - Diverges due to condition structure (bounded, acyclic)
 
-**Extension warning (S8a)**: `resolutionFunction` and `lookupExternal` are **outside the verified core**. The kernel's totality/complexity guarantees cover only `resolutionPath`-based resolution and the bounded operations above. Implementations using unbounded external queries via `resolutionFunction` or `lookupExternal` may exhibit non-polynomial or non-terminating behavior; such extensions MUST document their determinism and complexity characteristics and are not covered by the core proof obligations.
+**Extension warning (S8a)**: `resolutionFunction` and `lookupExternal` are **outside the specified core**. The totality/complexity guarantees stated for `evalCondition`/`evalIR` (RL2_IR.md §5, §9) cover only `resolutionPath`-based resolution and the bounded operations above. Implementations using unbounded external queries via `resolutionFunction` or `lookupExternal` may exhibit non-polynomial or non-terminating behavior; such extensions MUST document their determinism and complexity characteristics and are not covered by the core proof obligations.
 
 ---
 
 ## Proof scope and normative artifact
 
-RL2's formal guarantees are established by proving properties of the **reference evaluator written in Dafny and extracted to Go**. The extracted evaluator is the **normative realization** of RL2 semantics for implementation purposes. Proof obligations (S1–S6 and successors) apply to this evaluator and its extracted code, not to an open class of independent implementations.
+RL2's current scope is **specification, not mechanized proof or implementation** (SCOPE-1,
+`issues.md`, 2026-07-29). The normative artifact is this document together with
+**RL2_IR.md** (the AST, `evalCondition`, and `evalIR` design) and the SHACL-validated ontology
+— not a verified evaluator in any particular language. Proof obligations (S1–S6 and
+successors) are documented design properties of the specified evaluator (RL2_IR.md §5, §9),
+stated precisely enough that a future implementation can be tested against them by
+differential testing (RL2_IR.md §10), not properties discharged by a mechanized proof
+assistant.
+
+Datatype and function definitions in this document use Dafny-like algebraic-datatype notation
+purely as precise pseudocode, consistent with RL2_IR.md's notational convention — this is not
+a commitment to Dafny, or to any implementation language.
 
 ---
 
-## Mechanization
-
-*This section is non-normative.*
-
-RL2's semantics are explicitly designed for mechanization in Dafny, with the extracted Go evaluator as the endorsed runtime artifact. The abstract syntax maps cleanly to algebraic datatypes, and the operational rules are syntax-directed.
-
-## Target Platforms
-
-| Platform | Strengths | Status |
-|----------|-----------|--------|
-| **Dafny + Go extraction** | Algebraic types, Z3 backend, compiles to Go/Java/C#, cloud-native ecosystem | Primary (normative) |
-| **K Framework** | Executable semantics, automatic interpreter generation | Optional independent validation |
-| **Lean 4** | Dependent types, code extraction, AI-assisted proofs | Optional independent validation |
-| **Coq** | Mature ecosystem, CompCert precedent | Optional independent validation |
-
-## Dafny Example
-
-```dafny
-datatype Condition =
-  | AtomicConstraint(op: Operand, cmp: Operator, val: Value)
-  | And(left: Condition, right: Condition)
-  | Or(left: Condition, right: Condition)
-  | Not(inner: Condition)
-  | Xone(operands: seq<Condition>)
-
-function EvalCondition(c: Condition, env: Env): bool
-  requires ValidEnv(env)
-  ensures EvalCondition(c, env) ==> ConditionSatisfied(c, env)
-{
-  match c
-    case AtomicConstraint(op, cmp, val) => Apply(cmp, Resolve(op, env), val)
-    case And(l, r) => EvalCondition(l, env) && EvalCondition(r, env)
-    case Or(l, r) => EvalCondition(l, env) || EvalCondition(r, env)
-    case Not(inner) => !EvalCondition(inner, env)
-    case Xone(cs) =>
-      |set i | 0 <= i < |cs| && EvalCondition(cs[i], env)| == 1
-}
-```
-
-Transition rules are expressed as Dafny lemmas with pre/post-conditions verified by Z3.
-
 ## Proof Obligations
 
-The following properties should be proved for a verified implementation:
+The following are documented design properties of the specified evaluator (RL2_IR.md §5, §9),
+stated precisely enough to test an implementation against, not properties discharged by a
+mechanized proof assistant:
 
 1. **(S1) Determinism**: Given Σ, R, Ctx, evaluation produces a unique result
 2. **(S2) Progress**: Every well-typed expression either is a value or can step
@@ -2370,7 +2342,9 @@ The following properties should be proved for a verified implementation:
 5. **(S5) Timeout correctness**: Deadlines are eventually enforced
 6. **(S6) Totality**: `Eval` terminates for all well-formed inputs
 
-See **`RL2_IR.md`** for the compilation target these properties are proved against, and **`issues.md`** (Band 4 — Implementation) for the phased Dafny/Go implementation plan and deliverable specifications.
+See **`RL2_IR.md`** §5 and §9 for the interpreter these properties are stated against
+(`evalCondition`/`evalIR`), and its §10 for the differential-testing strategy that stands in
+for mechanized proof.
 
 For expressive characterization and comparison with other formalisms, see **RL2_Architecture.md**.
 

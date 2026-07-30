@@ -381,13 +381,14 @@ Every new construct is checked against this invariant before it is added.
 
 Executable representation of compiled policies.
 
-**Structure:** defined in **RL2_IR.md**. A two-lowering pipeline
-`Turtle → normalized AST (outer IR) → condition bytecode (inner IR)`: only conditions become
-a stack-machine executable, while the deontic layer stays a tree-walk over the AST. The AST
-base element is `Clause` (Norm ⊔ Promise); the verified kernel is a pure
-`evalIR : (CompiledPolicy, Request, Σ) → (Decision, DutySet, seq<Effect>)` (functional core +
-effect shell). The semantics-preservation obligation is stated there as a normalization
-theorem (outer) plus a VM-correctness lemma (inner) plus an effect-soundness lemma.
+**Structure:** defined in **RL2_IR.md**. A single-lowering pipeline
+`Turtle → normalized AST`: conditions embedded in the AST are interpreted in place by
+`evalCondition`, and the deontic layer is a tree-walk over the same AST — there is no separate
+compiled bytecode or stack machine (SCOPE-1, `issues.md`, 2026-07-29). The AST base element is
+`Clause` (Norm ⊔ Promise); `evalIR` is a pure
+`evalIR : (CompiledUniverse, Request, Σ, Ctx, Strategy) → (Decision, DutySet, seq<Effect>)`
+(functional core + effect shell). The semantics-preservation obligation is stated there as a
+normalization theorem plus an interpreter-correctness lemma plus an effect-soundness lemma.
 
 **Properties:**
 - Closed-form: No external references requiring resolution at evaluation time
@@ -659,7 +660,7 @@ equivalence `evaluate(compile(P).IR, …) ≡ semanticEval(P, …)` is stated as
 
 | Topic | Status | Notes |
 |-------|--------|-------|
-| IR structure | **Defined** — RL2_IR.md | Two-lowering hybrid (normalized AST + condition bytecode); functional core + effect shell |
+| IR structure | **Defined** — RL2_IR.md | Single-lowering (normalized AST only; conditions interpreted in place, no bytecode — SCOPE-1); functional core + effect shell |
 | Target matching algorithm | TBD (SEM-5) | Must handle direct, classification, sub-asset, subsumption; index shape fixed in RL2_IR.md |
 | Subsumption reasoning | **Decided** — RL2_IR.md §Subsumption | Declared hierarchy via `includedIn*`, bounded reachability (no OWL inference), eval-time match; matching algorithm → SEM-5 |
 | Attribute-level policies | TBD | How sub-asset targets are represented and matched |
@@ -732,7 +733,6 @@ Gaps addressed:
 - Unified semantics (prior work separated P, F, O)
 - Implementation-independent (not tied to Jena)
 - Hohfeldian coverage (Claims, Powers, Immunities)
-- Mechanization path (Dafny with Go extraction; other proof assistants for optional validation)
 
 ---
 
@@ -742,12 +742,12 @@ RL2 semantics are designed to be:
 
 1. **Precise** — Every construct has clear formal meaning
 2. **Modular** — Norms, conditions, roles, events are independent but composable
-3. **Mechanizable** — Maps directly to Dafny; other proof assistants are optional cross-checks
+3. **Specifiable** — Every rule is stated precisely enough to implement and test against, without committing to a mechanized proof (SCOPE-1)
 4. **Standalone** — Self-contained, no external standard dependencies
 5. **Operational** — Policies evolve through events and actions
 6. **Analytically useful** — Supports reasoning about compliance and violations
 
-**Normative implementation:** The reference evaluator is implemented and verified in Dafny, with extracted Go constituting the normative execution model. Alternative implementations must produce equivalent results for all valid inputs.
+**Scope:** RL2's current scope is design — the ontology, semantics, and IR specifications in this repository, validated by the SHACL gate and cross-checked by differential testing against hand-worked use cases. There is no reference implementation yet, verified or otherwise; a future implementation must reproduce this specification's decisions but is not itself part of this project's current deliverables (SCOPE-1, `issues.md`, 2026-07-29).
 
 ---
 

@@ -1,17 +1,21 @@
 # RL2 IR Design: Stack-Based Kernel
 
-**Status:** Design rationale — refined and narrowed by **RL2_IR.md** (2026-07-25, SEM-4)  
+**Status:** Design rationale — **superseded** by **RL2_IR.md** (SCOPE-1, 2026-07-29)  
 **Date:** 2025-12-20  
 **Alternative to:** Undefined IR in RL2_Architecture.md
 
-> **Note (SEM-4, 2026-07-25).** The adopted IR (**RL2_IR.md**) takes the stack VM from this
-> document but **scopes it to pure condition evaluation only**. In particular the
-> `EMIT-PERMIT` / `EMIT-FORBID` / `EMIT-OBLIGATION` opcodes proposed below are **dropped**:
-> emission is *derivation* (collecting a normative envelope under I/O logic), a set operation
-> in the structured AST layer, not a stack effect. `resolveDecision` and clause matching live
-> in the outer AST (tree-walk over `Clause = Norm ⊔ Promise`), and state changes are emitted
-> as effect descriptions applied by a shell. This file is retained as design rationale for the
-> Layer 0/1 stack machine; read **RL2_IR.md** for the normative IR design.
+> **Note (SCOPE-1, 2026-07-29).** RL2 dropped the stack-VM IR this document proposes.
+> **RL2_IR.md** now specifies a single-lowering pipeline (`Turtle → normalized AST`) with
+> conditions evaluated by direct recursive interpretation (`evalCondition`, RL2_IR.md §5) —
+> there is no compiled bytecode, no stack machine, and no opcode set. This document is retained
+> for historical rationale only and does not describe the current design; read **RL2_IR.md**
+> for the normative IR.
+>
+> *(Superseded intermediate state, SEM-4, 2026-07-25 — kept for the record: the adopted IR at
+> that time took the stack VM from this document but scoped it to pure condition evaluation
+> only, dropping the `EMIT-PERMIT`/`EMIT-FORBID`/`EMIT-OBLIGATION` opcodes proposed below since
+> emission is derivation, not a stack effect. That intermediate hybrid design is itself what
+> SCOPE-1 later replaced.)
 
 ---
 

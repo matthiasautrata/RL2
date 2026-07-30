@@ -31,7 +31,7 @@ Each issue has an ID, a status, a severity, the source(s) it came from, the file
 **North star.** RL2 aims to be an ODRL successor built for the reality that *nobody authors policies by hand any more*. Its two governing quality attributes are therefore:
 
 - **Generatable** — a model generating a policy should have exactly one correct RDF shape to emit for any given normative proposition. No authoring-convenience variation.
-- **Verifiable** — every construct must have deterministic, mechanized semantics (Dafny→Go) so a policy can be checked, and two policies compared, structurally.
+- **Verifiable** — every construct must have deterministic, precisely specified semantics (an interpreter design, not a black box) so a policy can be checked, and two policies compared, structurally. As of **SCOPE-1** (2026-07-29), "verifiable" means *specified precisely enough to test*, not mechanically proved — the project stops at design, not a mechanized proof or an implementation.
 
 Issues are tagged **[GEN]** (affects generatability / canonical form), **[VER]** (affects verifiability / formal semantics), or **[COV]** (vocabulary/coverage completeness) to show which attribute they serve. Many serve more than one.
 
@@ -75,7 +75,7 @@ Grounding the reviews against the current files surfaced several stale or incorr
 - **"Conflict resolution `resolveDecision` is undefined."** (fix §4.2, §13 Modeler) — It is defined at `RL2_Semantics.md:1240` (parameterized by strategy + priorities, with explicit ambiguity error on unbroken ties).
 - **"Power exercise semantics missing."** (fix §13 Modeler) — Power denotation and `ExercisePower` state transition are defined at `RL2_Semantics.md:738`.
 - **"Promise→Duty generation cut off mid-definition."** (fix §13) — The remedial generation rule exists at `RL2_Semantics.md:1007`. What is genuinely open is `restoreAction` (see SEM-1).
-- **"Technology stack undecided (Why3 vs Dafny vs Go)."** (fix §2, §12, P0.4) — Decided: **Dafny → Go**, committed (`de473f5`). The entire fix §12 deliberation is historical.
+- **"Technology stack undecided (Why3 vs Dafny vs Go)."** (fix §2, §12, P0.4) — Decided: **Dafny → Go**, committed (`de473f5`). The entire fix §12 deliberation is historical. **Superseded 2026-07-29 (SCOPE-1):** the Dafny→Go mechanization plan itself was later dropped — the project stops at specification, with no implementation track at all.
 - **"Prohibition can be expressed two ways (`prohibitedAction` vs `dutyAction NotDelete`)."** (critique 3) — There is no `dutyAction`/`NotDelete` idiom in core. `rl2:prohibitedAction` is already `rdfs:subPropertyOf rl2:action` (`rl2.ttl:309`). The real question (CANON-3) is class modeling, not two competing idioms.
 - **"Counterparty can appear at multiple container levels."** (critique 3) — `rl2:counterparty` has domain `rl2:Norm` only; containers have no counterparty property, so container-level inheritance is not even expressible. The real question (CANON-4) is redundancy among `counterparty` / `claimHolder` / `claimAgainst` / `subject`.
 
@@ -85,7 +85,7 @@ Grounding the reviews against the current files surfaced several stale or incorr
 
 **Band 0 — Canonical form (the generatability thesis).** CANON-1..5. Establishes the "exactly one shape per proposition" invariant that everything downstream depends on. Do first: later coverage work should be authored in canonical form from the start.
 
-**Band 1 — Formal-semantics soundness (verifiability).** SEM-1..14. Closes the gaps that block Dafny mechanization and the S1/S4/S6 proofs, including `mostSpecific` (SEM-9), guard predicates (SEM-10), `nullRequest` for PromisedState (SEM-11), the stale Dafny example (SEM-12), external-data binding (SEM-13), and the closed-world stance (SEM-14).
+**Band 1 — Formal-semantics soundness (verifiability).** SEM-1..14. Closes the gaps that block a precise, testable specification and the S1/S4/S6 documented properties, including `mostSpecific` (SEM-9), guard predicates (SEM-10), `nullRequest` for PromisedState (SEM-11), the stale Dafny example (SEM-12, now moot post-SCOPE-1 — see Resolved), external-data binding (SEM-13), and the closed-world stance (SEM-14).
 
 **Band 1.5 — Protocol SHACL & cross-document consistency.** CONS-1..6. SHACL/protocol-level bugs and doc-vs-ontology mismatches surfaced by the fix.md/fix2.md sweep — distinct from Band 3.5's use-case-corpus scope.
 
@@ -93,15 +93,15 @@ Grounding the reviews against the current files surfaced several stale or incorr
 
 **Band 3 — Expressiveness coverage.** EXPR-1..8. Recurrence, quorum, temporal arithmetic (EXPR-1/2/3 decided 2026-07-25 — all profile-level/excluded, no core impact), collections, delegation, revocation (EXPR-4/5/6 still open, confirmed independent of Band 1 IR work), and implies/iff + ODRL relation/partOf coverage (EXPR-7/8, both deferrable).
 
-**Band 3.5 — Use-case corpus quality.** VALID-1..4. Systemic modeling defects and non-parseable drafts surfaced by the new `tools/validate.py` SHACL harness; spec-doc examples brought up to the same validation standard; VALID-4 flags that the corpus doesn't yet exercise conflict resolution, the Forth-IR path, or external data.
+**Band 3.5 — Use-case corpus quality.** VALID-1..4. Systemic modeling defects and non-parseable drafts surfaced by the new `tools/validate.py` SHACL harness; spec-doc examples brought up to the same validation standard; VALID-4 flags that the corpus doesn't yet exercise conflict resolution, the IR-compilation path, or external data.
 
-**Band 4 — Implementation.** IMPL-1..3. Dafny kernel, proofs, Go extraction. IMPL-1 now specifies a de-risking spike (evm-dafny-style, 3-4 opcodes) before full toolchain commitment.
+**Band 4 — Implementation.** **Permanently out of scope as of SCOPE-1 (2026-07-29)** — see Resolved. IMPL-1..3 (Dafny kernel, proofs, Go extraction) are closed out-of-scope, not deferred: the project's scope stops at a reviewed docs+spec+semantics+IR design, with no committed implementation or mechanized-proof track.
 
 **Band 5 — Documentation hygiene.** DOC-1..11. Version normalization, dedup, navigation, and (new) fixing three concrete stale/incorrect cross-references (DOC-9/10/11).
 
 **Band 6 — AI-generation tooling.** LLM-1. Prompt templates, few-shot examples, and a validation harness for NL→RL2 generation — not yet started.
 
-**Current sequencing decision (2026-07-25).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus confidence that the IR/transpiler/compiler/runtime are feasible — not to start Band 4 implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, actual Dafny/Go coding) and OPEN-1/2/3 are deferred out of scope for now. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone. SEM-4 (IR definition) resolved 2026-07-25 — `RL2_IR.md` authored; next is SEM-5 (target matching), then SEM-1/2/3.** The new **SEM-9..14** and **CONS-1..6** (2026-07-25, merged from fix.md/fix2.md) slot into the same agreed order as sharpenings of SEM-4/SEM-5 work — no resequencing needed; they surface as that work is picked up, not before.
+**Current sequencing decision (2026-07-25, scope narrowed 2026-07-29 by SCOPE-1).** Goal right now is to *finish the ontology/spec/semantics* — documentation plus a thoroughly reviewed IR design — not to build or prove an implementation. Agreed order: **PROM-1 → SEM-1/2/3 → SEM-4 → SEM-5 → SEM-6/7/8 → HOHF-1/2 → HOHF-4 → PROM-2..8 → DOC-2/4/5/6.** Band 4 (IMPL-1..3, Dafny/Go coding) and OPEN-1/2/3 are **permanently out of scope** per SCOPE-1 — not deferred pending later resourcing, but dropped from the project's goals entirely. Each item is discussed and decided before its file(s) are touched; ontology edits (`rl2.ttl`/`rl2p.ttl`/`*-shacl.ttl`) require explicit sign-off per AGENTS.md §7. **PROM-1 resolved 2026-07-25 — interim milestone. SEM-4 (IR definition) resolved 2026-07-25 — `RL2_IR.md` authored; next is SEM-5 (target matching), then SEM-1/2/3.** The new **SEM-9..14** and **CONS-1..6** (2026-07-25, merged from fix.md/fix2.md) slot into the same agreed order as sharpenings of SEM-4/SEM-5 work — no resequencing needed; they surface as that work is picked up, not before.
 
 ---
 
@@ -128,7 +128,7 @@ WP-4  S7 conflict/provenance ──────┬─ ODRL conflict compat (WP-7
 **Reconciliations — where `fix.md` re-opens an already-made decision** (do not act blindly):
 
 - **C1** (`targetNorm` RDFS range makes a targeted Promise a Norm). Already handled deliberately: **PROM-7/PROM-1** kept `rdfs:range rl2:Norm` on purpose (it is the RDFS range-entailment *auto-typing crutch* the terse-fence corpus depends on) and did the real widening in SHACL via `sh:or (Norm Promise)`. fix.md's "remove the range" recommendation would regress `RL2_Primer.md`/`RL2_Vocabulary.md`. **Residual actually open:** add disjointness / `sh:not` making the Promise≠Norm distinction *testable*, and decide the `StatefulClause`-vs-explicit-typing question as part of **C5** (canonical AST) — where the entailment crutch goes away anyway. Folded into WP-1/WP-2, not a fresh C1.
-- **I2/I3** (typed-AST-first; runtime solver-free). Largely **already the adopted stance** — `RL2_IR.md`/SEM-4 chose a hybrid (deontic tree-walk + condition bytecode) and §8.3 already keeps entailment/closure at ingestion. WP-1 ratifies + records the "measure before committing to bytecode" caveat, not a redesign.
+- **I2/I3** (typed-AST-first; runtime solver-free). Largely **already the adopted stance** — `RL2_IR.md`/SEM-4 chose a hybrid (deontic tree-walk + condition bytecode) and §8.3 already keeps entailment/closure at ingestion. WP-1 ratifies + records the "measure before committing to bytecode" caveat, not a redesign. **Superseded 2026-07-29 (SCOPE-1):** the bytecode lowering was dropped outright rather than benchmarked — `RL2_IR.md` now specifies a single-lowering AST with direct interpretation (`evalCondition`), no condition bytecode at all.
 - **E1** ≈ **SEM-13**, already specified in detail (ContextManifest, out-of-band baseline, in-band as extension). WP-5 *executes* SEM-13, it is not a new finding.
 - **C3/C4** partly resolved: **CONS-6** capped constraint-shape multiplicity; **CONS-1** collapsed fulfillment-evidence to `sh:or`. Residual = node-shape `sh:maxCount 1` on subject/action/object/promisor/claim-party/etc. (C3) and the `rl2p:ContextAssertion` `contextValue`/`contextValueRef` exclusivity (C4) — small, folded into WP-1.
 - Several **D-items** are done (DOC-*); **D3/D4/D5** (claim-downgrade, reversed determinism formulas, stale refs) are genuinely open and sit in WP-0/WP-8.
@@ -177,7 +177,7 @@ Original item list retained below for reference.
 - **C7 / EXPR-4** — `rl2:AssetCollection rdfs:subClassOf rl2:Asset` (a collection is itself a valid target and can nest); membership bound to the **evaluation snapshot**; **direct membership only** in core (transitive flattening = profile/derived). Updated rl2.ttl (`AssetCollection`, `member`), `RL2_Semantics.md §Request Matching`, `RL2_Vocabulary.md`.
 - **S8a / SEM-8** — `rl2:after` and opaque `resolutionFunction` explicitly scoped **outside the verified core** (annotated in rl2.ttl; kernel MUST NOT depend on them); path/condition/collection/universe bounds recast as **conformance parameters** (`MaxPathDepth`, `MaxConditionDepth`, `MaxCollectionSize`, `MaxPolicyUniverse`) — MUST-enforce, not `MAY`. Updated `RL2_Semantics.md`, `RL2_Vocabulary.md`.
 - **O3** — new profile-declaration machinery: `rl2:Profile` + `rl2:profileVersion` (SemVer) + `rl2:requiresProfile`; **fail-closed unknown-profile rule** and **same-major SemVer negotiation** specified in `RL2_Semantics.md §Profile Resolution` and `profiles/README.md`; structural `ProfileShape`/`RequiresProfileShape` SHACL added. **Namespace move off `rl2.example` stays deferred** (OPEN-1/2, pre-publication) as agreed.
-- **I2 / I3** (ratified) — recorded in `RL2_IR.md §2`: typed-AST evaluator first (bytecode only on a shown benchmark/portability need); runtime stays solver-free (entailment/closure at ingestion).
+- **I2 / I3** (ratified) — recorded in `RL2_IR.md §2`: typed-AST evaluator first (bytecode only on a shown benchmark/portability need); runtime stays solver-free (entailment/closure at ingestion). **Superseded 2026-07-29 (SCOPE-1):** bytecode dropped outright (no benchmark gate) — see SCOPE-1 in § Resolved.
 - **C1 residual / C3 / C4 / V1** — C1: `PromiseNotConcreteNormShape` makes Promise≠Norm testable at the *concrete-subclass* level without regressing the `targetNorm` RDFS crutch (full `owl:disjointWith` deferred to C5). C3: `sh:maxCount 1` on all singular norm fields (subject/action/object/counterparty/affectsNorm/exposedTo/immuneFrom/promisor/promisee) — this surfaced and fixed a latent IRI-reuse bug (`ex:accessPrivilege` defined twice in `compliance-attestation.md`). C4: `ContextAssertion` value/ref exclusivity via `sh:xone`. V1: exempted `rl2p:requirementFulfilled` from the operand-recommendation warning, then cleared the two remaining example-operand advisories (`workPeriodOperand`, `processorComplianceAssertionOperand`) → **warning-free gate reaches a true 52/52**.
 
 **Deferred out of WP-1 (as agreed):** namespace move off `rl2.example` (OPEN-1/2); full `owl:disjointWith(Norm, Promise)` → C5/WP-2 (removes the entailment crutch). Original decision text retained below for traceability.
@@ -315,9 +315,8 @@ Dependency order S6 → S5 → F3/P3 (matches fix.md's own note).
 
 **Depends on:** WP-2 … WP-7 as noted · **Status:** Open · The trailing Class-2 volume + dependent Class-1 consolidation.
 
-- **S8b / IMPL-2** — rebuild the stateful-trace / totality / termination / complexity proofs after S2, S4–S7, E1, I1 are closed; restate complexity over the real work terms. *(sharpens IMPL-2)*
-- **L1 / L2 / IMPL-1** — the Dafny 4.11 → Go de-risking spike (RESOLVE, typed comparison, three-valued AND, exact-one, error propagation, one versioned effect) and the Lean-as-oracle comparison on the same fixtures. *(sharpens IMPL-1)*
-- **T1 / VALID-4** — convert the 52 narrative use cases into golden `input/AST-digest/state/context/envelope/decision/effects/next-state` vectors + negative vectors + the coverage matrix (§11). *(sharpens VALID-4)*
+- ~~**S8b / IMPL-2**~~ and ~~**L1 / L2 / IMPL-1**~~ — **struck, out of scope (SCOPE-1, 2026-07-29).** These sharpened the stateful-trace/totality proofs and the Dafny→Go de-risking spike, both part of the dropped mechanization track; see Resolved (IMPL-1/2/3).
+- **T1 / VALID-4** — convert the 52 narrative use cases into golden `input/AST-digest/state/context/envelope/decision/effects/next-state` vectors + negative vectors + the coverage matrix (§11), for differential testing against the specified `evalCondition`/`evalIR` design (RL2_IR.md §10) — not for a mechanized proof. *(sharpens VALID-4)*
 - **D1** — W3C-style conformance classes + stable requirement IDs + RFC 2119 boilerplate, once the semantic decisions are closed. *(new; Band 5)*
 - **A1 / LLM-1** — the strict parse→validate→type-check→normalize→compile ingestion pipeline with unknown-term/heuristic-repair rejection + adversarial-input tests. *(sharpens LLM-1, §7)*
 - **R1b** — separate privacy-profile category classes from runtime individuals; add profile SHACL; narrow the GDPR legal claims. *(new; §14)*
@@ -506,6 +505,8 @@ Three condition guard predicates gate the `Claim`, `Power`, and `Immunity` denot
 **Files:** `RL2_Semantics.md` (Dafny Example, Mechanization section)
 
 The Dafny abstract-syntax example included `Temporal(start, end)` and `Context(path, cmp, val)` Condition variants that don't exist in the current abstract syntax: `TemporalConstraint` was removed in favor of `AtomicConstraint` + `currentDateTime`, and `Context` was replaced by `AtomicConstraint` + `resolutionPath`. It also omitted `Xone` even though it's present in the abstract syntax, and `EvalCondition`'s match fell through to `// ...` (non-exhaustive, would not compile). **Fixed:** removed `Temporal`/`Context`, added `Xone(operands: seq<Condition>)`, and made `EvalCondition` exhaustive (`Xone` case counts true operands via a set comprehension and requires exactly one).
+
+**Superseded note (SCOPE-1, 2026-07-29):** the "Dafny Example" and "Mechanization"/"Target Platforms" sections this issue fixed were later removed from `RL2_Semantics.md` entirely, along with the rest of the Dafny/Go mechanization track. `evalCondition`'s pseudocode now lives in `RL2_IR.md` §5 instead.
 
 ### SEM-13 — External data integration lacks a binding specification
 
@@ -893,22 +894,33 @@ checked here).
 
 ## Band 4 — Implementation
 
+**Permanently out of scope as of SCOPE-1 (2026-07-29).** See § Open Decisions → SCOPE-1 for the
+full rationale. IMPL-1..3 are closed below with their history preserved, not deleted, since
+they record real prior decisions (the Dafny→Go toolchain choice, the de-risking-spike design)
+that a future implementation effort could still pick back up.
+
 ### IMPL-1 — Dafny core modules
 
-**Status:** Open · **Severity:** S1 · **Source:** backlog Phase 1, fix §12 · **Tags:** [VER]
+**Status:** ✅ Resolved — out of scope (SCOPE-1, 2026-07-29) · **Severity:** S1 · **Source:** backlog Phase 1, fix §12 · **Tags:** [VER]
 Translate `RL2_Semantics.md` to Dafny. Blocked on SEM-4 (IR) and SEM-5 (target matching). Toolchain decided (Dafny→Go).
 
 **De-risking spike required first (fix.md Task 12/§6.2, confirmed by fix2.md §6):** before full commitment, replicate a minimal evm-dafny-style proof (3-4 opcodes — DUP, DROP, ADD, IF) in Dafny 4.11 (pin this version to avoid nightly churn), extract to Go, and confirm the generated Go compiles and runs correctly. A 2-3 day spike, using [Consensys/evm-dafny](https://github.com/Consensys/evm-dafny) as the architectural reference — a verified stack VM in Dafny with the same shape RL2 needs. fix2.md notes that `RL2_IR.md`'s design of keeping deontic logic in the AST tree-walk and only conditions in the bytecode VM shrinks the verification surface to ~30 opcodes of pure boolean evaluation, more tractable than the original ~45-opcode `design-forth-ir.md` estimate. If the spike succeeds, proceed with Dafny→Go as planned. If it fails (Go extraction issues, proof friction), fall back to **Creusot** (verify Rust directly — eliminates the extraction gap entirely, but is pre-1.0 and lacks a `--enforce-determinism` equivalent).
 
+**Closed 2026-07-29 (SCOPE-1):** the stack-bytecode IR this spike targeted no longer exists (RL2_IR.md now specifies a direct AST interpreter, `evalCondition`), and the project no longer has an implementation track for any IR representation. This entry's content is retained as a historical record of the toolchain evaluation, not an active plan.
+
 ### IMPL-2 — Discharge proofs S1 / S4 / S6
 
-**Status:** Open · **Severity:** S1 · **Source:** backlog, fix · **Tags:** [VER]
+**Status:** ✅ Resolved — out of scope (SCOPE-1, 2026-07-29) · **Severity:** S1 · **Source:** backlog, fix · **Tags:** [VER]
 S1 Determinism, S4 Duty-state consistency, S6 Totality. Fold SEM-8's obligations in. These substantiate the "formally verified" claim.
+
+**Closed 2026-07-29 (SCOPE-1):** S1/S4/S6 remain documented design properties (RL2_Semantics.md § Proof Obligations, RL2_IR.md §5/§9), but are no longer proof obligations for a mechanized evaluator — there is none. Confidence comes from differential testing (RL2_IR.md §10), not mechanized proof.
 
 ### IMPL-3 — Go extraction, CLI, property tests
 
-**Status:** Open · **Severity:** S2 · **Source:** backlog · **Tags:** [VER]
+**Status:** ✅ Resolved — out of scope (SCOPE-1, 2026-07-29) · **Severity:** S2 · **Source:** backlog · **Tags:** [VER]
 `rl2-eval --policy p.ttl --request r.json`; property-based tests; validate against use cases 1–17.
+
+**Closed 2026-07-29 (SCOPE-1):** no reference implementation is planned; this entry described the last stage of a track the project no longer pursues.
 
 ---
 
@@ -943,6 +955,68 @@ The canonical-form invariant makes RL2 well-suited for LLM generation (graph iso
 ---
 
 ## Resolved
+
+### SCOPE-1 — Drop the stack/Forth IR and the Dafny/Go mechanization track; scope stops at specification
+
+**Resolved 2026-07-29.** RL2's IR collapses from a two-lowering pipeline
+(`Turtle → normalized AST → condition bytecode`, the latter a Forth-style stack VM with ~30
+opcodes) to a **single lowering**: `Turtle → normalized AST`, with conditions evaluated by
+direct recursive interpretation (`evalCondition`, RL2_IR.md §5) over the same AST. There is no
+compiled bytecode, no stack machine, no opcode set, and no second equivalence obligation for a
+VM layer — `evalCondition(c, env, Σ)` unifies what were previously two evaluation surfaces
+(pure conditions taking only `Env`, `EventConstraint` handled separately as an "AST-layer"
+case reading Σ) into one function taking both.
+
+Separately, and independently motivated: RL2 **drops the planned Dafny→Go mechanization
+track** (formerly IMPL-1..3, Band 4) entirely. The project's scope stops at a **thoroughly
+reviewed docs + spec + semantics + IR design** — not a mechanized proof, not a reference
+implementation. Confidence in the design comes from differential testing against the
+denotational reference (the Cedar-spec model, RL2_IR.md §10), not from a proof assistant.
+
+**Why:** the stack-VM layer existed to give the deontic tree-walk a "pure, verifiable" core to
+call into — a purity boundary that only mattered if something downstream (Dafny) needed a
+small, syntax-directed, side-effect-free evaluator to verify. Once mechanized verification is
+out of scope, that boundary has no job left to do: it added a second representation, a second
+correctness lemma (VM-correctness, §9b), and an artificial split between pure and
+Σ-reading condition evaluation, for no behavioral difference in what policies can express or
+how they're evaluated. Dropping both the VM and the proof track at once is simpler than
+dropping either alone, since the VM's main raison d'être *was* being a Dafny verification
+target.
+
+**What changed:**
+- **`RL2_IR.md`** — §2 (pipeline diagram, now single-lowering), §3.2 (dropped the bytecode
+  lowering table column), §5 (replaced the `Value`/`Instr`/`VM` datatypes and opcode set with
+  `evalCondition(c, env, Σ): Value`, a direct pure recursive function over `Condition`), §6-§9
+  (interpreter framing; §9b restated as the "interpreter-correctness lemma"), §10 (compiler
+  trust model rewritten around differential testing only, no "verified kernel"/evm-dafny
+  precedent), §11 (implementation handoffs replaced with an out-of-scope note), References.
+- **`RL2_Architecture.md`** — IR structure description, Open Design Questions table, "Gaps
+  addressed" mechanization-path bullet, Design Goals (#3 reworded from "Mechanizable" to
+  "Specifiable"), "Normative implementation" paragraph replaced with a scope statement.
+- **`RL2_Semantics.md`** — "Proof scope and normative artifact" rewritten (no more
+  "reference evaluator written in Dafny and extracted to Go" as the normative artifact); the
+  "Mechanization"/"Target Platforms"/"Dafny Example" sections removed (the Dafny Example was
+  already stale per SEM-12 and is now moot); "Proof Obligations" reframed as documented design
+  properties, not obligations for a verified implementation.
+- **`AGENTS.md`** — §1 drops "formal verification" from RL2's description; §2 Project Phase's
+  "Next: Dafny/Go implementation" plan replaced with this scope decision; §8's "Dafny
+  encodability" formal property renamed "Specifiability."
+- **`FAQ/RL2_FAQ.md`, `RL2_ODRL_Comparison.md` §3.2, `RL2_ExternalData.md` §7,
+  `profiles/README.md`** — Forth-bytecode/Dafny→Go mentions reworded to describe the direct
+  AST interpreter and the specification-only scope.
+- **`issues.md`** (this file) — Band 4 (IMPL-1..3) closed out-of-scope rather than deferred;
+  WP-8's `S8b`/`IMPL-2` and `L1`/`L2`/`IMPL-1` sub-items struck; the "Verifiable" north-star
+  bullet and the Priority-bands/sequencing-decision prose updated to reflect the narrowed
+  scope.
+- **`research/design-forth-ir.md`, `research/verification-toolchain-comparison.md`** — marked
+  superseded; retained for historical rationale only, not as active design input.
+
+**Not affected:** the ontology (`rl2.ttl`, `rl2p.ttl`, `rl2-shacl.ttl`, `rl2p-shacl.ttl`) — this
+is a pure IR/scope decision, no `.ttl` file changed. The Kleene three-valued logic (S2), the
+derive-then-resolve two-phase evaluation (I/O logic), the effect algebra (§7), and all
+Band 0-3/5-6 ontology and semantics work are unaffected — this decision is scoped entirely to
+*how conditions are evaluated* and *what the project commits to building*, not *what RL2
+means*.
 
 ### ACT-1 — Action ontological status & hierarchy mechanism
 

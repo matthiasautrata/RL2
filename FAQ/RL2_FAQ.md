@@ -183,7 +183,7 @@ This allows:
 - Deterministic evaluation
 - Parallel execution
 - Clean conflict detection
-- Compilation to the RL2 IR (a Forth-style stack bytecode for conditions, verified in Dafny and extracted to Go — see `RL2_IR.md`)
+- Compilation to the RL2 IR (a normalized AST with conditions interpreted directly — see `RL2_IR.md`)
 
 ### Why does RL2 distinguish between events and duties?
 
@@ -282,13 +282,14 @@ These are intentionally separated:
 
 ### Is RL2 tied to a specific policy engine?
 
-No, but RL2 does have one concrete, verified execution path rather than a
+No, but RL2 does have one concrete, specified execution path rather than a
 multi-backend compiler. Policies compile to a single RL2 intermediate
-representation — a normalized AST for the deontic layer plus a Forth-style
-stack bytecode for condition evaluation (see `RL2_IR.md`) — which is verified
-in Dafny and extracted to Go. Alternative backends (Rego/OPA, Cedar, Prolog,
+representation — a normalized AST whose conditions are interpreted directly
+by `evalCondition` (see `RL2_IR.md`); there is no compiled bytecode or
+separate execution backend. Alternative backends (Rego/OPA, Cedar, Prolog,
 Datalog) are conceivable future targets for that same IR, but none is
-implemented or currently planned; the RL2 IR itself is the engine.
+implemented or currently planned — nor is a reference implementation of the
+RL2 IR itself, which for now remains a specification (SCOPE-1).
 
 ### Does RL2 require a knowledge graph?
 

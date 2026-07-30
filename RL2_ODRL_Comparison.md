@@ -10,8 +10,11 @@
 > ODRL→RL2 justification this document exists to provide need room the Primer
 > doesn't have. The stale claims previously flagged here (2026-07-25) have been
 > corrected: §1.1 no longer cites a nonexistent media profile, §2.2's Event Log
-> claim is now confirmed accurate against `RL2_Semantics.md`, §2.1 reflects the
-> current crystallization model, and §3.2 names the decided Dafny→Go toolchain.
+> claim is now confirmed accurate against `RL2_Semantics.md`, and §2.1 reflects
+> the current crystallization model. §3.2's mechanization-toolchain framing
+> (2026-07-26) was later superseded by **SCOPE-1** (2026-07-29, `issues.md`):
+> RL2 dropped the Dafny→Go mechanization plan in favor of a specified,
+> differential-tested design — see the updated §3.2 below.
 
 ## Executive Summary
 
@@ -149,16 +152,23 @@ This leads to confusion in processing engines about whether a duty must be done 
 
 ## 3. Semantic Soundness
 
-RL2 is built on a formal foundation designed for mechanization (formal verification).
+RL2 is built on a formal foundation designed to be precise and testable.
 
 ### 3.1 I/O Logic (Input/Output Logic)
 RL2 utilizes **Makinson & van der Torre’s I/O Logic** for its derivation engine.
 *   **Derivation (Monotone):** The engine first derives *all* potential norms (candidates) from the policy and state. This phase is monotonic (adding facts never removes derived norms).
 *   **Resolution (Non-Monotone):** A separate strategy phase applies evaluator-configured priorities to resolve conflicts (e.g., a `prohibit-overrides` strategy, analogous to XACML combining algorithms) — priority is evaluator configuration, not fixed policy vocabulary.
-*   This separation ensures that the core reasoning is logically sound and mathematically provable.
+*   This separation ensures that the core reasoning is logically sound and precisely specified.
 
-### 3.2 Formal Verification Targets
-The RL2 semantics are written to be mechanizable via **Dafny → Go**: verified evaluator logic is authored and proved in Dafny (safety properties such as "a specific prohibition can never be bypassed" are proof obligations there), then extracted/compiled to Go for the runtime. Creusot (verifying Rust directly) is the fallback path if the Dafny→Go toolchain spike does not pan out. See `research/verification-toolchain-comparison.md` for the full toolchain comparison.
+### 3.2 Formal Specification, Not Mechanized Proof
+RL2's current scope is a thoroughly specified semantics and IR (`RL2_Semantics.md`,
+`RL2_IR.md`), not a mechanized proof or a reference implementation (**SCOPE-1**, `issues.md`,
+2026-07-29). Safety properties such as "a specific prohibition can never be bypassed" are
+stated as documented design properties (RL2_Semantics.md §Proof Obligations) precise enough to
+test an implementation against by differential testing, rather than proof obligations
+discharged in a proof assistant. An earlier plan to mechanize the evaluator in Dafny with Go
+extraction was considered and dropped; `research/verification-toolchain-comparison.md` records
+that comparison for historical reference only.
 
 ### 3.3 Event-Indexed State
 Unlike ODRL's static snapshot of the world, RL2 makes state a function of accumulated events.

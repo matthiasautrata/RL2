@@ -4,7 +4,7 @@ Orientation for collaborators — human or AI. Read this first.
 
 ## 1. What RL2 Is
 
-RL2 (Rights Language 2) is a policy language for digital rights and data governance — a semantic superset of ODRL 2.2, designed as a candidate for ODRL 3.0. It adds Hohfeldian normative positions, Promise Theory, operational semantics, and formal verification.
+RL2 (Rights Language 2) is a policy language for digital rights and data governance — a semantic superset of ODRL 2.2, designed as a candidate for ODRL 3.0. It adds Hohfeldian normative positions, Promise Theory, and operational semantics. The project's current scope is design and specification, not mechanized proof or implementation (SCOPE-1, `issues.md`).
 
 **Foundation:** RDF, OWL, SHACL, ODRL, I/O Logic, deontic logic.
 
@@ -16,9 +16,17 @@ RL2 (Rights Language 2) is a policy language for digital rights and data governa
 
 **Current:** Spec work — extensions, semantics for ontology and protocol. Bands 1-3 in `issues.md` (SEM-1..8, HOHF-1..5, PROM-1..8, EXPR-1..6). The ontology and protocol are the priority; documentation follows.
 
-**Next (parallel, gradual):** Dafny/Go implementation, starting with a de-risking spike — replicate a minimal evm-dafny-style proof (3-4 opcodes) in Dafny 4.11, extract to Go, confirm it works. Use [Consensys/evm-dafny](https://github.com/Consensys/evm-dafny) as architectural reference. Creusot (verify Rust directly) is the fallback if the Dafny→Go spike fails. See `research/verification-toolchain-comparison.md` for the full toolchain comparison.
+**Scope decision (SCOPE-1, 2026-07-29):** RL2 stops at a thoroughly reviewed docs + spec +
+semantics + IR design. There is no committed implementation track — the earlier two-lowering
+(AST + condition bytecode) IR design and the Dafny/Go mechanization plan are both dropped in
+favor of a single-lowering IR (Turtle → normalized AST, interpreted directly by
+`evalCondition`/`evalIR`; see `RL2_IR.md`) validated by differential testing rather than a
+proof assistant. `research/design-forth-ir.md` and
+`research/verification-toolchain-comparison.md` record that earlier direction and are retained
+for historical reference only. A future implementation is out of scope for this project as
+currently defined.
 
-Spec work takes precedence until it nears a stable state. Do not start Dafny implementation until the open SEM issues are resolved.
+Spec work takes precedence until it nears a stable state.
 
 ## 3. Working Stance
 
@@ -77,7 +85,7 @@ Changes to ontology files (rl2.ttl, rl2p.ttl, rl2-shacl.ttl, rl2p-shacl.ttl) req
 ## 8. Formal Properties
 
 Changes to inference rules, transition systems, typing judgments, or formal definitions must preserve:
-- **Dafny encodability** (algebraic datatypes, syntax-directed rules, fuel-bounded execution)
+- **Specifiability** (algebraic datatypes, syntax-directed rules, structural-recursion termination — precise enough to test an implementation against, per SCOPE-1)
 - **Monotonicity of derivation** (`Out` is monotone in facts)
 - **Totality of the evaluator** (terminates for all well-formed inputs; polynomial under stated constraints)
 - **Determinism** (same inputs → same outputs)

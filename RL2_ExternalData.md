@@ -248,9 +248,10 @@ rather than reopening all four modes.
 
 ## 7. Handoffs
 
-- **IMPL-1/2 (Dafny→Go).** `resolveOutOfBand` (§2) is small and total enough to be a
-  verification candidate alongside `evalIR`'s kernel, unlike in-band resolution, which stays
-  outside the proof surface by design (§4).
+- **Specification surface.** `resolveOutOfBand` (§2) is small and total enough to be specified
+  alongside `evalIR` with the same precision, unlike in-band resolution, which stays outside
+  that surface by design (§4). Implementation is out of scope for this project (SCOPE-1,
+  `issues.md`).
 - **Profile authors.** Any profile declaring `resolutionFunction` operands should publish a
   `SourceBinding` shape table (§3) and a `MockSource` fixture set (§5) as part of the profile's
   deployment documentation — not inside `rl2.ttl`/profile ontology files, which stay
