@@ -1,0 +1,883 @@
+@base <https://rl2.example/ontology#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+<https://rl2.example/ontology>
+  a owl:Ontology ;
+  rdfs:label "RL2 Ontology" ;
+  dc:description "A unified normative, descriptive, and operational rights language." ;
+  owl:versionInfo "0.6" ;
+  owl:versionIRI <https://rl2.example/ontology/0.6> .
+
+############################################################
+# 1. Normative Layer (DPCL)
+############################################################
+
+# A Clause is anything that can occupy a policy's rl2:clause slot: a Norm or a
+# Promise. It is the range of rl2:clause. Naming it as a class (rather than an
+# anonymous owl:unionOf) lets RDFS range-entailment auto-type clause referents as
+# rl2:Clause — subclass entailment only propagates upward, so this never coerces a
+# Promise into a Norm (the bug that a `range rl2:Norm` on rl2:clause used to cause).
+rl2:Clause a owl:Class ;
+    rdfs:label "Clause" ;
+    rdfs:comment "A Norm or a Promise — the admissible content of a policy clause." .
+
+# Norms represent deontic/legal relations between agents, actions, and assets.
+rl2:Norm a owl:Class ;
+    rdfs:subClassOf rl2:Clause ;
+    rdfs:label "Norm" ;
+    rdfs:comment "A normative relation in the DPCL sense." .
+
+rl2:Privilege a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Privilege" ;
+    rdfs:comment "A normative absence of duty not to perform an action." .
+
+rl2:Duty a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Duty" ;
+    rdfs:comment """An obligation imposed on an agent. A canonical Duty has exactly one
+    content form: an Achievement Duty requires an rl2:action and may declare an
+    rl2:postCondition; a Maintenance Duty requires an rl2:invariant and has no action.
+    The form determines the status semantics; no separate mode is authored.""" .
+
+rl2:Prohibition a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Prohibition" ;
+    rdfs:comment "A prohibition on performing an action." .
+
+rl2:Claim a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Claim" ;
+    rdfs:comment """A correlative entitlement: the Hohfeldian correlative of a Duty. C6b —
+    a Claim is a DERIVED PROJECTION of exactly one Duty: it MUST carry exactly one
+    rl2:correlativeTo pointing to a rl2:Duty, and its action/object/condition are DERIVED
+    from that Duty (not authored on the Claim). The Claim only fixes the party roles
+    (rl2:subject = right-holder, rl2:counterparty = duty-bearer), which must mirror the
+    Duty (Duty.subject = Claim.counterparty, Duty.counterparty = Claim.subject). This makes
+    two claims about different required contents/objects distinguishable and enforces 1:1 pairing.
+    Correlatives are DERIVED, not independently authored on both sides — see ClaimShape.""" .
+
+rl2:Power a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Power" ;
+    rdfs:comment "Ability to alter normative relations." .
+
+rl2:Liability a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Liability" ;
+    rdfs:comment "Exposure to exercise of power by another agent." .
+
+rl2:Immunity a owl:Class ;
+    rdfs:subClassOf rl2:Norm ;
+    rdfs:label "Immunity" ;
+    rdfs:comment "Protection against the power of another agent." .
+
+# Hohfeldian Correlatives and Additional Norm Properties
+rl2:correlativeTo a owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Norm ;
+    rdfs:comment """Links correlative Hohfeldian positions. Valid pairings:
+    - Duty ↔ Claim (duty-bearer owes to claim-holder)
+    - Power ↔ Liability (power-holder can alter liability-bearer's position)
+    - Immunity ↔ Disability (immune party protected from disabled party's power)
+    Note: Privilege correlates with No-Right, but No-Right is not modeled in RL2
+    as it represents absence of claim rather than a positive normative position.
+    C6b: for a rl2:Claim the correlative is REQUIRED and must be exactly one rl2:Duty
+    (ClaimShape); the Claim's content is derived from that Duty, so the pairing is
+    authored on the Claim side and not duplicated independently.""" .
+
+# Claim roles use the uniform rl2:subject / rl2:counterparty properties (see §3):
+#   rl2:subject      = the right-holder (claim-holder)
+#   rl2:counterparty = the duty-bearer (agent the claim is held against)
+# Correlative alignment with the paired Duty:
+#   Duty.subject = Claim.counterparty  and  Duty.counterparty = Claim.subject
+
+rl2:affectsNorm a owl:ObjectProperty ;
+    rdfs:domain rl2:Power ;
+    rdfs:range rl2:Norm ;
+    rdfs:comment "The norm that this power can create, modify, or extinguish." .
+
+rl2:exposedTo a owl:ObjectProperty ;
+    rdfs:domain rl2:Liability ;
+    rdfs:range rl2:Power ;
+    rdfs:comment "The power to which this liability is exposed." .
+
+rl2:immuneFrom a owl:ObjectProperty ;
+    rdfs:domain rl2:Immunity ;
+    rdfs:range rl2:Power ;
+    rdfs:comment "The power from which this immunity protects." .
+
+rl2:priority a owl:DatatypeProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range xsd:integer ;
+    rdfs:label "Priority" ;
+    rdfs:comment """Numeric priority for conflict resolution; higher values override lower.
+    When multiple norms apply to the same request with conflicting effects,
+    the norm with higher priority prevails. Default priority is 0 if unspecified.""" .
+
+############################################################
+# 2. Promise Theory Layer
+############################################################
+
+rl2:Promise a owl:Class ;
+    rdfs:subClassOf rl2:Clause ;
+    rdfs:label "Promise" ;
+    rdfs:comment """Voluntary cooperative commitment from promisor to promisee. A Clause
+    (may occupy a policy clause) but NOT a Norm — it creates no correlative until
+    crystallized into a Duty on acceptance. The Promise≠Norm distinction is enforced at
+    the concrete-subclass level by rl2-shacl.ttl's PromiseNotConcreteNormShape (C1);
+    full owl:disjointWith with rl2:Norm is deferred to the canonical-AST projection (C5),
+    where the rl2:targetNorm RDFS auto-typing crutch is removed.""" .
+
+rl2:promisor a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent making the promise." .
+
+rl2:promisee a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent receiving the benefit of the promise." .
+
+# Promise content is expressed by exactly one of three disjoint properties,
+# each with distinct semantics. This replaces the former polymorphic
+# rl2:promiseContent (a union of Action/Duty/Condition), which allowed the same
+# intent to be encoded multiple ways. Canonical form: one property per promise.
+
+rl2:promisedAction a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Action ;
+    rdfs:label "Promised Action" ;
+    rdfs:comment """Tun-sollen (ought-to-do): the promisor commits to performing
+    this action on rl2:object. Fulfilled when the promisor has performed it
+    (subsumption-aware, per the evidence selector in RL2_Semantics). On acceptance it
+    crystallizes to an Achievement Duty.""" .
+
+rl2:promisedState a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Condition ;
+    rdfs:label "Promised State" ;
+    rdfs:comment """Sein-sollen (ought-to-be): the promisor commits to a state of
+    affairs holding. Its snapshot-derived status follows the state condition. On
+    acceptance it crystallizes to a Maintenance Duty whose rl2:invariant is this
+    condition; the accepted Duty's rl2:dutyWindow fixes any warranty period.""" .
+
+rl2:promisedDuty a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:Duty ;
+    rdfs:label "Promised Duty" ;
+    rdfs:comment """Suretyship: the promisor commits to seeing that this Duty is
+    fulfilled. The promisor does NOT thereby become the Duty's rl2:subject;
+    legal assignment of the duty-bearer requires an explicit rl2:subject on the
+    Duty itself. Its status projects the referenced Duty's derived status, mapping
+    Pending and Active to Promise Pending.
+    A promise (voluntary commitment, Promise Theory) is distinct from the
+    Hohfeldian Duty it references.""" .
+
+############################################################
+# 3. Agents and Roles
+############################################################
+
+rl2:Agent a owl:Class ;
+    rdfs:label "Agent" ;
+    rdfs:comment "Any party participating in a normative or functional role." .
+
+# Normative roles (core semantic roles)
+rl2:subject a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "The agent bearing the normative status." .
+
+rl2:counterparty a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "The agent standing in normative relation to the subject." .
+
+# Functional (syntactic) roles
+rl2:grantor a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent granting a privilege or policy." .
+
+rl2:grantee a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent receiving a privilege or policy." .
+
+rl2:approver a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Event) ] ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent whose approval is required for activation." .
+
+rl2:operationalAgent a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Event) ] ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "Agent performing an operational action." .
+
+rl2:participant a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment "General syntactic participant in a workflow or event." .
+
+############################################################
+# 4. Actions, Assets, Conditions
+############################################################
+
+rl2:Action a owl:Class ;
+    rdfs:label "Action" ;
+    rdfs:comment """An action that may be performed on an asset.
+    RL2 Core does not define specific action instances; these are provided
+    by profiles tailored to specific domains. For example:
+    - A media licensing profile might define: play, stream, display, reproduce
+    - A software license profile might define: execute, install, modify
+    - A data governance profile might define: process, transfer, anonymize
+    Profiles define actions as individuals of this class.""" .
+
+rl2:Asset a owl:Class ;
+    rdfs:label "Asset" ;
+    rdfs:comment "A resource or object subject to normative control." .
+
+rl2:AssetCollection a owl:Class ;
+    rdfs:subClassOf rl2:Asset ;
+    rdfs:label "Asset Collection" ;
+    rdfs:comment """A collection of assets. C7: an AssetCollection IS an Asset
+    (rdfs:subClassOf rl2:Asset), so a collection may itself be the object of a norm
+    and may itself be a member of another collection. Membership (rl2:member) is
+    read from the fixed canonical PolicyUniverse, so a norm's asset extension does
+    not change during one evaluation.
+    Core matching uses DIRECT membership only; transitive flattening of nested
+    collections is a profile/derived concern, not core semantics (see RL2_Semantics.md
+    §Request Matching).""" .
+
+rl2:Condition a owl:Class ;
+    rdfs:label "Condition" ;
+    rdfs:comment "A constraint or requirement that must hold for a norm to be active." .
+
+rl2:AtomicConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Atomic Constraint" ;
+    rdfs:comment """A simple comparison constraint with left operand, operator, and right operand.
+    Use this class for basic conditions like 'purpose eq research' or 'count lte 10'.
+    For compound conditions, use LogicalConstraint.
+    For time-based conditions, use rl2:currentDateTime operand with comparison operators.""" .
+
+rl2:LogicalConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Logical Constraint" ;
+    rdfs:comment "A condition combining other conditions via logical operators." .
+
+rl2:RuntimeReference a owl:Class ;
+    rdfs:label "Runtime Reference" ;
+    rdfs:comment """A value reference resolved at evaluation time.
+    Used in rightOperandRef of AtomicConstraints for dynamic comparisons.
+    
+    Core instance: rl2:currentAgent (resolves to Env.Agent).
+    
+    For left-side dynamic values, use LeftOperand with resolutionPath instead.""" .
+
+rl2:EventConstraint a owl:Class ;
+    rdfs:subClassOf rl2:Condition ;
+    rdfs:label "Event Constraint" ;
+    rdfs:comment "A condition requiring a specific event to occur, optionally with an approver." .
+
+rl2:expectsEvent a owl:ObjectProperty ;
+    rdfs:domain rl2:EventConstraint ;
+    rdfs:range rl2:Event ;
+    rdfs:comment "The event that must occur for this constraint to be satisfied." .
+
+# Norm-Targeted Constraints (for querying duty/norm state)
+rl2:targetNorm a owl:ObjectProperty ;
+    rdfs:domain rl2:AtomicConstraint ;
+    rdfs:range rl2:Norm ;
+    rdfs:label "Target Norm" ;
+    rdfs:comment """Specifies the norm (or, pre-acceptance inside an Offer, the promise)
+    whose derived status or evidence is being queried. Used with rl2:obligationStateOperand or
+    rl2:dutyPerformerOperand (Norm-only — see rl2-shacl.ttl's NormStateConstraintShape)
+    or with rl2:promiseStateOperand / rl2:promisorOperand (Promise-valued; query
+    PromiseState / promisor, e.g. conformance/usecases/data-freshness-promise.md,
+    conformance/usecases/sla-credit-clause.md). When present, resolve(leftOperand) evaluates
+    this specific norm or promise.
+    PROM-7: an Offer-stage clause may target a sibling Promise directly (the Promise
+    has not crystallized yet). On Agreement formation, materialize() (RL2_Semantics.md
+    §Materialization) rewrites every such targetNorm to the crystallized Duty, so an
+    executed Agreement's targetNorm usage is always Norm-valued — no Promise survives
+    materialization (PROM-1).
+    NOTE: rdfs:range is deliberately left as the single class rl2:Norm, not an
+    owl:unionOf(Norm, Promise) — plain RDFS entailment (rdfs3) can only auto-type a
+    value from a range triple whose object is a single named class, and much of this
+    corpus's illustrative Turtle relies on exactly that auto-typing for terse examples
+    that reference a Duty by IRI without re-declaring `a rl2:Duty` in the same fence.
+    The real, enforced widening lives in rl2-shacl.ttl's AtomicConstraintShape
+    (sh:or over sh:class rl2:Norm / sh:class rl2:Promise), which correctly admits an
+    explicitly-typed rl2:Promise value without weakening this rdfs:range shortcut for
+    every other (Norm-targeting) use.""" .
+
+# Left operands for norm state queries
+rl2:obligationStateOperand a rl2:LeftOperand ;
+    rdfs:label "Obligation State Operand" ;
+    rdfs:comment """Queries the status of the targeted Duty as derived from policy content
+    and the immutable WorldSnapshot.
+    Returns Pending, Active, Fulfilled, or Violated.
+    Requires rl2:targetNorm to specify which norm to query.
+    Distinct from rl2:obligationState, which may serialize a derived status.""" .
+
+rl2:dutyPerformerOperand a rl2:LeftOperand ;
+    rdfs:label "Duty Performer Operand" ;
+    rdfs:comment """Projects the agent from the unambiguous fulfillment evidence selected
+    for the targeted Duty in the immutable WorldSnapshot.
+    Returns an Agent IRI, or an attributed Missing/Invalid/Conflict result.
+    Requires rl2:targetNorm to specify which duty to query.
+    Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
+
+# Promise-state operands — the Promise-valued counterparts of the two Norm-state
+# operands above. They require a Promise-valued rl2:targetNorm (see rl2-shacl.ttl's
+# PromiseStateConstraintShape) and are resolved by a dedicated resolver branch
+# (RL2_Semantics.md §resolve), NOT via resolutionPath. C2/PROM-4: these are core so
+# Promise-state queries are portable; a profile MAY still declare its own operand with
+# an explicit rl2:resolutionPath where a non-target-norm resolution is wanted.
+rl2:promiseStateOperand a rl2:LeftOperand ;
+    rdfs:label "Promise State Operand" ;
+    rdfs:comment """Queries the status of the targeted Promise as derived from its content
+    and the immutable WorldSnapshot.
+    Returns Pending, Fulfilled, or Violated (never Active — see rl2:PromiseState).
+    Requires rl2:targetNorm to specify which promise to query.
+    The Promise-valued counterpart of rl2:obligationStateOperand.""" .
+
+rl2:promisorOperand a rl2:LeftOperand ;
+    rdfs:label "Promisor Operand" ;
+    rdfs:comment """Reads the agent who made (is bound by) the targeted Promise from the
+    Promise's immutable policy content. Returns an Agent IRI.
+    Requires rl2:targetNorm to specify which promise to query.
+    The Promise-valued counterpart of rl2:dutyPerformerOperand; used with
+    rl2:currentAgent to check promise identity binding.""" .
+
+rl2:currentDateTime a rl2:LeftOperand ;
+    rdfs:label "Current Date Time" ;
+    rdfs:range xsd:dateTimeStamp ;
+    rdfs:comment """Resolves to WorldSnapshot.evaluationTime.
+    Used in AtomicConstraints for temporal validity checks.
+    Example: currentDateTime lte "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
+    Resolution path: 'state.Clock'.
+    rdfs:range is xsd:dateTimeStamp (timezone-mandatory), not xsd:dateTime:
+    a total instant ordering requires every compared instant to carry a
+    timezone offset. Ingestion MUST normalize bare xsd:dateTime literals
+    compared against this operand to xsd:dateTimeStamp before evaluation.
+    rl2:OperandRangeTypeShape warns if a rightOperand literal's datatype
+    does not match.""" ;
+    rl2:resolutionPath "state.Clock" .
+
+# Dynamic reference for current agent
+rl2:currentAgent a rl2:RuntimeReference ;
+    rdfs:label "Current Agent" ;
+    rdfs:comment """Resolves to Env.Agent (the agent making the current request) at evaluation time.
+    Used in rightOperandRef to compare against dutyPerformerOperand for identity binding:
+    - dutyPerformer eq currentAgent → Tun-sollen (same subject must fulfill)
+    - dutyPerformer neq currentAgent → Separation of Duty (different subject must fulfill)
+    
+    Security: When leftOperand is dutyPerformerOperand (or similar dynamic operand),
+    rightOperandRef SHOULD be a RuntimeReference like currentAgent, not a static IRI.
+    This prevents hardcoded identity checks that bypass dynamic binding.""" .
+
+rl2:includedIn a owl:ObjectProperty, owl:TransitiveProperty ;
+    rdfs:domain rl2:Action ;
+    rdfs:range rl2:Action ;
+    rdfs:label "Included In" ;
+    rdfs:comment """Action taxonomy: A includedIn B means A is a narrower action
+    included within B. Transitive: if A includedIn B and B includedIn C,
+    then A includedIn C. Used for action subsumption in norm matching.
+    Profiles define action hierarchies using this property.
+    Do NOT use rdfs:subClassOf for action hierarchies.""" .
+
+rl2:action a owl:ObjectProperty ;
+    rdfs:domain rl2:Norm ;
+    rdfs:range rl2:Action ;
+    rdfs:comment "Action specified in a norm." .
+
+rl2:prohibitedAction a owl:ObjectProperty ;
+    rdfs:subPropertyOf rl2:action ;
+    rdfs:domain rl2:Prohibition ;
+    rdfs:range rl2:Action ;
+    rdfs:comment "Action prohibited by the norm. Subproperty of rl2:action for uniform norm queries." .
+
+rl2:object a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
+    rdfs:range rl2:Asset ;
+    rdfs:comment "Asset specified in a norm, or the asset a promisedAction acts upon." .
+
+rl2:member a owl:ObjectProperty ;
+    rdfs:domain rl2:AssetCollection ;
+    rdfs:range rl2:Asset ;
+    rdfs:comment """Direct membership relation for asset collections. Core semantics
+    read rl2:member links directly (not transitively closed); because the range is
+    rl2:Asset and AssetCollection ⊑ Asset, a member may itself be a collection, but
+    core matching does NOT auto-flatten such nesting — that is a profile/derived
+    concern. Membership is read from the canonical PolicyUniverse.""" .
+
+rl2:condition a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Policy) ] ;
+    rdfs:range rl2:Condition ;
+    rdfs:comment """Applicability condition for a norm or policy. It determines whether
+    the normative proposition applies; it does not define Duty satisfaction. Achievement
+    completion uses rl2:action and optional rl2:postCondition. Maintenance content uses
+    rl2:invariant.""" .
+
+rl2:prerequisiteDuty a owl:ObjectProperty ;
+    rdfs:domain rl2:Privilege ;
+    rdfs:range rl2:Duty ;
+    rdfs:label "Prerequisite Duty" ;
+    rdfs:comment """Associates a Privilege with a Duty that, when applicable, must be
+    Fulfilled before that Privilege can contribute a permit. An attached Duty is referenced by
+    one or more Privileges and is not also an independent rl2:clause of a Policy. Sharing one
+    Duty node means one fulfillment result gates every owner, matching ODRL 2.2. Multiple
+    prerequisiteDuty values on one Privilege are conjunctive. Ongoing or post-use enforcement
+    is outside core Eval.""" .
+
+rl2:postCondition a owl:ObjectProperty ;
+    rdfs:domain rl2:Duty ;
+    rdfs:range rl2:Condition ;
+    rdfs:label "Postcondition" ;
+    rdfs:comment """Optional condition that must hold at the qualifying action witness
+    for an Achievement Duty to be fulfilled. It is not an applicability condition and
+    is not permitted on a Maintenance Duty.""" .
+
+rl2:invariant a owl:ObjectProperty ;
+    rdfs:domain rl2:Duty ;
+    rdfs:range rl2:Condition ;
+    rdfs:label "Invariant" ;
+    rdfs:comment """Condition that must hold throughout a Maintenance Duty's dutyWindow.
+    Without a dutyWindow it is an ongoing condition assessed at the current snapshot. A Duty
+    with an invariant has no action or postCondition. Complete temporal coverage, not a point
+    observation at evaluation time, is required to fulfill a windowed Maintenance Duty.""" .
+
+rl2:DutyWindow a owl:Class ;
+    rdfs:label "Duty Window" ;
+    rdfs:comment """A finite half-open interval [startInclusive, endExclusive) during
+    which one Duty occurrence is assessed. Recurrence is represented by distinct Duty
+    occurrences, not by resetting a status or repeating this interval inside Eval.""" .
+
+rl2:dutyWindow a owl:ObjectProperty ;
+    rdfs:domain rl2:Duty ;
+    rdfs:range rl2:DutyWindow ;
+    rdfs:label "Duty Window" ;
+    rdfs:comment """The optional finite assessment interval for this Duty occurrence.
+    An Achievement Duty without a window can be fulfilled but does not become Violated
+    merely through passage of time. A Maintenance Duty without a window can be Active or
+    Violated but cannot become Fulfilled.""" .
+
+rl2:startInclusive a owl:DatatypeProperty ;
+    rdfs:domain rl2:DutyWindow ;
+    rdfs:range xsd:dateTimeStamp ;
+    rdfs:label "Start Inclusive" ;
+    rdfs:comment "Inclusive start instant of a DutyWindow." .
+
+rl2:endExclusive a owl:DatatypeProperty ;
+    rdfs:domain rl2:DutyWindow ;
+    rdfs:range xsd:dateTimeStamp ;
+    rdfs:label "End Exclusive" ;
+    rdfs:comment "Exclusive end instant of a DutyWindow." .
+
+rl2:LeftOperand a owl:Class ;
+    rdfs:label "Left Operand" ;
+    rdfs:comment """A property or attribute to be evaluated in a condition.
+    RL2 Core defines currentDateTime and the targeted Duty/Promise operands.
+    Profiles provide domain operands such as purpose, spatial, recipient,
+    payAmount, and fileFormat.
+
+    A profile-defined operand used by core Eval SHOULD specify rl2:resolutionPath.
+    rl2:resolutionFunction may document how a deployment assembles the corresponding
+    snapshot value, but Eval does not invoke it. This keeps policy-visible data access
+    declared, typed, and validatable.""" .
+
+# Operand Resolution Mechanism
+#
+# All runtime/contextual data access SHOULD go through declared LeftOperand
+# instances with explicit resolution paths. This eliminates ad-hoc vocabulary
+# and ensures alignment with the formal evaluation calculus (resolve/deref).
+
+rl2:resolutionPath a owl:DatatypeProperty ;
+    rdfs:domain rl2:LeftOperand ;
+    rdfs:range xsd:string ;
+    rdfs:label "Resolution Path" ;
+    rdfs:comment """Canonical scoped key used to resolve this operand from the immutable
+    WorldSnapshot via deref(). It is not a live host-object traversal.
+
+    Canonical path roots (normatively defined):
+    - agent.*    : facts scoped to Request.requestingAgent
+    - asset.*    : facts scoped to Request.requestedAsset
+    - state.*    : StateScope facts; state.Clock and state.Events have fixed core meanings
+    - context.*  : EvaluationScope facts (purpose, jurisdiction, etc.)
+    - request.*  : exactly requestingAgent, requestedAction, or requestedAsset in core
+    - global.*   : caller-supplied aggregate facts in GlobalScope
+
+    Examples:
+    - 'agent.department'
+    - 'asset.classification'
+    - 'asset.dataOwner'
+    - 'state.Events.breakGlassEvent.operationalAgent'
+    - 'context.purpose'
+    - 'state.Clock'
+    - 'global.activeSessions.count'
+
+    Resolution semantics are defined by deref(path, leftOperand, Env) in RL2_Semantics.
+    SECURITY: Implementations MUST validate paths against allowed roots.""" .
+
+rl2:resolutionFunction a owl:DatatypeProperty ;
+    rdfs:domain rl2:LeftOperand ;
+    rdfs:range xsd:string ;
+    rdfs:label "Resolution Function" ;
+    rdfs:comment """Named snapshot-assembly function for deployments where direct source
+    extraction is insufficient.
+
+    Use this when resolution requires:
+    - External API calls (e.g., HR system lookup)
+    - Complex computation (e.g., risk scoring)
+    - Aggregation (e.g., count of events matching pattern)
+
+    Functions are profile-defined and implementation-specific. The function name documents
+    how a deployment may construct an AttributedFact before Eval begins.
+
+    Example: 'lookupDepartment', 'computeRiskScore', 'countApprovals'
+
+    Core Eval never invokes resolutionFunction. A policy operand still needs a canonical
+    resolutionPath for core evaluation; the assembled value is supplied in WorldSnapshot.
+    Connector I/O, retries, trust discovery, and function resource bounds are deployment
+    concerns outside the evaluator's determinism and totality claims.""" .
+
+rl2:leftOperand a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:range rl2:LeftOperand ;
+    rdfs:comment "Left operand of a condition (the property being evaluated)." .
+
+rl2:constraintOperator a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:range rl2:Operator ;
+    rdfs:comment "Operator of a condition; may be a ComparisonOperator or LogicalOperator." .
+
+rl2:rightOperand a owl:DatatypeProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:comment "Right operand of a condition (literal value)." .
+
+rl2:rightOperandRef a owl:ObjectProperty ;
+    rdfs:domain rl2:Condition ;
+    rdfs:comment "Right operand of a condition (resource reference)." .
+
+rl2:operand a owl:ObjectProperty ;
+    rdfs:domain rl2:LogicalConstraint ;
+    rdfs:range rl2:Condition ;
+    rdfs:comment "A sub-condition operand of a logical constraint." .
+
+# Operator Type Hierarchy
+rl2:Operator a owl:Class ;
+    rdfs:label "Operator" ;
+    rdfs:comment "Abstract class for constraint operators." .
+
+rl2:LogicalOperator a owl:Class ;
+    rdfs:subClassOf rl2:Operator ;
+    rdfs:label "Logical Operator" ;
+    rdfs:comment "Operators for combining conditions (and, or, xone, not)." ;
+    owl:oneOf (rl2:and rl2:or rl2:xone rl2:not) .
+
+rl2:ComparisonOperator a owl:Class ;
+    rdfs:subClassOf rl2:Operator ;
+    rdfs:label "Comparison Operator" ;
+    rdfs:comment "Operators for comparing values (eq, neq, lt, lte, gt, gte, isA, isAnyOf, isAllOf, isNoneOf)." ;
+    owl:oneOf (rl2:eq rl2:neq rl2:lt rl2:lte rl2:gt rl2:gte rl2:isA rl2:isAnyOf rl2:isAllOf rl2:isNoneOf) .
+
+# Logical Operators
+rl2:and a rl2:LogicalOperator ;
+    rdfs:label "and" ;
+    rdfs:comment "Logical conjunction: all sub-conditions must hold." .
+
+rl2:or a rl2:LogicalOperator ;
+    rdfs:label "or" ;
+    rdfs:comment "Logical disjunction: at least one sub-condition must hold." .
+
+rl2:xone a rl2:LogicalOperator ;
+    rdfs:label "xone" ;
+    rdfs:comment "Exclusive or: exactly one sub-condition must hold." .
+
+rl2:not a rl2:LogicalOperator ;
+    rdfs:label "not" ;
+    rdfs:comment "Logical negation: the sub-condition must not hold. Requires exactly one operand." .
+
+# Comparison Operators
+rl2:eq a rl2:ComparisonOperator ;
+    rdfs:label "eq" ;
+    rdfs:comment "Equality comparison." .
+
+rl2:neq a rl2:ComparisonOperator ;
+    rdfs:label "neq" ;
+    rdfs:comment "Inequality comparison." .
+
+rl2:lt a rl2:ComparisonOperator ;
+    rdfs:label "lt" ;
+    rdfs:comment "Less-than comparison." .
+
+rl2:lte a rl2:ComparisonOperator ;
+    rdfs:label "lte" ;
+    rdfs:comment "Less-than-or-equal comparison." .
+
+rl2:gt a rl2:ComparisonOperator ;
+    rdfs:label "gt" ;
+    rdfs:comment "Greater-than comparison." .
+
+rl2:gte a rl2:ComparisonOperator ;
+    rdfs:label "gte" ;
+    rdfs:comment "Greater-than-or-equal comparison." .
+
+rl2:isA a rl2:ComparisonOperator ;
+    rdfs:label "isA" ;
+    rdfs:comment "Type/class membership check." .
+
+rl2:isAnyOf a rl2:ComparisonOperator ;
+    rdfs:label "isAnyOf" ;
+    rdfs:comment "Value is any of a specified set." .
+
+rl2:isAllOf a rl2:ComparisonOperator ;
+    rdfs:label "isAllOf" ;
+    rdfs:comment "Value satisfies all of a specified set." .
+
+rl2:isNoneOf a rl2:ComparisonOperator ;
+    rdfs:label "isNoneOf" ;
+    rdfs:comment "Value is none of a specified set." .
+
+############################################################
+# 5. Operational Layer (ODRE)
+############################################################
+
+rl2:Event a owl:Class ;
+    rdfs:label "Event" ;
+    rdfs:comment """Observable event kind or event pattern used to select Evidence from an
+    immutable WorldSnapshot. Event kinds are individuals of rl2:Event; kind subsumption uses
+    the individual-level transitive rl2:eventKindIncludedIn relation, not
+    rdfs:subClassOf. Evidence identity, occurrence time, actor, action, object, payload,
+    attribution, and selection are defined in RL2_Model.md §4.3. Storage order, Case
+    membership, and append behavior are outside core Eval. Performed and DutyPerformer are
+    derived from selected evidence, not independently asserted truth sources.""" .
+
+rl2:eventTime a owl:DatatypeProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "When the evidence occurrence happened. Core temporal selection uses this instant; unequal equal-time projections produce Conflict." .
+
+rl2:eventSequence a owl:DatatypeProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range xsd:integer ;
+    rdfs:label "Event Sequence" ;
+    rdfs:comment """Optional storage or future-protocol sequence metadata. Core Eval ignores
+    this value: it is not evidence identity and never breaks a semantic tie. When equally
+    recent evidence projects unequal values, the result is Conflict.""" .
+
+rl2:eventAction a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Action ;
+    rdfs:label "Event Action" ;
+    rdfs:comment "The action an ActionPerformed event witnesses (used to derive Performed; S6)." .
+
+rl2:eventObject a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:label "Event Object" ;
+    rdfs:comment "The asset/resource an ActionPerformed event acted upon (used to derive Performed; S6)." .
+
+rl2:eventKindIncludedIn a owl:ObjectProperty, owl:TransitiveProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Event ;
+    rdfs:label "Event Kind Included In" ;
+    rdfs:comment """Event-kind taxonomy: kind A eventKindIncludedIn kind B means A is a
+    narrower event kind included within B. Transitive. The individual-level counterpart
+    of rl2:includedIn for actions (S6): event-kind subsumption in EventConstraint matching
+    is `k' = k ∨ k' eventKindIncludedIn* k`, a bounded traversal — no OWL class reasoning
+    (I3). This is the single event-kind subsumption model; rdfs:subClassOf is not used for
+    event kinds.""" .
+
+# Obligation States (enumeration pattern)
+rl2:ObligationState a owl:Class ;
+    rdfs:label "Obligation State" ;
+    rdfs:comment "State of a duty: pending, active, fulfilled, violated." ;
+    owl:oneOf (rl2:Pending rl2:Active rl2:Fulfilled rl2:Violated) .
+
+rl2:Pending a rl2:ObligationState ;
+    rdfs:label "Pending" ;
+    rdfs:comment "Exists but not yet fulfilled or violated; may or may not be active." .
+
+rl2:Active a rl2:ObligationState ;
+    rdfs:label "Active" ;
+    rdfs:comment "Duty is active and must be fulfilled." .
+
+rl2:Fulfilled a rl2:ObligationState ;
+    rdfs:label "Fulfilled" ;
+    rdfs:comment "Duty has been satisfied." .
+
+rl2:Violated a rl2:ObligationState ;
+    rdfs:label "Violated" ;
+    rdfs:comment "Duty was not fulfilled within required constraints." .
+
+# Promise States (enumeration pattern) — aligned with ObligationState vocabulary
+rl2:PromiseState a owl:Class ;
+    rdfs:label "Promise State" ;
+    rdfs:comment "State of a promise. Uses the shared state individuals: Pending, Fulfilled, Violated. (Promises do not use Active.)" ;
+    owl:oneOf (rl2:Pending rl2:Fulfilled rl2:Violated) .
+
+# Shared state individuals are also PromiseState values
+rl2:Pending a rl2:PromiseState .
+rl2:Fulfilled a rl2:PromiseState .
+rl2:Violated a rl2:PromiseState .
+
+rl2:promiseState a owl:ObjectProperty ;
+    rdfs:domain rl2:Promise ;
+    rdfs:range rl2:PromiseState ;
+    rdfs:comment "Optional serialization of a Promise status derived from policy content and WorldSnapshot evidence; not an authoritative mutable input to core Eval." .
+
+rl2:obligationState a owl:ObjectProperty ;
+    rdfs:domain rl2:Duty ;
+    rdfs:range rl2:ObligationState ;
+    rdfs:comment "Optional serialization of a Duty status derived from policy content and WorldSnapshot evidence; not an authoritative mutable input to core Eval." .
+
+rl2:StateTransition a owl:Class ;
+    rdfs:label "State Transition" ;
+    rdfs:comment "Future-protocol description of a system-state transition; core Eval neither emits nor applies StateTransition individuals." .
+
+rl2:triggeredBy a owl:ObjectProperty ;
+    rdfs:domain rl2:StateTransition ;
+    rdfs:range rl2:Event ;
+    rdfs:comment "Event triggering a transition." .
+
+rl2:fromState a owl:ObjectProperty ;
+    rdfs:domain rl2:StateTransition ;
+    rdfs:comment "State before the transition." .
+
+rl2:toState a owl:ObjectProperty ;
+    rdfs:domain rl2:StateTransition ;
+    rdfs:comment "State after the transition." .
+
+rl2:after a owl:ObjectProperty ;
+    rdfs:domain rl2:Event ;
+    rdfs:range rl2:Event ;
+    rdfs:comment """Temporal sequence relation: subject event must occur after object event.
+    This term is outside core Eval because immediately-after versus eventually-after remains
+    unspecified. It is an authoring/annotation hint until a profile defines precise bounded
+    semantics. A conforming core evaluator MUST NOT depend on rl2:after for a decision.""" .
+
+############################################################
+# 6. Policy Containers
+############################################################
+
+rl2:Policy a owl:Class ;
+    rdfs:label "Policy" ;
+    rdfs:comment """A container of one or more RL2 normative clauses.
+    A policy may optionally have an activation condition (rl2:condition).
+    When present, the policy is only applicable when its condition holds.
+    A later evaluation may supply a different WorldSnapshot and obtain different
+    applicability; Eval does not mutate policy state.""" .
+
+# Policy Types as Subclasses
+rl2:Set a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Set" ;
+    rdfs:comment """A unilateral policy declaration without identified counterparties.
+    Sets express normative positions but do not create binding obligations between
+    specific parties. They may be used for public licenses, general terms, or
+    policy templates. No acceptance or agreement is required for a Set to be valid.""" .
+
+rl2:Offer a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Offer" ;
+    rdfs:comment """A policy proposed by an assigner to potential assignees.
+    An Offer expresses willingness to grant privileges or accept duties, contingent
+    on acceptance. It creates no obligations until accepted, at which point it
+    becomes an Agreement.""" .
+
+rl2:Agreement a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Agreement" ;
+    rdfs:comment """A bilateral or multilateral policy with identified, consenting parties.
+    Unlike a Set, an Agreement binds specific agents who have accepted its terms.
+    All parties are identified via grantor/grantee or subject/counterparty roles.
+    Duties in an Agreement create enforceable obligations; violations have
+    normative consequences for the violating party.""" .
+
+rl2:Privacy a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Privacy" ;
+    rdfs:comment """A policy governing personal data processing and data subject rights.
+    Privacy policies typically include duties on data controllers, privileges
+    for data subjects, and conditions related to consent, purpose limitation,
+    and data retention.""" .
+
+rl2:Assertion a owl:Class ;
+    rdfs:subClassOf rl2:Policy ;
+    rdfs:label "Assertion" ;
+    rdfs:comment """A policy stating claims or facts about normative status.
+    Assertions declare that certain privileges, duties, or conditions hold,
+    without necessarily creating them. Used for compliance statements,
+    certification claims, or status declarations.""" .
+
+rl2:clause a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Clause ;
+    rdfs:comment """Associates a Clause (a Norm, or a Promise) with a policy container.
+    A Duty linked directly with rl2:clause is an independent obligation. A Duty used as a
+    Privilege prerequisite is linked only with rl2:prerequisiteDuty; its policy provenance is
+    derived through that owning Privilege.
+    A Promise is a legitimate clause only in an Offer (its natural home); on
+    acceptance it crystallizes into a Duty + correlative Claim, so a well-formed
+    Agreement/Set/Privacy/Assertion contains only Norms (enforced by SHACL).""" .
+
+############################################################
+# 6a. Profile Declaration (O3)
+############################################################
+
+rl2:Profile a owl:Class ;
+    rdfs:label "Profile" ;
+    rdfs:comment """A named, versioned extension of RL2 Core that declares domain-specific
+    operands, actions, and classes (see profiles/). A Profile individual carries an IRI
+    (its identity) and an rl2:profileVersion. Policies depend on profiles via
+    rl2:requiresProfile.""" .
+
+rl2:profileVersion a owl:DatatypeProperty ;
+    rdfs:domain rl2:Profile ;
+    rdfs:range xsd:string ;
+    rdfs:label "Profile Version" ;
+    rdfs:comment """The version of a Profile, as a SemVer string ('MAJOR.MINOR.PATCH').
+    When a policy requires a profile, the referenced Profile individual's version is the
+    MINIMUM version the evaluator must support. Negotiation rule: an evaluator supporting
+    (profileIRI, supportedVersion) satisfies a requirement for (profileIRI, requiredVersion)
+    iff supportedVersion.MAJOR = requiredVersion.MAJOR and supportedVersion >= requiredVersion
+    (same-major, at-least-minor). See RL2_Semantics.md §Profile Resolution.""" .
+
+rl2:requiresProfile a owl:ObjectProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range rl2:Profile ;
+    rdfs:label "Requires Profile" ;
+    rdfs:comment """Declares that a Policy depends on a profile's vocabulary. O3 —
+    UNKNOWN-PROFILE RULE (fail-closed): a conforming evaluator MUST reject a Policy that
+    rl2:requiresProfile a profile it does not support, or supports only at an incompatible
+    version (see rl2:profileVersion negotiation). Rejection is at ingestion, before
+    evaluation — an unsupported required profile is a load-time error, never a silently
+    ignored annotation. This keeps a policy from evaluating with a partially-understood
+    vocabulary.""" .
+
+rl2:clauseOf a owl:ObjectProperty ;
+    owl:inverseOf rl2:clause ;
+    rdfs:domain rl2:Clause ;
+    rdfs:range rl2:Policy ;
+    rdfs:comment "The policy containing this norm or promise." .
+
+############################################################
+# 7. Policy Generations
+############################################################
+
+rl2:policyGeneration a owl:DatatypeProperty ;
+    rdfs:domain rl2:Policy ;
+    rdfs:range xsd:anyURI ;
+    rdfs:label "Policy Generation" ;
+    rdfs:comment """Identifies the policy generation (version universe) this policy belongs to.
+    A generation is an immutable set of policies. Core Eval receives its PolicyUniverse
+    directly and neither selects nor mutates a generation. Publication, activation,
+    grandfathering, and Case binding are deployment or future-protocol concerns.""" .

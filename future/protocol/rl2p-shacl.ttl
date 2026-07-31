@@ -1,0 +1,431 @@
+# SCOPE-2: retained future companion protocol shapes; not part of RL2 core conformance.
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rl2p: <https://rl2.example/protocol#> .
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+############################################################
+# RL2 Protocol SHACL Shapes
+# Syntax validation for RL2 evaluation protocol artifacts
+############################################################
+#
+# Design Principles:
+#
+# 1. NOT CLOSED SHAPES
+#    These shapes are intentionally non-closed (no sh:closed true).
+#    This allows implementations to extend protocol classes with
+#    additional properties without breaking validation.
+#
+# 2. INTEGRATION WITH RL2 CORE
+#    Protocol shapes reference RL2 Core classes (Agent, Action, Asset,
+#    Policy, Norm, Duty, LeftOperand, ObligationState) but do not
+#    redefine them. The protocol namespace (rl2p:) is distinct from
+#    the core namespace (rl2:).
+#
+# 3. IMMUTABILITY ENFORCEMENT
+#    Requests and Cases are designed as immutable/append-only.
+#    Shapes enforce required fields that must be set at creation time.
+#
+# 4. STATE ENUMERATION VALIDATION
+#    CaseStatus and Decision are constrained to their valid values.
+#    Requirement uses rl2:ObligationState from Core uniformly for all sources.
+#
+############################################################
+
+############################################################
+# Request Shapes
+############################################################
+
+rl2p:RequestShape a sh:NodeShape ;
+    sh:targetClass rl2p:Request ;
+    sh:property [
+        sh:path rl2p:requestedAction ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2:Action ;
+        sh:message "A Request must specify exactly one requested action."
+    ] ;
+    sh:property [
+        sh:path rl2p:requestedAsset ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2:Asset ;
+        sh:message "A Request must specify exactly one requested asset."
+    ] ;
+    sh:property [
+        sh:path rl2p:requestingAgent ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "A Request must specify exactly one requesting agent."
+    ] ;
+    sh:property [
+        sh:path rl2p:requestor ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "A Request may have at most one requestor (submitting agent)."
+    ] ;
+    sh:property [
+        sh:path rl2p:requestTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "A Request must have exactly one request time."
+    ] .
+
+############################################################
+# Evaluation Result Shapes
+############################################################
+
+rl2p:EvaluationResultShape a sh:NodeShape ;
+    sh:targetClass rl2p:EvaluationResult ;
+    sh:property [
+        sh:path rl2p:evaluatedRequest ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2p:Request ;
+        sh:message "An EvaluationResult must reference exactly one evaluated request."
+    ] ;
+    sh:property [
+        sh:path rl2p:decision ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in (rl2p:Permit rl2p:PermitWithObligations rl2p:Deny rl2p:Indeterminate rl2p:NotApplicable) ;
+        sh:message "An EvaluationResult must have exactly one decision (Permit, PermitWithObligations, Deny, Indeterminate, or NotApplicable)."
+    ] ;
+    sh:property [
+        sh:path rl2p:evaluationTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "An EvaluationResult must have exactly one evaluation time."
+    ] ;
+    sh:property [
+        sh:path rl2p:activeRequirements ;
+        sh:class rl2p:Requirement ;
+        sh:message "Active requirements must be Requirement instances."
+    ] ;
+    sh:property [
+        sh:path rl2p:matchedPolicies ;
+        sh:class rl2:Policy ;
+        sh:message "Matched policies must be Policy instances."
+    ] ;
+    sh:property [
+        sh:path rl2p:matchedNorms ;
+        sh:class rl2:Norm ;
+        sh:message "Matched norms must be Norm instances."
+    ] ;
+    sh:property [
+        sh:path rl2p:explanation ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string
+    ] .
+
+############################################################
+# Requirement Shapes (Universal Runtime Obligation)
+############################################################
+
+rl2p:RequirementShape a sh:NodeShape ;
+    sh:targetClass rl2p:Requirement ;
+    sh:property [
+        sh:path rl2p:sourceNorm ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:or (
+            [ sh:class rl2:Norm ]
+            [ sh:class rl2:Promise ]
+        ) ;
+        sh:message "A Requirement must reference exactly one source norm or promise."
+    ] ;
+    sh:property [
+        sh:path rl2p:sourcePolicy ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2:Policy ;
+        sh:message "A Requirement must reference exactly one source Policy."
+    ] ;
+    # CONS-2/PROM-7: the full ObligationState range (including Active) is intentionally
+    # permitted here even when sourceNorm is a rl2:Promise — Active on a Promise-sourced
+    # Requirement is a deliberate "effective now / monitored" protocol projection, not a
+    # claim about semantic PromiseState (which never reaches Active). See
+    # RL2_Semantics.md "Promise and duty states vs protocol requirement status" and
+    # rl2p:requirementStatus's comment in rl2p.ttl. Do not add a SPARQL rule rejecting
+    # Active here — it would contradict this documented, intended behavior.
+    sh:property [
+        sh:path rl2p:requirementStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in (rl2:Pending rl2:Active rl2:Fulfilled rl2:Violated) ;
+        sh:message "Requirement status must be one of: Pending, Active, Fulfilled, Violated."
+    ] ;
+    sh:property [
+        sh:path rl2p:imposedTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "A Requirement must have exactly one imposed time."
+    ] ;
+    sh:property [
+        sh:path rl2p:counterparty ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "If specified, counterparty must be an Agent."
+    ] ;
+    sh:property [
+        sh:path rl2p:requirementLabel ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string
+    ] ;
+    sh:property [
+        sh:path rl2p:requirementDescription ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string
+    ] ;
+    # P3: sourceNorm must actually belong to sourcePolicy — a Requirement cannot claim
+    # provenance from a norm/promise its own sourcePolicy never contains as a clause.
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A Requirement's sourceNorm must be a clause of its sourcePolicy (P3)." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT $this WHERE {
+                $this rl2p:sourceNorm ?n ;
+                      rl2p:sourcePolicy ?p .
+                FILTER NOT EXISTS { ?p rl2:clause ?n }
+            }
+        """
+    ] .
+
+# P3: an Active requirement should be traceable to the evaluated Case that surfaced it —
+# i.e. reachable via some Case's evaluationHistory -> activeRequirements. Warning severity:
+# focused illustrative Requirements (not wrapped in a full Case/EvaluationResult) are
+# legitimate and shouldn't be forced to fail structural validation.
+rl2p:RequirementCaseLinkageShape a sh:NodeShape ;
+    sh:severity sh:Warning ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this WHERE {
+                ?this a rl2p:Requirement ;
+                      rl2p:requirementStatus rl2:Active .
+            }
+        """
+    ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "An Active Requirement should be linked to an evaluated Case via some Case's evaluationHistory -> activeRequirements (P3)." ;
+        sh:select """
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT $this WHERE {
+                FILTER NOT EXISTS {
+                    ?case a rl2p:Case ;
+                          rl2p:evaluationHistory ?ev .
+                    ?ev rl2p:activeRequirements $this .
+                }
+            }
+        """
+    ] .
+
+# Fulfillment links: if a requirement is fulfilled, evidence SHOULD be present (warning)
+rl2p:RequirementFulfillmentAuditShape a sh:NodeShape ;
+    sh:severity sh:Warning ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this WHERE {
+                ?this a rl2p:Requirement ;
+                      rl2p:requirementStatus rl2:Fulfilled .
+            }
+        """
+    ] ;
+    sh:or (
+        [ sh:path rl2p:fulfilledByAction ; sh:minCount 1 ]
+        [ sh:path rl2p:fulfilledByEvent ; sh:minCount 1 ]
+        [ sh:path rl2p:fulfillmentEvidence ; sh:minCount 1 ]
+    ) ;
+    sh:message "Fulfilled Requirement should have fulfillment evidence via action, event, or an explicit evidence reference (CONS-1 — at least one, not all three)." .
+
+############################################################
+# Context Assertion Shapes
+############################################################
+
+rl2p:ContextAssertionShape a sh:NodeShape ;
+    sh:targetClass rl2p:ContextAssertion ;
+    sh:property [
+        sh:path rl2p:forRequest ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2p:Request ;
+        sh:message "A ContextAssertion must reference exactly one Request."
+    ] ;
+    sh:property [
+        sh:path rl2p:contextSubject ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A ContextAssertion must have exactly one subject (an IRI, not a literal)."
+    ] ;
+    sh:property [
+        sh:path rl2p:contextProperty ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2:LeftOperand ;
+        sh:message "A ContextAssertion must specify exactly one property (LeftOperand)."
+    ] ;
+    # Value: EXACTLY ONE of contextValue (literal) or contextValueRef (resource) — C4.
+    # sh:xone with mutually-exclusive, single-value branches: a ContextAssertion carries
+    # one value in one form, never both and never multiples.
+    sh:xone (
+        [
+            sh:property [ sh:path rl2p:contextValue ; sh:minCount 1 ; sh:maxCount 1 ] ;
+            sh:property [ sh:path rl2p:contextValueRef ; sh:maxCount 0 ]
+        ]
+        [
+            sh:property [ sh:path rl2p:contextValueRef ; sh:minCount 1 ; sh:maxCount 1 ] ;
+            sh:property [ sh:path rl2p:contextValue ; sh:maxCount 0 ]
+        ]
+    ) ;
+    sh:property [
+        sh:path rl2p:assertedTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "A ContextAssertion must have exactly one asserted time."
+    ] ;
+    sh:property [
+        sh:path rl2p:assertedBy ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "If specified, assertedBy must be an Agent."
+    ] ;
+    sh:property [
+        sh:path rl2p:performer ;
+        sh:maxCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "If specified, performer must be an Agent."
+    ] ;
+    sh:property [
+        sh:path rl2p:fulfillmentEvidence ;
+        sh:message "Fulfillment evidence may reference any resource."
+    ] .
+
+# Fulfillment assertions should include performer for identity binding
+# When contextProperty is requirementFulfilled, performer should be present
+rl2p:FulfillmentAssertionPerformerShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this WHERE {
+                ?this a rl2p:ContextAssertion ;
+                      rl2p:contextProperty rl2p:requirementFulfilled .
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2p:performer ;
+        sh:minCount 1 ;
+        sh:class rl2:Agent ;
+        sh:message "A requirementFulfilled assertion must specify the performer (the agent who fulfilled the requirement)."
+    ] .
+
+############################################################
+# Case Shapes
+############################################################
+
+rl2p:CaseShape a sh:NodeShape ;
+    sh:targetClass rl2p:Case ;
+    sh:property [
+        sh:path rl2p:initialRequest ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class rl2p:Request ;
+        sh:message "A Case must have exactly one initial request."
+    ] ;
+    sh:property [
+        sh:path rl2p:caseStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in (rl2p:CasePending rl2p:Approved rl2p:Denied rl2p:Expired rl2p:Revoked) ;
+        sh:message "Case status must be one of: CasePending, Approved, Denied, Expired, Revoked."
+    ] ;
+    sh:property [
+        sh:path rl2p:caseCreated ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:message "A Case must have exactly one creation time."
+    ] ;
+    sh:property [
+        sh:path rl2p:evaluationHistory ;
+        sh:class rl2p:EvaluationResult ;
+        sh:message "Evaluation history must contain EvaluationResult instances."
+    ] ;
+    sh:property [
+        sh:path rl2p:expirationTime ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:property [
+        sh:path rl2p:policyGeneration ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:anyURI ;
+        sh:message "Policy generation must be a URI."
+    ] ;
+    sh:property [
+        sh:path rl2p:caseNote ;
+        sh:datatype xsd:string
+    ] .
+
+############################################################
+# Cross-Validation: Case expiration time vs creation time
+############################################################
+
+rl2p:CaseExpirationShape a sh:NodeShape ;
+    sh:targetClass rl2p:Case ;
+    sh:property [
+        sh:path rl2p:caseCreated ;
+        sh:lessThanOrEquals rl2p:expirationTime ;
+        sh:message "Case creation time must be before or equal to expiration time."
+    ] .
+
+############################################################
+# Cross-Validation: Approved cases should have evaluation history
+############################################################
+
+rl2p:ApprovedCaseShape a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX rl2p: <https://rl2.example/protocol#>
+            SELECT ?this
+            WHERE {
+                ?this a rl2p:Case ;
+                      rl2p:caseStatus rl2p:Approved .
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path rl2p:evaluationHistory ;
+        sh:minCount 1 ;
+        sh:message "An Approved case must have at least one evaluation in its history."
+    ] .
+
+############################################################
+# S5: Global (Offer-tier) operands read shared 'class variable'
+# state; their resolutionPath MUST root at 'global.*'.
+############################################################
+
+rl2p:GlobalLeftOperandShape a sh:NodeShape ;
+    sh:targetClass rl2p:GlobalLeftOperand ;
+    sh:property [
+        sh:path rl2:resolutionPath ;
+        sh:minCount 1 ;
+        sh:pattern "^global\\." ;
+        sh:message "A GlobalLeftOperand must declare a resolutionPath rooted at 'global.' (the Offer tier, S5)."
+    ] .

@@ -1,60 +1,54 @@
 # RL2: Rights Language 2
 
-A next-generation policy language unifying normative, descriptive, and operational semantics for digital rights and data governance.
+RL2 is an AI-generatable, deterministically evaluable policy language for digital rights and
+data governance. It extends and clarifies ODRL 2.2 so that independent evaluators can agree about
+what a policy means.
 
-## Overview
+RL2 focuses on four deliverables:
 
-RL2 aims to be a semantic superset of ODRL 2.2 (a design goal — a complete term-by-term compatibility inventory is still open work), providing:
+- a canonical RDF/OWL policy model with SHACL validation;
+- formal evaluation semantics over a request and immutable world snapshot;
+- an explicit ODRL 2.2 migration specification;
+- structural and semantic conformance cases.
 
-- **Formal semantics** suitable for verified runtime kernels
-- **Hohfeldian normative relations** (privilege, duty, claim, power, liability, immunity)
-- **Promise Theory** integration for voluntary cooperation
-- **Operational semantics** with explicit state transitions
-- **RDF/OWL native** with SHACL validation
+Hohfeldian normative positions and Promise Theory extend the ODRL policy model. Persistent Cases,
+event sourcing, workflow orchestration, distributed coordination, enforcement, and optimized
+evaluator implementations are not part of the normative language core.
 
-## Getting Started
+## Start Here
 
-**New to RL2?** Start here:
+1. [Project scope](spec/RL2_Scope.md) — normative boundary and deliverables.
+2. [Information model](spec/RL2_Model.md) — pure evaluation inputs and outputs.
+3. [Primer](docs/RL2_Primer.md) — concepts and examples; currently being aligned to SCOPE-2.
+4. [Formal semantics](spec/RL2_Semantics.md) — authoritative evaluation meaning.
+5. [Use cases](conformance/usecases/) — 52 policy scenarios.
+6. [Reorganization plan](project/reorganization-plan.md) — active work and validation gates.
 
-1. **[RL2_Primer.md](RL2_Primer.md)** — Learn RL2 concepts, see ODRL mapping (Appendix A)
-2. **[RL2_Vocabulary.md](RL2_Vocabulary.md)** — Look up any class or property
-3. **[usecases/](usecases/)** — Practical policy patterns
+## Repository
 
-## Documentation
+| Area | Purpose |
+|---|---|
+| [`spec/`](spec/) | Normative language, ontology, SHACL, profiles, and ODRL mapping |
+| [`conformance/`](conformance/) | Use cases, semantic vectors, and migration fixtures |
+| [`docs/`](docs/) | Informative Primer, architecture, vocabulary, external-data guidance, and FAQ |
+| [`future/protocol/`](future/protocol/) | Retained protocol/workflow work outside core conformance |
+| [`future/reference-implementation/`](future/reference-implementation/) | IR and evaluator design ideas for follow-on implementation |
+| [`future/research/`](future/research/) | Historical and exploratory design work |
+| [`project/`](project/) | Active plan, issue tracker, and issue history |
+| [`tools/`](tools/) | Validation tooling |
 
-### Conceptual
+## Normative Sources
 
-| Document | Description |
-|----------|-------------|
-| [RL2_Primer.md](RL2_Primer.md) | Technical introduction with ODRL mapping |
-| [RL2_Vocabulary.md](RL2_Vocabulary.md) | Complete class and property reference |
-| [usecases/](usecases/) | 17 use cases demonstrating RL2 patterns |
+When sources conflict, use this order:
 
-### Technical Specifications
+1. [`spec/rl2.ttl`](spec/rl2.ttl) and [`spec/rl2-shacl.ttl`](spec/rl2-shacl.ttl)
+2. [`spec/RL2_Model.md`](spec/RL2_Model.md)
+3. [`spec/RL2_Semantics.md`](spec/RL2_Semantics.md)
+4. [`spec/RL2_ODRL_Mapping.md`](spec/RL2_ODRL_Mapping.md)
+5. Accepted conformance vectors
 
-| Document | Description |
-|----------|-------------|
-| [RL2_Semantics.md](RL2_Semantics.md) | Formal denotational and operational semantics |
-| [RL2_Architecture.md](RL2_Architecture.md) | Evaluation pipeline and design rationale |
-| [RL2_IR.md](RL2_IR.md) | Intermediate representation: compilation target and equivalence obligation |
-| [RL2_Protocol.md](RL2_Protocol.md) | Runtime evaluation protocol |
-
-### Normative Files
-
-| File | Description |
-|------|-------------|
-| [rl2.ttl](rl2.ttl) | OWL ontology |
-| [rl2-shacl.ttl](rl2-shacl.ttl) | SHACL validation shapes |
-| [rl2p.ttl](rl2p.ttl) | Protocol ontology |
-| [rl2p-shacl.ttl](rl2p-shacl.ttl) | Protocol SHACL shapes |
-
-### Project Tracking
-
-| Document | Description |
-|----------|-------------|
-| [issues.md](issues.md) | Active issue tracker — open issues, open decisions, current remediation backlog |
-| [issues-log.md](issues-log.md) | Archive — resolved entries, full changelog, and historical roadmap detail |
-| [RL2_References.md](RL2_References.md) | Citations and glossary |
+Documents under `docs/` are explanatory. Documents under `future/` are not part of RL2 core
+conformance.
 
 ## Quick Example
 
@@ -62,40 +56,41 @@ RL2 aims to be a semantic superset of ODRL 2.2 (a design goal — a complete ter
 @prefix rl2: <https://rl2.example/ontology#> .
 @prefix ex:  <https://example.org/> .
 
-# A simple data use agreement
 ex:agreement a rl2:Agreement ;
     rl2:grantor ex:DataOwner ;
     rl2:grantee ex:Researcher ;
-    rl2:clause ex:usePrivilege, ex:deletionDuty .
+    rl2:clause ex:researchUse .
 
-# Researcher may use the dataset
-ex:usePrivilege a rl2:Privilege ;
+ex:researchUse a rl2:Privilege ;
     rl2:subject ex:Researcher ;
     rl2:action ex:use ;
-    rl2:object ex:Dataset .
-
-# Researcher must delete by deadline
-ex:deletionDuty a rl2:Duty ;
-    rl2:subject ex:Researcher ;
-    rl2:action ex:delete ;
     rl2:object ex:Dataset ;
-    rl2:obligationState rl2:Pending .
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:declaredPurpose ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand "research"
+    ] .
 ```
 
-See [RL2_Primer.md](RL2_Primer.md) for a complete walkthrough.
+The policy is evaluated against an explicit request and world snapshot. RL2 specifies the result;
+an implementation decides how the snapshot is collected and how a permitted action is enforced.
 
-## High-Trust Deployment Prerequisites
+## Validation
 
-RL2 defines policy semantics and evaluation protocols. For deployments requiring full audit trails and non-repudiation:
+The project uses `uv` for Python tooling:
 
-- **Temporal/versioned data stores** — Reconstruct state at any historical point
-- **Immutable audit logs** — Append-only storage for decisions and evidence
-- **Cryptographic attestation** — Signed decisions for non-repudiation
-- **Policy version control** — Bind cases to specific policy generations
+```bash
+uv run tools/validate.py
+uv run tools/validate.py --per-fence spec/RL2_Semantics.md
+```
+
+The current structural baseline is 52/52 use cases passing SHACL validation.
 
 ## Status
 
-Draft v0.6 — Under active development.
+Draft v0.6. SCOPE-2 reorganization is active; consult
+[`project/reorganization-plan.md`](project/reorganization-plan.md) for current status.
 
 ## License
 

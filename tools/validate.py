@@ -6,16 +6,16 @@
 """
 RL2 SHACL validation harness.
 
-Validates RL2 policies against the core ontology (rl2.ttl, rl2p.ttl) and SHACL
-shapes (rl2-shacl.ttl, rl2p-shacl.ttl). Targets may be:
+Validates RL2 policies against the core ontology and, while the SCOPE-2 corpus
+migration is in progress, the retained future-protocol ontology. Targets may be:
 
   - Turtle files (.ttl), validated directly, or
   - Markdown use cases (.md), whose ```turtle fenced blocks are extracted and
     concatenated into one data graph before validation.
 
 Usage:
-    uv run tools/validate.py                       # all usecases/*.md
-    uv run tools/validate.py usecases/foo.md ...   # specific files
+    uv run tools/validate.py                       # all conformance/usecases/*.md
+    uv run tools/validate.py conformance/usecases/foo.md ...
     uv run tools/validate.py --shapes-only         # just load ontology + shapes
     uv run tools/validate.py -v                     # print full warning/violation reports
     uv run tools/validate.py --strict               # also fail (exit 1) on warnings
@@ -37,8 +37,10 @@ from pyshacl import validate
 from rdflib import Graph
 
 ROOT = Path(__file__).resolve().parent.parent
-ONTOLOGY_FILES = ["rl2.ttl", "rl2p.ttl"]
-SHAPES_FILES = ["rl2-shacl.ttl", "rl2p-shacl.ttl"]
+CORE_ONTOLOGY_FILES = ["spec/rl2.ttl"]
+CORE_SHAPES_FILES = ["spec/rl2-shacl.ttl"]
+FUTURE_PROTOCOL_ONTOLOGY_FILES = ["future/protocol/rl2p.ttl"]
+FUTURE_PROTOCOL_SHAPES_FILES = ["future/protocol/rl2p-shacl.ttl"]
 
 # Standard prefixes injected before markdown-extracted Turtle so illustrative
 # snippets that omit their own @prefix lines still resolve. A block's own @prefix
@@ -236,6 +238,12 @@ def main() -> int:
     ap.add_argument("targets", nargs="*", help="Markdown or Turtle files to validate")
     ap.add_argument("--shapes-only", action="store_true", help="Only load ontology + shapes")
     ap.add_argument(
+        "--core-only",
+        action="store_true",
+        help="Load only spec/rl2.ttl + spec/rl2-shacl.ttl. By default the retained "
+        "future protocol is also loaded while the 52-case corpus is being migrated.",
+    )
+    ap.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -255,17 +263,25 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    print(f"Loading ontology: {', '.join(ONTOLOGY_FILES)}")
-    ont = load_graph(ONTOLOGY_FILES)
-    print(f"Loading shapes:   {', '.join(SHAPES_FILES)}")
-    shapes = load_graph(SHAPES_FILES)
+    ontology_files = list(CORE_ONTOLOGY_FILES)
+    shapes_files = list(CORE_SHAPES_FILES)
+    if not args.core_only:
+        ontology_files += FUTURE_PROTOCOL_ONTOLOGY_FILES
+        shapes_files += FUTURE_PROTOCOL_SHAPES_FILES
+
+    print(f"Loading ontology: {', '.join(ontology_files)}")
+    ont = load_graph(ontology_files)
+    print(f"Loading shapes:   {', '.join(shapes_files)}")
+    shapes = load_graph(shapes_files)
     print(f"  ontology: {len(ont)} triples · shapes: {len(shapes)} triples\n")
 
     if args.shapes_only:
         print("Ontology and shapes parsed OK.")
         return 0
 
-    targets = args.targets or sorted(str(p) for p in (ROOT / "usecases").glob("*.md"))
+    targets = args.targets or sorted(
+        str(p) for p in (ROOT / "conformance" / "usecases").glob("*.md")
+    )
     fails, skipped, passed, warned = [], [], [], []
 
     for t in targets:

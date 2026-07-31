@@ -4,29 +4,28 @@ Orientation for collaborators — human or AI. Read this first.
 
 ## 1. What RL2 Is
 
-RL2 (Rights Language 2) is a policy language for digital rights and data governance — a semantic superset of ODRL 2.2, designed as a candidate for ODRL 3.0. It adds Hohfeldian normative positions, Promise Theory, and operational semantics. The project's current scope is design and specification, not mechanized proof or implementation (SCOPE-1, `issues.md`).
+RL2 (Rights Language 2) is a policy language for digital rights and data governance — a candidate
+semantic extension and clarification of ODRL 2.2. It adds Hohfeldian normative positions and
+Promise Theory while making policy evaluation deterministic enough for independent evaluators to
+agree. The project scope is the language, its pure evaluation semantics, ODRL migration, and
+conformance suite (SCOPE-2, `spec/RL2_Scope.md`).
 
 **Foundation:** RDF, OWL, SHACL, ODRL, I/O Logic, deontic logic.
 
 **Two governing quality attributes:**
 - **Generatable** — exactly one valid RDF shape per normative proposition (canonical form).
-- **Verifiable** — every construct maps deterministically to a bounded evaluation machine.
+- **Verifiable** — every construct has deterministic, bounded, testable evaluation semantics.
 
 ## 2. Project Phase
 
-**Current:** Spec work — extensions, semantics for ontology and protocol. Bands 1-3 in `issues.md` (SEM-1..8, HOHF-1..5, PROM-1..8, EXPR-1..6). The ontology and protocol are the priority; documentation follows.
+**Current:** SCOPE-2 reorganization and core semantic consolidation. The active control document
+is `project/reorganization-plan.md`; the active issue tracker is `project/issues.md`.
 
-**Scope decision (SCOPE-1, 2026-07-29):** RL2 stops at a thoroughly reviewed docs + spec +
-semantics + IR design. There is no committed implementation track — the earlier two-lowering
-(AST + condition bytecode) IR design and the Dafny/Go mechanization plan are both dropped in
-favor of a single-lowering IR (Turtle → normalized AST, interpreted directly by
-`evalCondition`/`evalIR`; see `RL2_IR.md`) validated by differential testing rather than a
-proof assistant. `research/design-forth-ir.md` and
-`research/verification-toolchain-comparison.md` record that earlier direction and are retained
-for historical reference only. A future implementation is out of scope for this project as
-currently defined.
-
-Spec work takes precedence until it nears a stable state.
+**Scope decision (SCOPE-2, 2026-07-31):** RL2 standardizes observable policy meaning through a
+pure evaluation contract over a policy universe, request, immutable world snapshot, and evaluation
+configuration. Persistent Cases, event sourcing, scheduling, retry/commit protocols, distributed
+coordination, optimized IRs, and implementation toolchains are outside the normative core. They
+are retained under `future/` as possible companion or follow-on work.
 
 ## 3. Working Stance
 
@@ -40,25 +39,28 @@ Spec work takes precedence until it nears a stable state.
 
 When documents conflict, higher-priority sources win:
 
-1. **TTL + SHACL** (rl2.ttl, rl2p.ttl, rl2-shacl.ttl, rl2p-shacl.ttl)
-2. **RL2_Semantics.md**
-3. **RL2_Architecture.md**
-4. **RL2_IR.md** (compilation-target design; must match Semantics via the equivalence obligation)
-5. **RL2_Protocol.md**
-6. **RL2_Vocabulary.md** (derived from TTL; explanatory)
-7. **Examples and prose** (illustrative, not normative)
+1. **Core TTL + SHACL** (`spec/rl2.ttl`, `spec/rl2-shacl.ttl`)
+2. **Information model** (`spec/RL2_Model.md`)
+3. **Formal semantics** (`spec/RL2_Semantics.md`)
+4. **ODRL migration rules** (`spec/RL2_ODRL_Mapping.md`)
+5. **Conformance vectors** (`conformance/`), for observable behavior covered by a vector
+6. **Reader documentation** (`docs/`), informative
+7. **Future protocol/reference material** (`future/`), non-core and non-normative
 
 If prose contradicts TTL/SHACL, the TTL/SHACL is correct and prose must be updated.
 
 ## 5. Architecture Invariants
 
-Three-stage evaluation pipeline:
+The target SCOPE-2 pipeline is pure:
 
-1. **Derivation** — I/O logic transformer, monotone. `Out(U, Env)` produces normative atoms.
-2. **Conflict resolution** — strategy-based, non-monotone. `resolveDecision` picks a decision.
-3. **Protocol wrapping** — case tracking, requirements.
+1. **Canonical projection** — validated RDF maps to one normalized policy AST.
+2. **Derivation** — `Out(U, Env)` produces attributed normative atoms for a fixed snapshot.
+3. **Status interpretation** — duties and promises are classified declaratively from snapshot evidence.
+4. **Resolution** — `resolveDecision` produces one explained evaluation result.
 
-Do not mix concerns across stages. Derivation must be monotone and total; resolution is where defeasibility lives. Separation is what makes polynomial-time evaluation and formal verification possible.
+Do not introduce persistence, event arrival, Case lifecycle, retry, commit, or enforcement into
+these stages. Derivation is monotone in the policy universe for a fixed environment; it is not
+monotone in facts containing anti-monotone conditions.
 
 ## 6. Canonical Form
 
@@ -69,24 +71,25 @@ When adding or changing vocabulary, check against this invariant:
 - No property expressible at multiple container levels with the same effect — pick the narrowest; conjoin-and-normalize the rest at IR compile time.
 - No two structural encodings of the same proposition — pick one; reject the other in SHACL or rewrite during compilation.
 
-If a construct creates a second way to say the same thing, that is a defect, not a convenience. See `RL2_Architecture.md` §Canonical Form.
+If a construct creates a second way to say the same thing, that is a defect, not a convenience.
+Canonical projection is normative; raw RDF graph identity is not semantic identity.
 
 ## 7. Vocabulary Stability
 
 Stable identifiers — do not rename or alias:
-- State components (Σ.Events, Σ.ObligationState, Σ.DutyPerformer, etc.)
 - State values (Pending, Active, Fulfilled, Violated)
 - Norm classes (Privilege, Duty, Prohibition, Claim, Power, Liability, Immunity)
-- Protocol entities (Case, Requirement, Decision, EvaluationResult)
 - Role properties (subject, counterparty, grantor, grantee)
 
-Changes to ontology files (rl2.ttl, rl2p.ttl, rl2-shacl.ttl, rl2p-shacl.ttl) require explicit discussion. Do not weaken SHACL constraints or rename existing IRIs.
+Changes to core ontology files (`spec/rl2.ttl`, `spec/rl2-shacl.ttl`) require explicit discussion.
+Do not weaken SHACL constraints or rename stable core IRIs. Protocol identifiers under `future/`
+are not part of core conformance.
 
 ## 8. Formal Properties
 
 Changes to inference rules, transition systems, typing judgments, or formal definitions must preserve:
-- **Specifiability** (algebraic datatypes, syntax-directed rules, structural-recursion termination — precise enough to test an implementation against, per SCOPE-1)
-- **Monotonicity of derivation** (`Out` is monotone in facts)
+- **Specifiability** (algebraic datatypes, syntax-directed rules, structural-recursion termination)
+- **Monotonicity of derivation in the policy universe for a fixed snapshot**
 - **Totality of the evaluator** (terminates for all well-formed inputs; polynomial under stated constraints)
 - **Determinism** (same inputs → same outputs)
 
@@ -112,28 +115,33 @@ If an instruction is unclear, ask. Don't guess. Reasonable assumptions often are
 
 | File | Purpose |
 |------|---------|
-| `rl2.ttl` | Normative ontology (OWL) |
-| `rl2-shacl.ttl` | Validation shapes |
-| `rl2p.ttl` | Protocol ontology |
-| `rl2p-shacl.ttl` | Protocol validation shapes |
-| `RL2_Semantics.md` | Formal denotational + operational semantics |
-| `RL2_Architecture.md` | Evaluation pipeline, functional model, design rationale |
-| `RL2_IR.md` | Intermediate representation (compilation target, construct correspondence, equivalence obligation) |
-| `RL2_Protocol.md` | Runtime evaluation protocol |
-| `RL2_Vocabulary.md` | Complete class/property reference (derived from TTL) |
-| `RL2_Primer.md` | Tutorial introduction |
-| `issues.md` | Active issue tracker — open issues, open decisions, current remediation backlog |
-| `issues-log.md` | Archive — resolved entries (with rationale), full changelog, deep-sweep WP-0…5, § Resolved |
+| `spec/RL2_Scope.md` | Governing SCOPE-2 boundary |
+| `spec/RL2_Model.md` | Normative evaluation inputs and outputs |
+| `spec/rl2.ttl` | Normative core ontology (OWL) |
+| `spec/rl2-shacl.ttl` | Normative core validation shapes |
+| `spec/RL2_Semantics.md` | Formal language semantics |
+| `spec/RL2_ODRL_Mapping.md` | ODRL 2.2 migration and compatibility |
+| `conformance/usecases/` | Use-case and conformance corpus |
+| `docs/RL2_Primer.md` | Tutorial introduction |
+| `docs/RL2_Architecture.md` | Informative architecture and boundaries |
+| `docs/RL2_Vocabulary.md` | Derived class/property reference |
+| `future/protocol/` | Non-core protocol work |
+| `future/reference-implementation/` | Non-core IR/evaluator design |
+| `project/reorganization-plan.md` | Active SCOPE-2 execution plan |
+| `project/issues.md` | Active issue tracker |
+| `project/issues-log.md` | Resolved/historical issue archive |
 | `tools/validate.py` | SHACL validation harness for use cases and spec examples |
 
-**Issue-tracker workflow.** The tracker is split by status: `issues.md` holds only active work
-(open issues, open decisions, the current remediation backlog), and `issues-log.md` is the
+**Issue-tracker workflow.** The tracker is split by status: `project/issues.md` holds only active work
+(open issues, open decisions, the current remediation backlog), and `project/issues-log.md` is the
 append-only archive (resolved entries with their rationale, the full changelog, deep-sweep
-WP-0…5, and the § Resolved decisions). Read `issues.md` for what's next; consult `issues-log.md`
+WP-0…5, and the § Resolved decisions). Read `project/issues.md` for what's next; consult
+`project/issues-log.md`
 when an active entry cross-references a resolved decision ("SEM-9 (Resolved)", "WP-4/S7", "C6b").
-**On resolving an issue:** move its entry (with decision + rationale) to `issues-log.md`, and leave
-a one-line pointer in its band in `issues.md` if open work still references it. New review sweeps
-append to the log's changelog. Keep the split intact — don't reintroduce resolved detail into `issues.md`.
+**On resolving an issue:** move its entry (with decision + rationale) to
+`project/issues-log.md`, and leave a one-line pointer in its band in `project/issues.md` if open
+work still references it. New review sweeps append to the log's changelog. Keep the split intact —
+don't reintroduce resolved detail into `project/issues.md`.
 
 ## 13. Validation
 
@@ -142,7 +150,7 @@ append to the log's changelog. Keep the split intact — don't reintroduce resol
 uv run tools/validate.py
 
 # Validate a spec doc per-fence (each fence is standalone)
-uv run tools/validate.py --per-fence RL2_Semantics.md
+uv run tools/validate.py --per-fence spec/RL2_Semantics.md
 ```
 
 Every Turtle code fence in spec docs and use cases must pass SHACL validation. If you add or change an example, validate it.
