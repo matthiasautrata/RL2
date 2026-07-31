@@ -118,7 +118,7 @@ The W3C Workshop on the Future of ODRL (20-21 July 2026, London; co-chaired by I
 - **D1** — W3C-style conformance classes + stable requirement IDs + RFC 2119 boilerplate, once the semantic decisions are closed. *(new; Band 5)*
 - **A1 / LLM-1** — the strict parse→validate→type-check→normalize→compile ingestion pipeline with unknown-term/heuristic-repair rejection + adversarial-input tests. *(sharpens LLM-1, §7)*
 - **R1b** — separate privacy-profile category classes from runtime individuals; add profile SHACL; narrow the GDPR legal claims. *(new; §14)*
-- **D2** (dependent) — final editorial consolidation per the source hierarchy; generate vocabulary/cardinality/namespace tables rather than hand-maintaining them. *(extends Band 5 DOC-2)*
+- **ROADMAP-D2** (dependent) — final editorial consolidation per the source hierarchy; generate vocabulary/cardinality/namespace tables rather than hand-maintaining them. *(extends Band 5 DOC-2; distinct from the Class-2 finding D2 below)*
 
 ---
 
@@ -127,14 +127,14 @@ The W3C Workshop on the Future of ODRL (20-21 July 2026, London; co-chaired by I
 
 Source: a fresh external review saved as `fix.md` / `fix-codex-original.md` (both scratch, deleted after this merge — same disposition as every prior sweep). It re-reviews the post-SCOPE-1, post-WP-5 state and **endorses the execution model** (direct normalized-AST; no Forth IR / Datalog / OWL reasoner / proof assistant needed). Its headline is that the remaining problem is **integration**: the WP-2…WP-5 result-algebra, event-log, duty-lifecycle, materialization, and external-data definitions are each locally sound but coexist with older, incompatible signatures, so the documents do not yet pin down *one* deterministic evaluator. Findings are classified by *remediation effort* (Class 1 editorial, Class 2 bounded-decision, Class 3 integration stopper); per the review's own §7 — adopted here — drive by **dependency**, not class number: decide the semantic roots (C3-1/C3-2/C3-4/C3-5) first.
 
-This section is the **execution tracker** for the sweep; individual findings cross-reference the WP/band entry they sharpen or re-open. Class 1 was applied in commit `ae0026b` (2026-07-30) except the four deferred items noted below.
+This section is the **execution tracker** for the sweep; individual findings cross-reference the WP/band entry they sharpen or re-open. Class 1 was applied in commit `ae0026b` (2026-07-30) except three deferred items noted below (E2 resolved 2026-07-31 with C3-1).
 
 ### Class 1 — editorial (E1–E16)
 
 | ID | Finding | Disposition |
 |---|---|---|
 | E1 | Grammar cardinalities disagree with SHACL (And/Or/Xone ≥2, Policy clauses ≥1, absent condition → `True`) | ✅ `ae0026b` |
-| E2 | Typed result algebra coexists with `Value ∪ {⊥}`/Boolean signatures | ⏸ deferred — depends on **C3-1** redesign (mechanical replacement now would fix semantics prematurely) |
+| E2 | Typed result algebra coexists with `Value ∪ {⊥}`/Boolean signatures | ✅ resolved 2026-07-31 — landed with **C3-1**; see issues-log.md (WP-2 entry) |
 | E3 | `global` path root excluded by normative grammar + sandbox list | ✅ `ae0026b` |
 | E4 | `dutyMode` read from nonexistent `Σ.dutyMode` | ✅ `ae0026b` (reads the normalized Duty field) |
 | E5 | Duplicate headings / duplicate normative algorithms | ✅ `ae0026b` |
@@ -143,7 +143,7 @@ This section is the **execution tracker** for the sweep; individual findings cro
 | E8 | ODRL comparison says derivation is monotone in facts | ✅ `ae0026b` (fixed-environment/policy-universe statement) |
 | E9 | ODRL comparison's ontological-status claim ("ontology in the stronger sense") | ✅ `ae0026b` (both described as RDF/OWL models) |
 | E10 | Comparison claims differential testing has occurred | ✅ `ae0026b` ("planned conformance testing") |
-| E11 | Vocabulary tables drifted from TTL/SHACL | ✅ `ae0026b` (current-state repair; auto-generation stays **D2**) |
+| E11 | Vocabulary tables drifted from TTL/SHACL | ✅ `ae0026b` (current-state repair; auto-generation stays **ROADMAP-D2**) |
 | E12 | `rl2p.ttl` says `performer` populates `Σ.DutyPerformer` (contradicts derived-witness model) | ⏸ deferred — protected ontology comment, needs **AGENTS.md §7** sign-off (Vocabulary prose already corrected) |
 | E13 | `issues.md` active-text Dafny/verified-core/Forth references | ✅ `ae0026b` (historical-only) |
 | E14 | Semantics refers to a "Go API" | ✅ `ae0026b` (implementation-neutral) |
@@ -156,8 +156,8 @@ Each has a sound recommended resolution in `fix.md` §3 (Class 2 table). Disposi
 
 | ID | Topic | Disposition |
 |---|---|---|
-| D1 | Priority before strategy; keep ODRL `invalid` distinct | ✅ done — **WP-4/S7** (SEM-9 + ODRL `Invalid` strategy) |
-| D2 | `Unknown` atoms lose type/provenance in the envelope | Open — extends **C3-1**; needs attributed `indeterminate(norm,policy,error)` |
+| D1 | Priority before strategy; keep ODRL `invalid` distinct | ✅ resolved 2026-07-31 — maximal-priority stratum now precedes every strategy; `Invalid` surfaces a conflict within that stratum; see **WP-4/S7** and C3-1 addendum in issues-log.md |
+| D2 | `Unknown` atoms lose type/provenance in the envelope | ✅ resolved 2026-07-31 — landed with **C3-1**; `indeterminate(norm,policy,causes)` atom now in `Out`; see issues-log.md (WP-2 entry) |
 | D3 | `roles(agent)` undefined in role expansion | Open (new) — add a bounded role-membership relation + closure, or drop role matching from core; relates **SEM-5** |
 | D4 | Witness selection ignores duty subject + lifecycle interval | Open — folds into **C3-3** |
 | D5 | `latestEvaluation` ordered by timestamp only | Open — add a stable result/event sequence; folds **WP-6/P2** |
@@ -188,7 +188,7 @@ The review's core claim: WP-2…WP-5 each closed a definition in isolation, but 
 
 | ID | Integration gap | Re-opens |
 |---|---|---|
-| C3-1 | Result/truth algebra not threaded: `resolve`/`resolveRuntime`/`apply`/`Out` still use `Value ∪ {⊥}`/Boolean; IR resolver ignores `targetNorm`; `VBottom` collapses Missing/Invalid/Conflict; `Out` emits no attributed indeterminate atom | **WP-2/S2** (blocks E2, D2) |
+| C3-1 | ✅ **Resolved 2026-07-31** — one causal-error algebra and one `Out`-based evaluator; canonical `EvalError` identity; kind-tagged Norm/Promise state targets; typed attributed Unknown atoms limited to Privilege/Prohibition/Duty; explicit IR `derive`; maximal priority before strategy; exact polynomial finite-summary Unknown outcome-sensitivity behind sole public `resolveDecision(envelope,Σ',strategy)`. Structured Protocol projection is deliberately **not** claimed here and remains C3-6/D10. See issues-log.md (WP-2 entry). | **WP-2/S2** — unblocked E2, D1, D2 |
 | C3-2 | Maintenance-duty premises jointly unsatisfiable (same `c` is activation guard, invariant, *and* deadline source); Achievement can stay Pending forever if first seen after deadline; standalone PromisedState is terminal, can't represent an interval | **WP-4/S4** |
 | C3-3 | `EventSet(E)` picks an arbitrary `e` (sequence depends on iteration order); `TimeAdvanced`/`MetadataChanged` mutate scalars but aren't appended (not idempotent/replayable, clock can go backward); witness derivation ignores subject/Case scope/activation window (D4) | **WP-3/S6+S5** |
 | C3-4 | `violated(d,P)` doesn't require the Duty to match the request → an unrelated violated Duty denies any request; no relation attaches a Duty to its grant (prereq/concurrent/post/independent) | **WP-4/S7** — elevates the explicitly-deferred "attach duties to their grant" to a stopper |
@@ -207,11 +207,11 @@ The review's core claim: WP-2…WP-5 each closed a definition in isolation, but 
 
 Supersedes the WP-6→7→8 ordering for *what to do next*, per fix.md's dependency argument:
 
-1. **Decide the semantic roots:** C3-1 (result-algebra integration) → C3-2 (temporal duty model) → C3-4 (duty attachment) → C3-5 (materialization).
+1. **Decide the semantic roots:** ~~C3-1 (result-algebra integration)~~ ✅ resolved 2026-07-31 → **C3-2 (temporal duty model), next** → C3-4 (duty attachment) → C3-5 (materialization).
 2. **Unify state:** C3-3 (event log) → C3-6 (protocol projection) → C3-7 (resolved context).
 3. **Complete ingestion:** C3-8 (canonical projection) + the ODRL compatibility matrix (WP-7).
 4. Apply the bounded **Class 2** decisions against that model.
-5. **Class 1** cleanup continuously where independent (E2 unblocks once C3-1 lands), then one final generated-table pass (D2).
+5. **Class 1** cleanup continuously where independent (E2 ✅ landed with C3-1), then the final generated-table pass (**ROADMAP-D2**, still open).
 6. Build the **8 golden conformance vectors** (Achievement duty · Maintenance duty · unknown operand · priority-conflict Permit/Prohibit · unrelated violated Duty · Offer materialization · trusted external assertion · Case replay), each as `source graph + request + initial state/events + resolved context → canonical AST → decision + determining atoms + requirements + effects → next state + protocol projection`. Until these evaluate unambiguously by hand from one normative algorithm, totality/replay/canonicality/superset claims stay unproven. Consumes **T1/VALID-4** (WP-8).
 
 ---

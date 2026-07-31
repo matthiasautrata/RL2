@@ -25,16 +25,17 @@ RL2 follows an **I/O Logic + Transformer + Post-hoc Conflict Resolution** archit
         ▼
 ② Derivation (Transformer)
    T : (Policy × Env) → NormativeAtoms*
-   Produces: {permit(x), forbid(y), obligate(z)}
+   Produces: {permit(x), forbid(y), obligate(z), indeterminate(n, P, causes)}
         │
         ▼
 ③ Normative Envelope (unresolved)
-   Multiset of matching norms, possibly conflicting
+   Set of attributed matching atoms, possibly conflicting
         │
         ▼
 ④ Conflict Resolution
-   R : NormativeAtoms* → Decision
-   Strategy: ProhibitOverrides | PermitOverrides | SpecificOverridesGeneral
+   R : (NormativeAtoms*, Σ', Strategy) → Decision
+   Max priority → strategy → Unknown outcome-sensitivity
+   Strategy: ProhibitOverrides | PermitOverrides | SpecificOverridesGeneral | Invalid
         │
         ▼
 ⑤ Protocol Wrapping
@@ -105,7 +106,9 @@ Conflict resolution is **procedural**, not logical:
 - **Non-monotonic**: Priority can exclude norms
 - **Strategy-based**: Evaluator configuration, not policy content
 - **Defeasible**: Higher-priority norms defeat lower
-- **P vs F conflicts**: Resolved by strategy (ProhibitOverrides, PermitOverrides)
+- **P vs F conflicts**: First restrict to the maximal-priority stratum, then apply strategy
+- **Unknown-sensitive**: Attributed Unknowns yield `Indeterminate` exactly when their reachable
+  activation summaries produce more than one decision
 
 **Key insight**: `P(a) ∧ F(a)` is not a logical contradiction — it's a conflict to be resolved procedurally.
 `resolveDecision` is a parameterized algorithm (strategy + priorities); if these inputs do not disambiguate, the evaluator must return an explicit ambiguity/error instead of applying an implicit specificity heuristic.
@@ -130,14 +133,15 @@ The `resolveDecision` function implements several strategies:
 
 | Strategy | Behavior |
 |----------|----------|
-| **ProhibitOverrides** | Any active prohibition → Deny |
-| **PermitOverrides** | Any active privilege with no duties → Permit |
-| **SpecificOverridesGeneral** | Most specific norm wins |
+| **ProhibitOverrides** | A prohibition in the maximal-priority stratum → Deny |
+| **PermitOverrides** | A privilege in that stratum wins; its active/violated duties still affect the result |
+| **SpecificOverridesGeneral** | Most specific norm in that stratum wins; opposite-effect ties are Indeterminate |
+| **Invalid** | A privilege/prohibition conflict in that stratum is Indeterminate |
 
 **rl2:priority** is resolution-layer, not derivation-layer:
-- Orders among same-type norms (which prohibition's message? which privilege's duties?)
-- Does NOT allow privileges to override prohibitions cross-type
-- Could be used as pre-filter within strategies
+- Default is `0`; higher values defeat lower values
+- Applies across Privilege and Prohibition before strategy selection
+- Does not remove Duty atoms, whose lifecycle effect is handled separately
 
 ---
 
@@ -152,6 +156,11 @@ Decision                 rl2p:decision
 DutySet                  rl2p:activeRequirements (wrapped as Requirements)
 Σ' (updated state)       Persisted in Case
 ```
+
+The current Protocol exposes the `Indeterminate` decision but has no structured carrier for the
+determining `indeterminate(norm,policy,causes)` atoms. That projection is intentionally deferred
+to C3-6/D10; an implementation may retain the envelope internally, but must not serialize causal
+detail into an ad hoc replacement for the future protocol field.
 
 `rl2p:Requirement` adds tracking metadata not present in semantics:
 - `sourcePolicy` — which policy created it
@@ -548,12 +557,13 @@ evalIR : (CompiledUniverse, Request, Σ, Ctx, Strategy)
 
 **Incomplete/erroneous context (S2).** Totality is realized by the result/truth algebra
 (RL2_Semantics.md §Result and Truth Algebra): operand resolution returns
-`EvalValue<T> = Ok | Missing | Invalid | Conflict`, condition evaluation returns
-`Truth = True | False | Unknown`, and the logic connectives are **Kleene** three-valued. A
+`EvalValue<T> = Ok | Err(EvalError,note)`, condition evaluation returns
+`ConditionResult(Truth,causes)`, and the logic connectives are **Kleene** three-valued. A
 matched norm whose condition is `Unknown` contributes **`Indeterminate`** to the envelope — it
 is never silently read as inactive. The evaluator therefore returns a firm `Permit`/`Deny`
-when the outcome is robust to the missing data, and `Indeterminate` (carrying the `Missing*`/
-`Invalid`/`Conflict` detail) only when the gap could actually change the verdict. Mapping
+when the outcome is robust to the missing data, and `Indeterminate` only when activating an
+attributed Unknown atom could actually change the verdict. Its `Missing`/`Invalid`/`Conflict`
+cause remains in the internal envelope pending C3-6/D10's Protocol projection. Mapping
 `Indeterminate → Deny` is a **fail-closed enforcement-adapter** policy, not the semantic result.
 
 **Implementation:** Executes the evaluation pipeline (§Evaluation Pipeline). Opaque beyond that.

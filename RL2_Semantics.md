@@ -41,8 +41,8 @@ Let:
 * **T** = time domain
 * **Env** = evaluation environment
 * **Σ** = system state
-* **⊥** = legacy notation for an absent value; the typed carrier is
-  `Missing(Key)` in the Result and Truth Algebra below
+* **⊥** = legacy notation for an absent value; at an evaluator boundary it is
+  `Err(Missing(ErrorKey), note)` in the Result and Truth Algebra below
 
 We define RL2 expressions as:
 
@@ -92,7 +92,9 @@ encoded several ways — see the canonical-form invariant.)
 
 ```
 Condition ::=
-      AtomicConstraint(leftOperand, operator, rightOperand)
+      AtomicConstraint(leftOperand, operator,
+                       rightOperand : Literal | RuntimeReference,
+                       targetNorm : StateTarget?)
     | And(Condition{2,})
     | Or(Condition{2,})
     | Xone(Condition{2,})
@@ -108,6 +110,8 @@ Notes:
 - Time-based conditions use `AtomicConstraint` with `leftOperand = currentDateTime` (e.g., `currentDateTime lte deadline`)
 - Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`
 - Dynamic value resolution on the right side uses `RuntimeReference` (e.g., `currentAgent`)
+- The stable RDF property `rl2:targetNorm` is interpreted as the tagged `StateTarget` defined
+  below, preserving whether it references a Norm or a Promise
 
 #### Events and Transitions
 
@@ -346,25 +350,62 @@ Denotational semantics gives timeless meaning to norms and conditions.
 ### Result and Truth Algebra (S2)
 
 Operand resolution and condition evaluation are **partial** — an operand may be missing,
-wrong-typed, multi-valued, or fail to resolve. RL2 makes this total with two typed carriers
-used uniformly across the denotational semantics, the IR (`RL2_IR.md`), the protocol
-(`RL2_Protocol.md`), and any implementation interface:
+wrong-typed, multi-valued, or fail to resolve. RL2 makes this total with typed carriers shared
+by the denotational semantics and the IR (`RL2_IR.md`). Projection of structured causes into
+the protocol is the separate C3-6/D10 work item; the current protocol carries the
+`rl2p:Indeterminate` decision but not its causal detail.
 
 ```
-EvalValue<T> = Ok(T)              -- a single well-typed value
-             | Missing(Key)        -- operand resolved to ⊥ / absent (e.g. no targetNorm)
-             | Invalid(Error)      -- malformed lexical value or incompatible datatype
-             | Conflict(Values)    -- resolution produced more than one value
+StateTarget  = NormTarget(Norm) | PromiseTarget(Promise)
 
-Truth        = True
-             | False
-             | Unknown(Error)      -- a condition whose truth cannot be determined
+ErrorSite    = LeftOperand | RuntimeReference | Path
+             | ComparisonSite(Operator, ValueType, ValueType)
+ErrorKey     = { site : ErrorSite, target : StateTarget? }
+
+EvalError    = Missing(ErrorKey) | Invalid(ErrorKey) | Conflict(ErrorKey)
+             -- the canonical, comparable cause carried by ConditionResult
+
+EvalValue<T> = Ok(T) | Err(EvalError, String?)
+             -- the optional String is diagnostic text, not part of EvalError identity
+
+Truth        = True | False | Unknown   -- no payload: causal attribution lives in ConditionResult
 ```
 
-`resolve : LeftOperand × Env × Norm? → EvalValue<Value>` (the `Value ∪ {⊥}` form below is the
-`Ok`/`Missing` projection of this). **Comparison lifts errors to `Unknown`:** `apply(operator, l, r)`
-returns `True`/`False` only when both sides are `Ok` and type-compatible; any `Missing`, `Invalid`,
-or `Conflict` on either side yields `Unknown(e)`.
+**Canonical error identity.** `EvalError` is the identity-bearing value: equality is structural
+on `(constructor, ErrorKey)`. Diagnostic text lives only on `EvalValue.Err` and therefore cannot
+change set membership. `ComparisonSite` includes both operand types, so two distinct mismatch
+classes do not collapse merely because they use the same operator. This makes union over
+`causes` commutative, associative, and idempotent without implementation-specific hashing.
+
+`resolve : LeftOperand × Env × StateTarget? → EvalValue<Value>`. **Comparison lifts errors to
+`Unknown`:** `apply(operator, l, r)` is called, and its `True`/`False` result trusted, only when
+both sides are `Ok` and type-compatible; any `Err` on either side — or a type mismatch between
+two `Ok` values — yields `Unknown`, carrying the canonical `EvalError` as its cause.
+
+**Condition evaluation carries causal attribution, not every error observed.** A condition
+denotes a pair of its Kleene truth value and the *finite set of errors that actually
+determined that truth value* — never the set of every error encountered anywhere in its
+subtree:
+
+```
+ConditionResult = { truth : Truth, causes : Set<EvalError> }
+```
+
+Rules (instantiated by And/Or/Xone/Not below):
+- An atomic resolution or comparison error produces `{ truth: Unknown, causes: {error} }`.
+- `Not` preserves `causes` unchanged; only `truth` is negated.
+- `And`, `Or`, and `Xone` first compute their Kleene truth value from the children's `truth`
+  fields alone.
+- If that truth value is `Unknown`, `causes` is the union of the `causes` of every child whose
+  `truth` is `Unknown`.
+- If the truth value is conclusively `True` or `False`, `causes` is **empty**: an error masked
+  by a conclusive branch elsewhere in the same connective did not cause the result and must
+  not be reported as if it did — there is no "winning error" to arbitrate.
+- `causes` is a finite set under canonical error identity; ordering matters only when
+  serializing diagnostics. An implementation MAY additionally keep every error encountered,
+  causal or not, in a separate `observedErrors` side-channel for debugging — that channel is
+  never attached to an `indeterminate` atom's payload (below), whose `causes` must explain
+  *why that verdict* is unknown, nothing broader.
 
 **Logical connectives are Kleene strong three-valued logic** — an error is *unobservable* when it
 cannot change the outcome (short-circuit is therefore **specified**, not left implicit):
@@ -379,48 +420,108 @@ Xone(c₁..cₙ): if any cᵢ = Unknown → Unknown; else True iff exactly one i
 **Normative promotion.** A norm whose condition denotes `Unknown` is **not** silently inactive:
 it contributes **`Indeterminate`** to the normative envelope. Mapping `Indeterminate → Deny` is an
 **enforcement-adapter** policy (fail-closed at the PEP), *not* the semantic result — the evaluator
-reports `Indeterminate` so the ambiguity is visible and auditable. `rl2p:Indeterminate` is the
-protocol carrier for this value.
+reports `Indeterminate` rather than silently choosing. `rl2p:Indeterminate` carries that decision;
+the structured causal projection remains C3-6/D10.
 
 We write, for the two kinds of denotation:
 
 ```
-⟦ e ⟧      : Env → Value    -- terms (operands, right-values)
-⟦ c ⟧      : Env → Truth    -- conditions
+⟦ e ⟧      : Env → Value            -- terms (operands, right-values)
+⟦ c ⟧      : Env → ConditionResult  -- conditions: truth plus the causal error set
 ```
+
+Where only the truth value is needed (norm/policy activation checks, operational-semantics
+guards), we read `⟦c⟧(Env).truth`; the full pair is consumed where causal attribution matters
+(`deriveNorms`'s `indeterminate` atom, §Normative Derivation).
 
 ### Conditions
 
-Atomic constraints (result is a `Truth`, lifting operand errors to `Unknown`):
+Atomic constraints (result is a `ConditionResult`, lifting operand and type errors to
+`Unknown` with the responsible error attached as `causes`):
 
 ```
-⟦ AtomicConstraint(op, operator, value, targetNorm?) ⟧(Env) : Truth =
-     let leftVal  = resolve(op, Env, targetNorm)          -- : EvalValue<Value>
-     let rightVal = case value of
+⟦ AtomicConstraint(op, operator, value, targetNorm?) ⟧(Env) : ConditionResult =
+     let leftEV  = resolve(op, Env, targetNorm)          -- : EvalValue<Value>
+     let rightEV = case value of
          RuntimeRef(r) → resolveRuntime(r, Env)           -- : EvalValue<Value>
          Literal(v)    → Ok(v)
-     in apply(operator, leftVal, rightVal)                -- Ok∧Ok → True|False; else Unknown(e)
+     in case (leftEV, rightEV) of
+         (Ok(l), Ok(r)) | typeCompatible(operator, l, r) →
+             { truth: apply(operator, l, r), causes: ∅ }
+         (Ok(l), Ok(r)) →
+             { truth: Unknown, causes: { mkTypeMismatch(operator, targetNorm, l, r) } }
+         _ →
+             { truth: Unknown, causes: nonOk(leftEV) ∪ nonOk(rightEV) }
+
+nonOk(Ok(_)) = ∅
+nonOk(Err(e, _)) = { e }
+
+typeCompatible(operator, l, r) =
+    case operator of
+        eq | neq            → sameDomain(l, r)
+        lt | lte | gt | gte → ordered(l) ∧ ordered(r) ∧ sameDomain(l, r)
+        isA                  → isURI(l) ∧ isURI(r)
+        isAnyOf              → isSet(r) ∧ compatibleValueSet(l, r)
+        isAllOf              → isSet(l) ∧ isSet(r) ∧ compatibleSets(l, r)
+        isNoneOf             → isSet(r) ∧ compatibleValueSet(l, r)
+
+sameDomain(l, r) = valueType(l) = valueType(r)
+ordered(v)       = valueType(v) ∈ {Int, Decimal, DateTime, Duration}
+isURI(VURI(_))   = true;   isURI(_) = false
+isSet(VSet(_))   = true;   isSet(_) = false
+
+homogeneous(VSet(xs)) = ∀x,y ∈ xs : sameDomain(x,y)
+compatibleSets(VSet(xs), VSet(ys)) =
+    homogeneous(VSet(xs)) ∧ homogeneous(VSet(ys)) ∧
+    (xs = [] ∨ ys = [] ∨ sameDomain(head(xs), head(ys)))
+compatibleValueSet(VSet(xs), s : VSet) = compatibleSets(VSet(xs), s)
+compatibleValueSet(v, VSet(ys)) = ¬isSet(v) ∧ homogeneous(VSet(ys)) ∧
+                                  (ys = [] ∨ sameDomain(v, head(ys)))
+
+    -- A profile may extend `ordered` only by declaring a total comparator for the new domain.
+    -- No case admitted here can make `apply` get stuck. The `isA` right URI is verified as a
+    -- class/subsumption-index key during compilation; `typeCompatible` checks its value shape.
+
+mkTypeMismatch(operator, targetNorm, l, r) =
+    Invalid({ site: ComparisonSite(operator, valueType(l), valueType(r)),
+              target: targetNorm })
 ```
 
-The optional `targetNorm` parameter specifies which norm's state to query when using `obligationStateOperand` or `dutyPerformerOperand`. The right operand may be a literal value or a runtime reference (e.g., `currentAgent`). If either operand is `Missing`/`Invalid`/`Conflict`, `apply` returns `Unknown` carrying that error — the constraint never silently reads as `False`.
+The RDF property remains named `rl2:targetNorm`, but its semantic value is the tagged
+`StateTarget`: `NormTarget` for Duty state/performer queries and `PromiseTarget` for Promise
+state/promisor queries. The right operand may be a literal value or a runtime reference (e.g.,
+`currentAgent`). If either operand is `Missing`/`Invalid`/`Conflict`, or the two resolved values
+are not type-compatible for `operator`, the result is `Unknown` carrying that error as its
+cause — the constraint never silently reads as `False`.
 
-Logical conditions (Kleene strong three-valued — see Result and Truth Algebra):
-
-```
-⟦ And(c1, c2)  ⟧(Env) = ⟦c1⟧(Env) ∧ᴷ ⟦c2⟧(Env)
-⟦ Or(c1, c2)   ⟧(Env) = ⟦c1⟧(Env) ∨ᴷ ⟦c2⟧(Env)
-⟦ Not(c)       ⟧(Env) = ¬ᴷ⟦c⟧(Env)
-⟦ Xone(c1..cn) ⟧(Env) = Unknown  if any ⟦cᵢ⟧(Env) = Unknown
-                        True      iff exactly one ⟦cᵢ⟧(Env) = True (and none Unknown)
-                        False     otherwise
-```
-
-Event constraint (approval requirement) — a total Σ query, so `True`/`False` only (absence is `False`, not `Unknown`):
+Logical conditions (Kleene strong three-valued, with `causes` masked whenever the connective
+reaches a conclusive verdict — see Result and Truth Algebra):
 
 ```
-⟦ EventConstraint(expectsEvent) ⟧(Env) =
-    True  if ∃e ∈ Env.Σ.Events : matches(e, expectsEvent)
-    False otherwise
+foldK(kleeneOp, rs) =
+    let t = kleeneOp([ r.truth | r ← rs ])
+    in { truth: t,
+         causes: if t ∈ {True, False} then ∅
+                 else ⋃ { r.causes | r ∈ rs, r.truth = Unknown } }
+
+⟦ And(cs)  ⟧(Env) = foldK(kAnd,  [ ⟦cᵢ⟧(Env) | cᵢ ← cs ])
+⟦ Or(cs)   ⟧(Env) = foldK(kOr,   [ ⟦cᵢ⟧(Env) | cᵢ ← cs ])
+⟦ Xone(cs) ⟧(Env) = foldK(kXone, [ ⟦cᵢ⟧(Env) | cᵢ ← cs ])
+⟦ Not(c)   ⟧(Env) = let r = ⟦c⟧(Env) in { truth: ¬ᴷ r.truth, causes: r.causes }
+```
+
+`cs` is the `Condition{2,}` operand sequence (§Abstract Syntax, at least two conditions per
+`AndOrXoneOperandCardinalityShape`); `kAnd`/`kOr`/`kXone` are the Kleene truth tables above,
+applied to the full list of child truths at once — `kXone` in particular is "exactly one
+`True`, else `Unknown` if any child is `Unknown`," not a chained binary XOR (chaining would
+compute parity past two operands, the wrong answer).
+
+Event constraint (approval requirement) — a total Σ query, so `True`/`False` only (absence is `False`, not `Unknown`, and therefore never contributes a cause):
+
+```
+⟦ EventConstraint(expectsEvent) ⟧(Env) : ConditionResult =
+    { truth: True,  causes: ∅ }  if ∃e ∈ Env.Σ.Events : matches(e, expectsEvent)
+    { truth: False, causes: ∅ }  otherwise
 ```
 
 ---
@@ -429,9 +530,12 @@ Event constraint (approval requirement) — a total Σ query, so `True`/`False` 
 
 The condition semantics rely on several helper functions. For a testable evaluator, these must be precisely specified.
 
-#### resolve : LeftOperand × Env × Norm? → Value
+#### resolve : LeftOperand × Env × StateTarget? → EvalValue\<Value\>
 
-The function `resolve(leftOperand, Env, targetNorm?)` maps a left operand to a value. The optional `targetNorm` parameter is required for norm state operands.
+The function `resolve(leftOperand, Env, targetNorm?)` maps a left operand to an
+`EvalValue<Value>` (S2): `Ok(v)` on success and `Err(error,note)` on failure. Although the RDF
+property keeps its stable name `rl2:targetNorm`, the semantic parameter is a `StateTarget?` and
+therefore preserves whether the referenced clause is a Norm or a Promise.
 
 **Resolution Precedence**: Operands are resolved in the following order:
 
@@ -441,45 +545,64 @@ The function `resolve(leftOperand, Env, targetNorm?)` maps a left operand to a v
 4. **External lookup** — fallback to context-based resolution
 
 ```
-resolve : LeftOperand × Env × Norm? → Value ∪ {⊥}
+resolve : LeftOperand × Env × StateTarget? → EvalValue<Value>
+
+failure(kind, site, target, note) =
+    Err(kind({ site: site, target: target }), Some(note))
 
 resolve(op, Env, targetNorm) =
     case op of
         -- Core operands (norm state queries)
         obligationStateOperand →
-            if targetNorm ≠ ⊥ then Env.Σ.ObligationState(targetNorm)
-            else ⊥
+            case targetNorm of
+                Some(NormTarget(d : Duty)) → Ok(Env.Σ.ObligationState(d))
+                None → failure(Missing, op, None, "obligationStateOperand requires a targetNorm")
+                _    → failure(Invalid, op, targetNorm, "obligationStateOperand requires a Duty target")
         dutyPerformerOperand →
-            if targetNorm ≠ ⊥ then DutyPerformer(targetNorm, Env.Σ)   -- derived from the witness log (S6)
-            else ⊥
+            case targetNorm of
+                Some(NormTarget(d : Duty)) →
+                    let performer = DutyPerformer(d, Env.Σ) in   -- derived from witness log (S6)
+                    if performer ≠ ⊥ then Ok(performer)
+                    else failure(Missing, op, targetNorm, "no witnessing event yet")
+                None → failure(Missing, op, None, "dutyPerformerOperand requires a targetNorm")
+                _    → failure(Invalid, op, targetNorm, "dutyPerformerOperand requires a Duty target")
         promiseStateOperand →
-            if targetNorm ≠ ⊥ then PromiseState(targetNorm, Env.Σ)
-            else ⊥
+            case targetNorm of
+                Some(PromiseTarget(p)) → Ok(PromiseState(p, Env.Σ))
+                None → failure(Missing, op, None, "promiseStateOperand requires a targetNorm")
+                _    → failure(Invalid, op, targetNorm, "promiseStateOperand requires a Promise target")
         promisorOperand →
-            if targetNorm ≠ ⊥ then Env.Σ.Promises[targetNorm].promisor
-            else ⊥
+            case targetNorm of
+                Some(PromiseTarget(p)) →
+                    let promisor = Env.Σ.Promises[p].promisor in
+                    if promisor ≠ ⊥ then Ok(promisor)
+                    else failure(Missing, op, targetNorm, "no promisor bound")
+                None → failure(Missing, op, None, "promisorOperand requires a targetNorm")
+                _    → failure(Invalid, op, targetNorm, "promisorOperand requires a Promise target")
 
         -- Profile-declared operands with explicit resolution
         _ | op.resolutionPath ≠ ⊥ →
-            deref(op.resolutionPath, Env)
+            deref(op.resolutionPath, Env)               -- : EvalValue<Value>
 
         _ | op.resolutionFunction ≠ ⊥ →
-            invokeFunction(op.resolutionFunction, Env)
+            invokeFunction(op.resolutionFunction, Env)   -- : EvalValue<Value>, implementation-specific
 
         -- Legacy/fallback resolution
-        _  → lookupExternal(op, Env.Context)
+        _  → lookupExternal(op, Env.Context)             -- : EvalValue<Value>
 ```
 
 Where:
-* `obligationStateOperand` queries `Σ.ObligationState(targetNorm)` — returns Pending, Active, Fulfilled, or Violated
-* `dutyPerformerOperand` queries `DutyPerformer(targetNorm, Σ)` — derived from the witness event; returns the Agent who fulfilled the duty, or ⊥
-* `promiseStateOperand` queries `PromiseState(targetNorm, Σ)` — returns Pending, Fulfilled, or Violated (Promise-valued counterpart of `obligationStateOperand`; `targetNorm` must be a Promise)
-* `promisorOperand` queries `Σ.Promises[targetNorm].promisor` — returns the Agent bound by the promise, or ⊥ (Promise-valued counterpart of `dutyPerformerOperand`)
+* `obligationStateOperand` accepts `NormTarget(d : Duty)` and queries `Σ.ObligationState(d)`
+* `dutyPerformerOperand` accepts `NormTarget(d : Duty)` and returns `DutyPerformer(d,Σ)`
+* `promiseStateOperand` accepts `PromiseTarget(p)` and returns `PromiseState(p,Σ)`
+* `promisorOperand` accepts `PromiseTarget(p)` and returns `Σ.Promises[p].promisor`
 * `op.resolutionPath` — path expression declared on the operand via `rl2:resolutionPath`
 * `op.resolutionFunction` — function name declared on the operand via `rl2:resolutionFunction`
-* `invokeFunction(name, Env)` — implementation-specific function invocation
-* `lookupExternal(op, Ctx)` — resolves operands from external context (HR systems, directories, etc.)
-* `⊥` indicates undefined (evaluation fails if encountered)
+* `invokeFunction(name, Env)` — implementation-specific function invocation; MUST return `EvalValue<Value>`
+* `lookupExternal(op, Ctx)` — resolves operands from external context (HR systems, directories, etc.); MUST return `EvalValue<Value>`
+* `Err(Missing(key),note)` indicates the operand could not be resolved (S2) — never fatal,
+  always lifted to `Unknown` at the condition level; a present target of the wrong variant is
+  `Err(Invalid(key),note)` instead
 
 **Architectural Principle**: All runtime and contextual data access SHOULD go through declared `rl2:LeftOperand` instances with explicit `rl2:resolutionPath` or `rl2:resolutionFunction`. This ensures:
 - Type safety (operands can declare expected ranges)
@@ -504,12 +627,12 @@ Profiles define domain-specific left operands with resolution paths, such as:
 Runtime references resolve to values at evaluation time. These are used in `rightOperandRef` for dynamic comparisons.
 
 ```
-resolveRuntime : RuntimeReference × Env → Value ∪ {⊥}
+resolveRuntime : RuntimeReference × Env → EvalValue<Value>
 
 resolveRuntime(ref, Env) =
     case ref of
-        currentAgent → Env.Agent
-        _            → ⊥  -- Unknown runtime reference
+        currentAgent → Ok(Env.Agent)
+        _            → failure(Missing, ref, None, "unrecognized runtime reference")
 ```
 
 The `currentAgent` reference resolves to `Env.Agent` — the agent making the current request. This is used in `rightOperandRef` to compare against `dutyPerformerOperand` for identity binding.
@@ -539,9 +662,11 @@ compatible(supV, reqV) =
 
 A major-version mismatch is always incompatible (breaking changes); a higher supported minor/patch is compatible (additive changes). This mirrors the SHACL `ProfileShape`/`RequiresProfileShape` structural checks, which only verify the declarations are well-formed — the compatibility decision itself is a runtime check because the registry is not in the graph.
 
-#### deref : Path × Env → Value
+#### deref : Path × Env → EvalValue\<Value\>
 
-The function `deref(path, Env)` traverses a path expression to retrieve a value. This is the **primary mechanism for resolving profile-declared operands** via `rl2:resolutionPath`.
+The function `deref(path, Env)` traverses a path expression to retrieve a value, returning
+`Ok(v)` or `Err(Missing(key),note)` (S2). This is the **primary mechanism for resolving
+profile-declared operands** via `rl2:resolutionPath`.
 
 **Path Grammar** (normative):
 
@@ -587,7 +712,7 @@ Rationale: Without these constraints, a malicious path like `state.Events.../../
 | `global` | Offer-tier resolved snapshot (shared across acceptances of one Offer; S5) | `global.activeSessions.count` |
 
 ```
-deref : Path × Env → Value ∪ {⊥}
+deref : Path × Env → EvalValue<Value>
 
 deref(path, Env) =
     let segments = split(path, '.')
@@ -599,9 +724,11 @@ deref(path, Env) =
         "request" → Env.Request
         "global"  → Env.Context.global   -- S5: Offer-tier snapshot, injected by the resolver (see below)
         _         → ⊥
-    in foldl(navigate, root, tail(segments))
+    let result = foldl(navigate, root, tail(segments))
+    in if result ≠ ⊥ then Ok(result)
+       else failure(Missing, path, None, "path root or segment not present")
 
-navigate(obj, segment) =
+navigate(obj, segment) =              -- internal traversal stays ⊥-based; deref lifts the boundary result
     case obj of
         ⊥       → ⊥
         Record  → obj.segment if segment ∈ fields(obj) else ⊥
@@ -668,7 +795,7 @@ Implementations MUST enforce the following security constraints:
 4. **Depth limiting**: **MUST** reject paths exceeding `MaxPathDepth` (conformance parameter, default 10). The bound is mandatory; only its value is implementation/profile-declared (S8a).
 5. **Fail-closed**: Reject syntactically invalid paths at policy load. For a
    syntactically valid path whose selected field or value is absent at evaluation,
-   return `Missing(path)` without exposing host details.
+   return `Err(Missing(key),note)` without exposing host details.
 
 These constraints prevent path traversal attacks and unauthorized data access via malformed resolution paths.
 
@@ -717,7 +844,10 @@ contentHolds : Agent × PromiseContent × State → Boolean
 contentHolds(promisor, content, Σ) =
     case content of
         PromisedAction(x, s)  → performed(promisor, x, s, Σ)
-        PromisedState(c)      → ⟦c⟧(mkEnv(nullRequest, Σ, emptyContext))
+        PromisedState(c)      → ⟦c⟧(mkEnv(nullRequest, Σ, emptyContext)).truth = True
+                                 -- Unknown reads as not-yet-holding here (SEM-11 open scope governs
+                                 -- nullRequest itself; this is only the mechanical ConditionResult
+                                 -- projection needed to keep contentHolds Boolean)
         PromisedDuty(d)       → Σ.ObligationState(d) = Fulfilled
 ```
 
@@ -829,7 +959,10 @@ This predicate is used in the Promise Violation rule to determine when a pending
 
 #### apply : Operator × Value × Value → Boolean
 
-The function `apply(op, left, right)` applies a comparison operator:
+The function `apply(op, left, right)` applies a comparison operator to two **already-resolved,
+already type-compatible** values — the `AtomicConstraint` denotation (§Conditions) is the only
+caller, and it calls `apply` only after `typeCompatible(operator, left, right)` holds; a
+domain mismatch is caught there and surfaced as `Invalid`, never passed into `apply`:
 
 ```
 apply : Operator × Value × Value → Boolean
@@ -843,9 +976,13 @@ apply(op, left, right) =
         gt       → left > right
         gte      → left ≥ right
         isA      → left ∈ instancesOf(right)
-        isAnyOf  → left ∈ right
-        isAllOf  → ∀v ∈ right : v ∈ left
-        isNoneOf → ∀v ∈ right : v ∉ left
+        isAnyOf  → valuesOf(left) ∩ elements(right) ≠ ∅
+        isAllOf  → elements(right) ⊆ elements(left)
+        isNoneOf → valuesOf(left) ∩ elements(right) = ∅
+
+valuesOf(VSet(xs)) = set(xs)
+valuesOf(v)         = {v}       -- admitted only for scalar v by typeCompatible
+elements(VSet(xs))  = set(xs)   -- called only after typeCompatible established VSet
 ```
 
 ---
@@ -939,17 +1076,17 @@ Privilege activation:
 
 ```
 ⟦Privilege(a,x,s,c)⟧(R, Env) =
-    Permit         if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env) = True
-    Indeterminate  if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env) = Unknown(_)
-    Inactive       otherwise   -- no match, or ⟦c⟧(Env) = False
+    Permit         if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env).truth = True
+    Indeterminate  if matches(Privilege(a,x,s,c), R) ∧ ⟦c⟧(Env).truth = Unknown
+    Inactive       otherwise   -- no match, or ⟦c⟧(Env).truth = False
 ```
 
 Prohibition activation:
 
 ```
 ⟦Prohibition(a,x,s,c)⟧(R, Env) =
-    Deny           if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env) = True
-    Indeterminate  if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env) = Unknown(_)
+    Deny           if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env).truth = True
+    Indeterminate  if matches(Prohibition(a,x,s,c), R) ∧ ⟦c⟧(Env).truth = Unknown
     Inactive       otherwise
 ```
 
@@ -957,8 +1094,8 @@ Duty activation:
 
 ```
 ⟦Duty(a,x,s,c)⟧(R, Env) =
-    Obligation(a,x,s)  if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env) = True
-    Indeterminate      if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env) = Unknown(_)
+    Obligation(a,x,s)  if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env).truth = True
+    Indeterminate      if matches(Duty(a,x,s,c), R) ∧ ⟦c⟧(Env).truth = Unknown
     Inactive           otherwise
 ```
 
@@ -1029,8 +1166,8 @@ silently-inactive one:
 
 ```
 ⟦Claim(h, a, D)⟧(Env) =                     -- h = subject (right-holder), a = counterparty (duty-bearer), D = correlativeTo
-    ClaimHeld(h, a, ClaimContent(Claim(h, a, D)))  if ⟦D.condition⟧(Env) = True
-    Indeterminate                                   if ⟦D.condition⟧(Env) = Unknown(_)
+    ClaimHeld(h, a, ClaimContent(Claim(h, a, D)))  if ⟦D.condition⟧(Env).truth = True
+    Indeterminate                                   if ⟦D.condition⟧(Env).truth = Unknown
     ClaimInactive                                    otherwise
 ```
 
@@ -1049,8 +1186,8 @@ own condition, which separately governs whether *that* norm is active once the p
 
 ```
 ⟦Power(a, n, c)⟧(Env) =
-    PowerActive(a, n)   if c = ⊥ ∨ ⟦c⟧(Env) = True
-    Indeterminate       if c ≠ ⊥ ∧ ⟦c⟧(Env) = Unknown(_)
+    PowerActive(a, n)   if c = ⊥ ∨ ⟦c⟧(Env).truth = True
+    Indeterminate       if c ≠ ⊥ ∧ ⟦c⟧(Env).truth = Unknown
     PowerInactive       otherwise
 ```
 
@@ -1100,8 +1237,8 @@ so, like Power, it uses the direct condition-evaluation pattern rather than a Po
 
 ```
 ⟦Immunity(a, P, c)⟧(Env) =
-    ImmunityActive(a, P)   if c = ⊥ ∨ ⟦c⟧(Env) = True
-    Indeterminate           if c ≠ ⊥ ∧ ⟦c⟧(Env) = Unknown(_)
+    ImmunityActive(a, P)   if c = ⊥ ∨ ⟦c⟧(Env).truth = True
+    Indeterminate           if c ≠ ⊥ ∧ ⟦c⟧(Env).truth = Unknown
     ImmunityInactive        otherwise
 ```
 
@@ -1140,7 +1277,7 @@ Policies may have an optional activation condition. A policy is *applicable* whe
 
 ```
 PolicyApplicable(P, Env) =
-    P.condition = ⊥  ∨  ⟦P.condition⟧(Env) = True
+    P.condition = ⊥  ∨  ⟦P.condition⟧(Env).truth = True
 ```
 
 Where `⊥` denotes the absence of a condition (unconditionally applicable).
@@ -1157,22 +1294,26 @@ ApplicablePolicies(U, Env) = { P ∈ U | PolicyApplicable(P, Env) }
 
 ## Effective Norm Activation
 
-A norm n within policy P is active when both the policy and norm conditions hold:
+A norm n within policy P is active when its effective condition (S2's `effectiveCondition`,
+folding the policy-level and clause-level conditions together) holds:
 
 ```
-NormActive(n, P, Env) = PolicyApplicable(P, Env) ∧ ⟦n.condition⟧(Env) = True
+NormActive(n, P, Env) = ⟦effectiveCondition(P,n)⟧(Env).truth = True
 ```
 
-`NormActive` (and the firm `Out` envelope below) admits a norm only on `True`. A norm whose
+`NormActive` is defined directly over `effectiveCondition`, not via `PolicyApplicable` — this
+is the fix for the collapse bug `PolicyApplicable` has on its own: because `PolicyApplicable`
+is Boolean-valued, gating a clause through `PolicyApplicable(P,Env) ∧ ...` would silently treat
+an `Unknown` policy-level condition as if the policy were inapplicable, discarding the clause
+instead of surfacing it as indeterminate. Going through `effectiveCondition` first means the
+policy- and clause-level conditions are combined *before* the three-way `Truth` is read, so an
+`Unknown` at either level correctly yields `Unknown` for the whole clause. (`PolicyApplicable`
+itself is retained, unchanged, for the few call sites — `promiseEffective` — that need a
+Boolean applicability check with no norm-level condition to combine.)
+
+`NormActive` (and `deriveNorms` below) admits a norm only on `True`. A norm whose effective
 condition is `Unknown` is **neither** active **nor** silently discarded: it is collected into
-the `indeterminate` set (see Evaluation Algorithm, S2) and promotes the decision to
-`Indeterminate` when it could affect the outcome.
-
-This is semantically equivalent to:
-
-```
-n.effectiveCondition = And(P.condition, n.condition)
-```
+the `indeterminate` set (see Evaluation Algorithm, S2) and carries the causing errors forward.
 
 ## Dynamic Policy Applicability
 
@@ -1333,7 +1474,7 @@ A pending duty becomes active when its activation condition holds:
 
 ```
 Env = mkEnv(R, Σ, Ctx)
-⟦ c ⟧(Env) = True
+⟦ c ⟧(Env).truth = True
 Σ.ObligationState(Duty(a,x,s,c)) = Pending
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, Duty(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Active], DutyActive(a,x,s,c))
@@ -1396,7 +1537,7 @@ dutyMode(Duty(a,x,s,c)) = Maintenance
 Σ.ObligationState(Duty(a,x,s,c)) = Active
 extractDeadline(c) = Some(b)
 expired(b, Σ.Clock) = true
-⟦c⟧(Env) = True
+⟦c⟧(Env).truth = True
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, DutyActive(a,x,s,c)) →
     (Σ[ObligationState(Duty(a,x,s,c)) ↦ Fulfilled],
@@ -1412,12 +1553,12 @@ active — it does not wait for any deadline:
 Env = mkEnv(R, Σ, Ctx)
 dutyMode(Duty(a,x,s,c)) = Maintenance
 Σ.ObligationState(Duty(a,x,s,c)) = Active
-⟦c⟧(Env) = False
+⟦c⟧(Env).truth = False
 ──────────────────────────────────────────────────────────────────
 (Σ, R, Ctx, DutyActive(a,x,s,c)) → (Σ[ObligationState(Duty(a,x,s,c)) ↦ Violated], DutyViolated(a,x,s,c))
 ```
 
-`⟦c⟧(Env) = Unknown(_)` (S2's three-valued `Truth`) advances neither Maintenance rule —
+`⟦c⟧(Env).truth = Unknown` (S2's three-valued `Truth`) advances neither Maintenance rule —
 an indeterminate condition is neither a closing witness nor a counterexample, matching
 the S2 discipline that `Unknown` never silently resolves to a decision.
 
@@ -1674,7 +1815,7 @@ Privileges become active when their condition holds:
 ```
 Env = mkEnv(R, Σ, Ctx)
 matches(Privilege(a,x,s,c), R) = true
-⟦ c ⟧(Env) = True
+⟦ c ⟧(Env).truth = True
 ──────────────────────────────────────────────────────────────────
 PrivilegeActive(a, x, s, c)
 ```
@@ -1683,7 +1824,7 @@ Privileges become inactive when their condition no longer holds or the request d
 
 ```
 Env = mkEnv(R, Σ, Ctx)
-matches(Privilege(a,x,s,c), R) = false ∨ ⟦ c ⟧(Env) = false
+matches(Privilege(a,x,s,c), R) = false ∨ ⟦ c ⟧(Env).truth = False
 ──────────────────────────────────────────────────────────────────
 PrivilegeInactive(a, x, s, c)
 ```
@@ -1695,7 +1836,7 @@ Prohibitions are active when their condition holds and the request matches:
 ```
 Env = mkEnv(R, Σ, Ctx)
 matches(Prohibition(a,x,s,c), R) = true
-⟦ c ⟧(Env) = True
+⟦ c ⟧(Env).truth = True
 ──────────────────────────────────────────────────────────────────
 ProhibitionActive(a, x, s, c)
 ```
@@ -1717,32 +1858,54 @@ RL2's evaluation follows an **I/O logic** pattern (Makinson & van der Torre): de
 
 ### Pre-Resolution Normative Envelope
 
-The function `Out` computes the **unresolved set** of normative atoms from a policy universe and environment (atoms are deduplicated by canonical identity — the `∪` below is set union, not multiset sum):
+The function `Out` computes the **unresolved set** of normative atoms from a policy universe and environment (atoms are deduplicated by canonical identity — the `∪` below is set union, not multiset sum). Every clause is read through `effectiveCondition(P, n)` (S2's policy/clause condition fold, defined above) rather than through `ApplicablePolicies`/`PolicyApplicable`: those two functions stay Boolean-valued (kept only for the few call sites that need a plain applicability check with no clause to fold in) and would silently collapse an `Unknown` policy-level condition into "inapplicable," discarding every clause it should instead mark indeterminate. Folding first and reading `Truth` second means an `Unknown` at either level is attributed to the clause, never lost:
 
 ```
 Out : (PolicyUniverse U, Env) → ℘(NormativeAtoms)
 
 Out(U, Env) =
-    let applicablePolicies = ApplicablePolicies(U, Env)
-    in ⋃ { deriveNorms(P, Env) | P ∈ applicablePolicies }
+    ⋃ { deriveNorms(P, Env) | P ∈ U }
 
 deriveNorms(P, Env) =
-    { permit(n, P)     | n : Privilege ∈ P.clauses, matches(n, R), ⟦n.condition⟧(Env) = True } ∪
-    { forbid(n, P)     | n : Prohibition ∈ P.clauses, matches(n, R), ⟦n.condition⟧(Env) = True } ∪
-    { obligate(d, P)   | d : Duty ∈ P.clauses, matches(d, R), ⟦d.condition⟧(Env) = True } ∪
-    { violated(d, P)   | d : Duty ∈ P.clauses, Σ.ObligationState(d) = Violated }
+    let R = Env.Request in
+    { permit(n, P)   | n : Privilege   ∈ P.clauses, matches(n, R), ⟦effectiveCondition(P,n)⟧(Env).truth = True } ∪
+    { forbid(n, P)   | n : Prohibition ∈ P.clauses, matches(n, R), ⟦effectiveCondition(P,n)⟧(Env).truth = True } ∪
+    { obligate(d, P) | d : Duty        ∈ P.clauses, matches(d, R), ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
+    { indeterminate(n, P, causes(n, P, Env))
+                     | n : Privilege   ∈ P.clauses, matches(n, R), ⟦effectiveCondition(P,n)⟧(Env).truth = Unknown } ∪
+    { indeterminate(n, P, causes(n, P, Env))
+                     | n : Prohibition ∈ P.clauses, matches(n, R), ⟦effectiveCondition(P,n)⟧(Env).truth = Unknown } ∪
+    { indeterminate(d, P, causes(d, P, Env))
+                     | d : Duty        ∈ P.clauses, matches(d, R), ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown }
+
+causes(n, P, Env) = ⟦effectiveCondition(P,n)⟧(Env).causes
 ```
+
+`deriveNorms` reads `R` and `Σ` only through `Env` (`Env.Request`, `Env.Σ`) — there is no free
+reference to either — matching S2's `⟦·⟧(Env)` discipline throughout this document.
+
+`violated(d, P)` is **not** an `Out`/`deriveNorms` atom. `Out` runs at the derivation stage (①):
+monotone, total, and evaluated against the immutable pre-transition `Env`/`Σ` — it has no way to
+observe which matched duties `updateDutyStates` (stage ②) will later drive to `Violated`, so an
+atom minted here would go stale the instant that transition happens. Instead, duty
+Active/Violated classification is done by `resolveDecision`'s internal partition helper (below),
+which reads the *post*-transition `Σ'` for exactly the duties `Out` attributed via `obligate(d,P)`.
+
+The type filters are normative. Claims, Powers, Liabilities, Immunities, and Promises have their
+own denotations/lifecycles; they are not request-matched access candidates and therefore do not
+produce access-decision `indeterminate` atoms.
 
 **S7 (provenance).** A `NormativeAtom` wraps the full norm object (`n`/`d`, not a projected
 `(a,x,s)` triple) together with its source policy `P` — every atom in the envelope carries the
 clause and policy that produced it, for audit and for `mostSpecific` (below), which needs
-`n.priority`/`n.action`/`n.condition`. Deduplication by canonical identity now means equality
-on `(atom-kind, n, P)`: two policies granting the same `(a,x,s)` shape remain distinct atoms
-with independent provenance (WP-3/C6a's clause-identity guarantee already makes `n` unique per
-policy, so this never accidentally merges two different clauses). `resolveDecision`'s
-`privileges`/`prohibitions`/`activeDuties`/`violatedDuties` arguments are these attributed
-atoms — projecting `n`/`d` recovers the exact object used elsewhere in this document (e.g. the
-Big-Step `Eval` above operates on the same clause objects directly).
+`n.priority`/`n.action`/`n.condition`. Atom equality is structural: `(atom-kind,n,P)` for
+definite atoms and `(indeterminate,n,P,causes)` for Unknown atoms. `causes` is itself a canonical
+set, so its enumeration order cannot create a second atom. Two policies granting the same
+`(a,x,s)` shape remain distinct atoms with independent provenance (WP-3/C6a's clause-identity
+guarantee already makes `n` unique per policy, so this never accidentally merges two different
+clauses). `resolveDecision(envelope, Σ', strategy)` is the sole public entry point for
+resolution; its internal definite/Unknown partition retains the complete attributed atoms and
+is not itself a second public interface (see **Conflict Resolution** below).
 
 ### Monotonicity of Derivation
 
@@ -1776,8 +1939,16 @@ Eval(U, R, Σ, Ctx, strategy) =
     let envelope = Out(U, Env)                    -- ① Derivation (monotone)
     let Σ' = updateDutyStates(envelope, Env, Σ)   -- ② State transitions
     let decision = resolveDecision(envelope, Σ', strategy)  -- ③ Resolution (non-monotone)
-    in (decision, Σ', duties(envelope))
+    in (decision, Σ', duties(envelope, Σ'))
+
+duties(envelope, Σ') = { d | obligate(d, P) ∈ envelope, Σ'.ObligationState(d) ∈ {Pending, Active} }
 ```
+
+`duties(envelope, Σ')` is the returned `DutySet` (Pending/Active duties still requiring
+fulfillment, per **PermitWithObligations Semantics** below) — it is read against `Σ'`, not
+`envelope` alone, for the same reason `violated(d,P)` is not an `Out` atom: `obligate(d,P)`
+only records that `d` matched and its effective condition held *before* stage ②; whether `d` is
+now `Pending`, `Active`, `Fulfilled`, or `Violated` is a `Σ'` fact.
 
 The **normative envelope** `Out(U, Env)` is the first-class intermediate result — visible before resolution, available for audit, and monotone in the policy universe (for a fixed environment).
 
@@ -1789,6 +1960,12 @@ For architectural context on the full evaluation pipeline, see **RL2_Architectur
 ---
 
 ## Big-Step Semantics (Policy Evaluation)
+
+This section is **not** a second, independent definition of policy evaluation. `Out` (above)
+is the sole derivation rule; what follows unfolds `Eval` one level to name the intermediate
+quantities an informal "match → evaluate condition → update duties → resolve" description
+would use — each one is read off `Out`'s envelope or `Σ'`, never recomputed independently of
+`deriveNorms`.
 
 ### Evaluation Function Signature
 
@@ -1809,48 +1986,47 @@ Where:
 * The returned `State` reflects any state updates from evaluation
 * `DutySet` contains duties in Pending or Active state requiring fulfillment
 
-### Evaluation Algorithm
+### Evaluation Algorithm (Unfolded)
 
 ```
 Eval(U, R, Σ, Ctx, strategy) =
     let Env = mkEnv(R, Σ, Ctx)
 
-    -- Step 0: Determine applicable policies
-    let applicablePolicies = ApplicablePolicies(U, Env)
+    -- Step 1: Derive the envelope. deriveNorms already folds effectiveCondition(P,n) per
+    -- clause for every P ∈ U — there is no separate ApplicablePolicies pre-filter (see
+    -- Pre-Resolution Normative Envelope).
+    let envelope = Out(U, Env)
 
-    -- Step 1: Find matching norms within applicable policies
-    let matchingPrivileges = { p ∈ P.clauses | P ∈ applicablePolicies ∧ p : Privilege ∧ matches(p, R) }
-    let matchingProhibitions = { p ∈ P.clauses | P ∈ applicablePolicies ∧ p : Prohibition ∧ matches(p, R) }
-    let matchingDuties = { d ∈ P.clauses | P ∈ applicablePolicies ∧ d : Duty ∧ matches(d, R) }
+    -- Step 2: Name the envelope's atoms by kind (S2: a matched norm whose effective
+    -- condition is Unknown is `indeterminate` — collected, never silently dropped).
+    let activePrivileges   = { n | permit(n, P) ∈ envelope }
+    let activeProhibitions = { n | forbid(n, P) ∈ envelope }
+    let obligated           = { d | obligate(d, P) ∈ envelope }
+    let indeterminateAtoms  = { i ∈ envelope | i = indeterminate(n, P, causes) }
 
-    -- Step 2: Evaluate conditions three-valued (S2). A matched norm whose condition
-    -- is Unknown is Indeterminate — collected, never silently dropped.
-    let activePrivileges = { p ∈ matchingPrivileges | ⟦p.condition⟧(Env) = True }
-    let activeProhibitions = { p ∈ matchingProhibitions | ⟦p.condition⟧(Env) = True }
-    let indeterminate = { n ∈ matchingPrivileges ∪ matchingProhibitions ∪ matchingDuties
-                          | ⟦n.condition⟧(Env) = Unknown(_) }
+    -- Step 3: Update duty states (Duty Activation/Fulfillment/Violation rules above).
+    -- Active/Violated classification reads the post-transition Σ', not the pre-transition
+    -- envelope: obligate(d,P) only records that d matched and was True *before* this step.
+    let Σ' = updateDutyStates(envelope, Env, Σ)
+    let activeDuties   = { d ∈ obligated | Σ'.ObligationState(d) ∈ {Pending, Active} }
+    let violatedDuties = { d ∈ obligated | Σ'.ObligationState(d) = Violated }
 
-    -- Step 3: Update duty states (only True-conditioned duties transition)
-    let Σ' = updateDutyStates({ d ∈ matchingDuties | ⟦d.condition⟧(Env) = True }, Env, Σ)
-    let activeDuties = { d | Σ'.ObligationState(d) ∈ {Pending, Active} }
-    let violatedDuties = { d | Σ'.ObligationState(d) = Violated }
+    -- Step 4: Resolve. resolveDecision(envelope, Σ', strategy) is the sole public
+    -- signature — it derives the definite categories above and retains complete attributed
+    -- Unknown atoms for the priority/strategy outcome test (see Conflict Resolution below).
+    let decision = resolveDecision(envelope, Σ', strategy)
 
-    -- Step 4: Apply conflict resolution and compute decision
-    let decision = resolveDecision(activePrivileges, activeProhibitions,
-                                    activeDuties, violatedDuties, indeterminate,
-                                    strategy)
-
-    in (decision, Σ', activeDuties)
+    in (decision, Σ', duties(envelope, Σ'))
 ```
 
-**Indeterminate handling (S2).** `resolveDecision` takes the `indeterminate` set as an
-explicit argument. Its policy is fixed and deterministic: if a *conclusive* verdict is
-reached without relying on the indeterminate norms — a `Deny` under prohibit-overrides, or a
-`Permit` with no competing prohibition/indeterminate prohibition — that verdict stands.
-Otherwise, if `indeterminate ≠ ∅` and it could have changed the outcome, the result is
-`Indeterminate`. Mapping `Indeterminate → Deny` is an **enforcement-adapter** decision (a
-fail-closed PEP), **not** the semantic verdict: `Eval` returns `Indeterminate` so the
-ambiguity is auditable.
+**Indeterminate handling (S2).** `resolveDecision(envelope, Σ', strategy)` retains each complete
+`indeterminate(norm,policy,causes)` atom. It computes the finite set of resolver summaries
+reachable when each Unknown is independently inactive or active, then maps those summaries
+through the same priority/strategy decision function. A single reachable decision is conclusive;
+more than one yields `Indeterminate`. The summary space is polynomial and does not enumerate the
+`2^|I|` truth assignments. Mapping
+`Indeterminate → Deny` is an **enforcement-adapter** decision (a fail-closed PEP), **not** the
+semantic verdict: `Eval` returns `Indeterminate` so the ambiguity is auditable.
 
 ### Conflict Resolution
 
@@ -1864,11 +2040,13 @@ The `strategy` parameter in `resolveDecision` below represents evaluator configu
 
 More sophisticated defeasibility mechanisms—such as exclusionary rules—are available in frameworks like LegalRuleML [LegalRuleML] and may be incorporated in future RL2 profiles.
 
-#### mostSpecific (SEM-9)
+#### Specificity key (SEM-9)
 
-`SpecificOverridesGeneral` needs a total ordering over competing norms. Specificity is a
-lexicographic triple computed statically per norm — action subsumption depth, then condition
-atom count, then declared priority:
+`SpecificOverridesGeneral` needs a total ordering over competing norms *after* the global
+priority step. Specificity is therefore a lexicographic pair computed statically per norm —
+action subsumption depth, then condition atom count. Declared priority is not repeated inside
+this metric because all candidates reaching `mostSpecific` are already in one maximal-priority
+stratum:
 
 ```
 actionDepth(x) = |{ y : Action | x ⊑ y, y ≠ x }|   -- count of x's proper ancestors under ⊑
@@ -1888,69 +2066,133 @@ atoms(c) = case c of
     And(cs) | Or(cs) | Xone(cs) → Σ_{c' ∈ cs} atoms(c')
     Not(c')                     → atoms(c')
 
-specificity(n) = (actionDepth(n.action), atomCount(n.condition), n.priority)  -- lexicographic
-
-SpecificityResult ::= Unique(n: Norm) | Tied(ns: Set<Norm>) | Empty
-
-mostSpecific(norms) =
-    if norms = ∅ then Empty
-    else
-        let maxSpec = lexMax { specificity(n) | n ∈ norms }
-        let winners = { n ∈ norms | specificity(n) = maxSpec }
-        in if |winners| = 1 then Unique(the element of winners)
-           else Tied(winners)
+Specificity = ActionDepth × AtomCount
+specificity(n) = (actionDepth(n.action), atomCount(n.condition))  -- lexicographic
 ```
 
 A single lexicographic metric applies uniformly across `Privilege` and `Prohibition` — the
 design choice SEM-9 flagged as needed, not a theorem. This eliminates *incomparability* by
-construction: every norm has a well-defined `specificity` triple under a fixed total order on
-triples, so only genuine *ties* (identical triples) remain, handled explicitly below rather
-than by an implicit tiebreak.
+construction: every norm has a well-defined `specificity` pair under a fixed total order on
+tuples. The resolver summary retains the maximal pair separately for Privileges and
+Prohibitions; equality of those two maxima is an opposite-effect tie.
+
+`resolveDecision(envelope, Σ', strategy)` is the **only public signature** for conflict
+resolution: policy universe, Request, and Σ never surface as separate resolution arguments.
+It retains attributed Unknown atoms and projects definite/possible activations into the compact
+`ResolverSummary` consumed by `decisionOf`.
 
 ```
-resolveDecision(privileges, prohibitions, activeDuties, violatedDuties, indeterminate, strategy) =
-    let base = case strategy of
+resolveDecision(envelope, Σ', strategy) =
+    let known    = { a ∈ envelope | kind(a) ≠ indeterminate }
+    let unknowns = { a ∈ envelope | kind(a) = indeterminate }
+    let initial  = summarize(known, Σ')
+    let summaries = choiceFold(canonicalOrder(unknowns), {initial}, Σ')
+    let decisions = { decisionOf(s, strategy) | s ∈ summaries }
+    in if |decisions| = 1 then the element of decisions else Indeterminate
+
+activate(indeterminate(n : Privilege,   P, _)) = permit(n, P)
+activate(indeterminate(n : Prohibition, P, _)) = forbid(n, P)
+activate(indeterminate(d : Duty,        P, _)) = obligate(d, P)
+
+priority(n) = n.priority if declared, otherwise 0
+
+ResolverSummary =
+    { topPriority       : Integer?,
+      bestPrivilegeSpec : Specificity?,
+      bestProhibitSpec  : Specificity?,
+      hasActiveDuty     : Boolean,
+      hasViolatedDuty   : Boolean }
+
+emptySummary = { None, None, None, false, false }
+summarize(atoms, Σ') = fold(addAtom(_, _, Σ'), emptySummary, canonicalOrder(atoms))
+
+canonicalOrder(atoms) = sort atoms by (sourcePolicyId, sourceClauseId, atomKind)
+optionMax(None, x)    = Some(x)
+optionMax(Some(y), x) = Some(max(y, x))
+
+addAtom(s, permit(n, P), Σ')   = addAccess(s, Privilege, priority(n), specificity(n))
+addAtom(s, forbid(n, P), Σ')   = addAccess(s, Prohibition, priority(n), specificity(n))
+addAtom(s, obligate(d, P), Σ') =
+    case Σ'.ObligationState(d) of
+        Pending | Active → s[hasActiveDuty ↦ true]
+        Violated         → s[hasViolatedDuty ↦ true]
+        _                → s
+
+addAccess(s, kind, p, spec) =
+    if s.topPriority = None ∨ p > s.topPriority then
+        { topPriority: p,
+          bestPrivilegeSpec: if kind = Privilege then Some(spec) else None,
+          bestProhibitSpec:  if kind = Prohibition then Some(spec) else None,
+          hasActiveDuty: s.hasActiveDuty,
+          hasViolatedDuty: s.hasViolatedDuty }
+    else if p < s.topPriority then s
+    else if kind = Privilege then
+        s[bestPrivilegeSpec ↦ optionMax(s.bestPrivilegeSpec, spec)]
+    else
+        s[bestProhibitSpec ↦ optionMax(s.bestProhibitSpec, spec)]
+
+choiceFold([], summaries, Σ') = summaries
+choiceFold(i :: rest, summaries, Σ') =
+    let next = summaries ∪ { addAtom(s, activate(i), Σ') | s ∈ summaries }
+    in choiceFold(rest, next, Σ')
+    -- retaining s chooses Unknown=False; addAtom chooses Unknown=True
+
+hasPrivilege(s)  = s.bestPrivilegeSpec ≠ None
+hasProhibition(s) = s.bestProhibitSpec ≠ None
+
+baseDecision(s) =
+    if ¬hasPrivilege(s) then NotApplicable
+    else if s.hasViolatedDuty then Deny
+    else if s.hasActiveDuty then PermitWithObligations
+    else Permit
+
+decisionOf(s, strategy) =
+    case strategy of
         ProhibitOverrides →
-            if prohibitions ≠ ∅ then Deny
-            else baseDecision(privileges, activeDuties, violatedDuties)
+            if hasProhibition(s) then Deny else baseDecision(s)
 
         PermitOverrides →
-            if privileges ≠ ∅ ∧ activeDuties = ∅ then Permit
-            else if prohibitions ≠ ∅ then Deny
-            else baseDecision(privileges, activeDuties, violatedDuties)
+            if hasPrivilege(s) then baseDecision(s)
+            else if hasProhibition(s) then Deny
+            else NotApplicable
 
         SpecificOverridesGeneral →
-            case mostSpecific(privileges ∪ prohibitions) of
-                Empty          → baseDecision(privileges, activeDuties, violatedDuties)
-                Unique(winner) → case winner of
-                    Privilege(_)   → baseDecision({winner}, activeDuties, violatedDuties)
-                    Prohibition(_) → Deny
-                Tied(_)        → Indeterminate  -- S7: an unresolved tie is an explicit
-                                                 -- ambiguity, never a silent default
+            case (s.bestPrivilegeSpec, s.bestProhibitSpec) of
+                (None, None)       → NotApplicable
+                (Some(_), None)    → baseDecision(s)
+                (None, Some(_))    → Deny
+                (Some(p), Some(f)) → if p > f then baseDecision(s)
+                                      else if f > p then Deny
+                                      else Indeterminate
 
-        Invalid →  -- S7 / ODRL "invalid": a genuine Permission/Prohibition conflict is an
-                   -- explicit error, never adjudicated by priority — the strictest option,
-                   -- for policy authors who want conflicts surfaced, not resolved.
-            if privileges ≠ ∅ ∧ prohibitions ≠ ∅ then Indeterminate
-            else baseDecision(privileges, activeDuties, violatedDuties)
+        Invalid →  -- ODRL "invalid": a conflict in the maximal-priority stratum is surfaced
+            if hasPrivilege(s) ∧ hasProhibition(s) then Indeterminate
+            else if hasProhibition(s) then Deny
+            else baseDecision(s)
 
         _ → -- Default: prohibit-overrides
-            if prohibitions ≠ ∅ then Deny
-            else baseDecision(privileges, activeDuties, violatedDuties)
-    in
-    -- S2: an unresolved (Unknown-conditioned) norm only matters if it could flip the
-    -- verdict. A firm Deny is conclusive regardless; otherwise a non-empty indeterminate
-    -- set makes the result Indeterminate rather than a possibly-wrong Permit/NotApplicable.
-    if base = Deny then Deny
-    else if indeterminate ≠ ∅ then Indeterminate
-    else base
-
-baseDecision(privileges, activeDuties, violatedDuties) =
-    if privileges = ∅ then NotApplicable
-    else if violatedDuties ≠ ∅ then Deny  -- Violations block access
-    else if activeDuties ≠ ∅ then PermitWithObligations
-    else Permit
+            if hasProhibition(s) then Deny else baseDecision(s)
 ```
+
+`addAtom` uses only `max` and Boolean disjunction, so definite summarization is order-independent.
+`choiceFold` is exact for all joint Unknown activations but deduplicates after every step by
+summary equality. For `n` access atoms there are at most `O(n³)` summaries: `O(n)` possible top
+priorities, `O(n)` best Privilege specificities, `O(n)` best Prohibition specificities, and four
+duty-flag pairs. A direct implementation that scans each candidate top-priority stratum and the
+two reachable best-specificity sets computes the same summaries in `O(n³)` time and polynomial
+space; it need not materialize the powerset. This bounded summary construction, not a solver or
+entailment engine, is the conformance model.
+
+Normative boundary consequences include:
+
+- Under `PermitOverrides`, a definite Privilege plus an equal-priority Unknown Prohibition is
+  `Permit`: either activation choice permits.
+- Under `PermitOverrides`, a definite Prohibition plus an equal-priority Unknown Privilege is
+  `Indeterminate`: the choices yield Deny and Permit.
+- Under `Invalid`, a lower-priority definite Prohibition, a violated Duty, and two Unknown
+  equal-higher-priority access atoms (one Privilege, one Prohibition) are `Indeterminate`.
+  Activating either Unknown alone still yields Deny, but activating both creates a top-stratum
+  conflict; retaining joint reachable summaries is therefore necessary.
 
 `Indeterminate` here is the same value produced per-norm in the denotations above and carried
 by `rl2p:Indeterminate` at the protocol layer; a fail-closed PEP maps it to `Deny`, but that
