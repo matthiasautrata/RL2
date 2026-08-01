@@ -1,6 +1,6 @@
 # RL2 Compilation Contract
 
-**Version:** 0.7
+**RL2 version:** 0.7 · **Status:** Draft proposal for review · **Date:** 2026-08-01
 
 ## Status
 
@@ -242,6 +242,20 @@ Two conforming compilers given the same `RDFDataset`, `ProfileModules`, and `Com
 MUST produce byte-identical canonical JSON (and therefore identical digests) — this is the
 projection-determinism half of §8's soundness statement.
 
+**What remains to be pinned when the schema files ship.** Sorted keys alone are not sufficient for
+cross-implementation byte identity; the bullets above fix the two rules that matter most for a
+compiled module (key order, `Numeric`-as-string) but leave several encoding choices for the
+JSON Schema files and their accompanying test vectors (`backlog.md` §1) to pin precisely: string
+escaping (which characters are escaped, and in which of the several equivalent JSON-legal forms);
+IRI normalization (percent-encoding case, trailing-slash and default-port handling, so two
+syntactically different but equivalent IRIs do not silently produce different bytes); date/time
+lexical forms (fixed precision, timezone representation, and whether a normalized form is required
+on input); set/collection ordering beyond the module's own arrays (e.g. within a nested value set);
+and optional-field presence (whether an absent optional field is omitted or written as `null`, and
+whether the two are distinguishable). Until the schema files fix each of these, two independently
+written compilers can satisfy every rule stated in this section and still disagree at the byte
+level.
+
 ## 6. Compile Diagnostics
 
 A `CompileDiagnostic` is:
@@ -309,10 +323,15 @@ canonical RL2 graph and may still receive `CompileDiagnostic`s of its own.
 ## 7. Interchange Schemas
 
 `Request`, `WorldSnapshot`, `EvaluationConfiguration`, and `EvaluationResult` — defined abstractly
-in `RL2_Model.md` §§3, 4, 5, 6 — get published JSON Schemas under this document's canonical-JSON
-conventions (§5.1: sorted keys, `Numeric` as string), versioned with the spec. Conformance vectors
-and a PDP-style API consume the same schemas; this document does not introduce a second wire
-format for the same abstract values.
+in `RL2_Model.md` §§3, 4, 5, 6 — have their field tables fixed normatively below, under this
+document's canonical-JSON conventions (§5.1: sorted keys, `Numeric` as string). The field tables in
+this section are normative now; the machine-readable JSON Schema files that enforce them
+mechanically, and the byte/digest test vectors that check cross-implementation agreement, ship with
+the conformance-vector suite (`backlog.md` §1), not with this document. Until they ship, the
+byte-identity claims in §5.1 and §8 are design contracts fixed by this text, not yet independently
+testable by a third party without hand-writing their own validator against these tables.
+Conformance vectors and a PDP-style API are expected to consume the same schemas once published;
+this document does not introduce a second wire format for the same abstract values.
 
 | Interchange schema | Serializes | Notable fields beyond the abstract type |
 |---|---|---|
@@ -356,7 +375,10 @@ correctly, as properties of the data, never eliminated by compilation.
   byte-identical canonical `EvaluationResult` (§7).
 
 These are normative obligations now; a mechanized (e.g. Lean) proof is future work and does not
-gate conformance.
+gate conformance. No reference compiler exists yet against which either statement has been
+checked: the theorem is a conformance obligation on implementations, established by the
+negative/positive vector suite (`backlog.md` §1) once that suite and a compiler both exist — not
+yet an established result about a running system.
 
 **Scope: core operators only.** The evaluation-determinism obligation above is stated over modules
 whose atomic constraints use the ten core comparison operators (§Denotational Semantics,

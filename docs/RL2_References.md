@@ -10,7 +10,7 @@ Bibliography for RL2 0.7.
 2. W3C. *ODRL Vocabulary & Expression 2.2*. W3C Recommendation, 15 February 2018.
    <https://www.w3.org/TR/odrl-vocab/>
 
-3. W3C ODRL Community Group. *ODRL Formal Semantics*. Editor's Draft.
+3. W3C ODRL Community Group. *ODRL Formal Semantics*. Editor's Draft (accessed 2026-08-01).
    <https://w3c.github.io/odrl/formal-semantics/>
 
 4. Steidl, M. (ed.). *ODRL V2.2 Profile Best Practices*. W3C ODRL Community Group Final Report,
@@ -82,6 +82,7 @@ Bibliography for RL2 0.7.
 
 23. Kebede, M. G., Sileno, G., and van Engers, T. “A Critical Reflection on ODRL.” In *AI
     Approaches to the Complexity of Legal Systems XI–XII*, pp. 48–61. Springer, 2021.
+    <https://doi.org/10.1007/978-3-030-89811-3_4>
 
 24. De Vos, M., Kirrane, S., Padget, J. A., and Satoh, K. “ODRL Policy Modelling and Compliance
     Checking.” In *RuleML+RR 2019*, LNCS 11784, pp. 36–51.
@@ -92,11 +93,14 @@ Bibliography for RL2 0.7.
 
 26. Esteves, B., Pandit, H. J., and Rodríguez-Doncel, V. “ODRL Profile for Expressing Consent
     through Granular Access Control Policies in Solid.” In *IEEE EuroS&PW 2021*, pp. 298–306.
+    <https://doi.org/10.1109/EuroSPW54576.2021.00038>
 
 27. Mustafa, A., et al. “What Does ODRL Mean? A Cross-Level Ontological Grounding.”
     arXiv:2606.24344, 2026. <https://arxiv.org/abs/2606.24344>
 
-28. Slabbinck, W., et al. “Interoperable Interpretation and Evaluation of ODRL Policies.” 2025.
+28. Slabbinck, W., Rojas Meléndez, J., Esteves, B., Colpaert, P., and Verborgh, R. “Interoperable
+    Interpretation and Evaluation of ODRL Policies.” In *The Semantic Web — ESWC 2025*, LNCS 15719,
+    pp. 192–209. Springer, 2025. <https://doi.org/10.1007/978-3-031-94578-6_11>
     (Compliance Report Model and executable test-suite precedent.)
 
 29. “Semantic Conflict Resolution for Access and Usage Control.” NXDG 2025.
@@ -115,7 +119,8 @@ Bibliography for RL2 0.7.
 ## Related Policy Languages and Systems
 
 33. Open Policy Agent. *Policy Language (Rego)*; *External Data*; *Intermediate Representation*;
-    *WebAssembly*; *Policy Performance*. <https://www.openpolicyagent.org/docs/policy-language>
+    *WebAssembly*; *Policy Performance*. Product documentation (accessed 2026-08-01).
+    <https://www.openpolicyagent.org/docs/policy-language>
 
 34. Cutler, J. W., et al. “Cedar: A New Language for Expressive, Fast, Safe, and Analyzable
     Authorization.” *Proceedings of the ACM on Programming Languages* 8, OOPSLA1 (2024),
@@ -126,13 +131,13 @@ Bibliography for RL2 0.7.
     production implementation against an executable formal model.)
 
 36. Cedar documentation: *Authorization Semantics*; *Policy Validation*; *Schema*; *Level
-    Validation*. <https://docs.cedarpolicy.com/>
+    Validation*. Product documentation (accessed 2026-08-01). <https://docs.cedarpolicy.com/>
 
 37. OASIS. *eXtensible Access Control Markup Language (XACML) Version 3.0*. OASIS Standard,
     22 January 2013. <https://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html>
 
-38. Immuta. *Authoring Policies* (product documentation) — tag-targeted global data policies.
-    <https://documentation.immuta.com/>
+38. Immuta. *Authoring Policies* (product documentation) — tag-targeted global data policies
+    (accessed 2026-08-01). <https://documentation.immuta.com/>
 
 ## Deployment Context
 

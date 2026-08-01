@@ -1,6 +1,6 @@
 # RL2 Information Model
 
-**Version:** 0.7
+**RL2 version:** 0.7 · **Status:** Draft proposal for review · **Date:** 2026-08-01
 
 ## Status
 

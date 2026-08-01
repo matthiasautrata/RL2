@@ -1,12 +1,15 @@
 # RL2 Scope and Conformance Boundary
 
-**Version:** 0.7
+**RL2 version:** 0.7 · **Status:** Draft proposal for review · **Date:** 2026-08-01
 
 ## Purpose
 
-RL2 is an AI-generatable, deterministically evaluable policy language that extends and clarifies
-ODRL 2.2. It addresses semantic choices that can cause independent evaluators to assign different
-meanings to the same policy.
+RL2 is an AI-generatable, deterministically evaluable policy language and a deterministic target
+for the supported ODRL 2.2 fragment (`RL2_ODRL_Mapping.md`). It retains the familiar policy
+concepts of ODRL 2.2 and addresses semantic choices that can cause independent evaluators to
+assign different meanings to the same policy. Translation from ODRL 2.2 is deliberately partial
+and fail-closed: a construct outside the supported fragment is rejected or profile-gated, never
+silently weakened into a different meaning.
 
 For the same canonical policy universe, request, world snapshot, and evaluation configuration,
 conforming RL2 evaluators produce the same evaluation result.
@@ -115,4 +118,7 @@ The RL2 proposal consists of:
 5. structural and semantic conformance material.
 
 The Primer, architecture overview, external-data guidance, vocabulary reference, and bibliography
-are informative.
+are informative. `RL2_Primer.md` §13 gives a short, factual comparison of what RL2 improves on and
+what it deliberately leaves to ODRL 2.2, OPA/Rego, Cedar, and Immuta — RL2 is narrower and more
+auditable for its finite-snapshot decision problem, not a general replacement for those systems'
+own execution or enforcement domains.

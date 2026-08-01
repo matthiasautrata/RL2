@@ -1,12 +1,10 @@
----
-title: "RL2 Formal Semantics"
-subtitle: "Deterministic Policy Meaning over Requests and World Snapshots"
-version: "0.7"
-status: "Draft"
-date: 2026-08-01
-abstract: |
-  RL2 is a policy language that extends and clarifies ODRL 2.2. It combines conduct norms, promises, and constraint algebra in deterministic evaluation semantics over a canonical policy universe, request, and immutable world snapshot.
----
+# RL2 Formal Semantics
+
+**RL2 version:** 0.7 · **Status:** Draft proposal for review · **Date:** 2026-08-01
+
+*Deterministic Policy Meaning over Requests and World Snapshots.* RL2 combines conduct norms,
+promises, and constraint algebra in deterministic evaluation semantics over a canonical policy
+universe, request, and immutable world snapshot.
 
 ## Introduction
 
@@ -2106,7 +2104,9 @@ different meanings.
 `Eval` reads one immutable `WorldSnapshot`; it neither reserves resources nor commits an action.
 A decision based on a shared quota or capacity fact is therefore a decision about that snapshot,
 not an atomic admission guarantee. Systems that require check-and-reserve behavior must ensure
-snapshot freshness and atomic enforcement outside RL2.
+snapshot freshness and atomic enforcement outside RL2. **PEP guidance:** a PEP enforcing a quota
+must serialize its own decrements (e.g. an atomic counter or a database transaction outside RL2);
+`Eval` only reports the snapshot-time state and never itself reserves or decrements anything.
 
 ## Complexity and Constraints
 
@@ -2145,22 +2145,64 @@ The core's termination and polynomial-time guarantees depend on a small set of *
 
 ### Complexity Analysis
 
-Given these constraints:
+*This subsection is non-normative accounting, not a new semantic claim.* It replaces a single
+polynomial total with parameterized bounds so that the terms which dominate a realistic deployment
+— windowed Maintenance Duties, shared-Duty status recomputation, hierarchy closures, profile
+operators, and snapshot assembly — are named rather than folded into one opaque product.
+
+**Parameters** (each bounded by a conformance parameter above, or declared by the compiled module):
+
+| Parameter | Meaning |
+|-----------|---------|
+| `n_clauses` | Number of clauses (Privilege, Prohibition, Duty, Promise) in the policy universe (`≤ MaxPolicyUniverse × m`) |
+| `n_cond` | Number of condition nodes (AtomicConstraint/LogicalConstraint) reachable from those clauses (`≤ MaxConditionDepth`-bounded per clause) |
+| `n_facts` | Number of `WorldSnapshot.facts` referenced during one evaluation (`≤ MaxSnapshotFacts`) |
+| `n_ev` | Number of `WorldSnapshot.evidence` items considered (`≤ MaxSnapshotEvidence`) |
+| `n_hier` | Number of action/type hierarchy edges (`rl2:includedIn`, `rdfs:subClassOf`) in the compiled closure |
+| `n_dep` | Number of edges in the finite `targetNorm`/`obligationStateOperand` status-dependency graph (acyclic by `StatusDependencyCycle`, `RL2_Compilation.md` §2.2) |
+| `n_cells` | Number of temporal cells constructed for a windowed Maintenance Duty's invariant evaluation |
+
+**(a) Direct evaluation is polynomial in these parameters.** The dominant terms:
 
 | Operation | Complexity |
 |-----------|------------|
-| Canonical fact resolution | O(F) without an optional key index |
-| Evidence selection | O(E × h), where h is bounded action-hierarchy lookup work |
-| Condition evaluation | O(n × F) without an optional fact index |
-| Norm matching | O(\|U\| × m) where m = max clauses per policy |
+| Per-clause condition evaluation | O(`n_cond` × fact-lookup-cost) — O(1) per lookup with a fact index, O(`n_facts`) without one |
+| Evidence selection | O(`n_ev` × h), h a bounded action-hierarchy lookup (`h ≤ n_hier`) |
+| Windowed Maintenance Duty evaluation | O(`n_cells` × `n_cond`) — the invariant condition is evaluated once per temporal cell, not once total |
+| Status-dependency traversal | O(`n_dep`) to visit the acyclic `targetNorm` graph in dependency order |
+| Norm matching | O(`n_clauses`) — `n_clauses` already totals clauses across the universe |
 | Conflict resolution | O(k²) for `k` access atoms |
-| **Total `Eval`** | **O(\|U\| × m × (nF + Eh) + k²)** |
 
-`F`, `E`, and `h` are bounded by the snapshot and hierarchy conformance parameters. The bound
-includes Duty and Promise status derivation. Indexes may reduce lookup cost without changing
-meaning. Implementations may hash-index candidate norms by `(subject, action, object)` for the
-fast bound-norm path; `rl2:anyAgent`/`rl2:anyAsset` sentinel-subject or sentinel-object norms
-cannot key into that index and form a separate, always-scanned bucket.
+Shared-Duty and Promise status is computed **once per `(Duty, snapshot, configuration)`**, not once
+per referencing clause: a conforming implementation memoizes status by the cache key `(Duty id,
+module digest, snapshot digest, configuration digest)`, so a Duty gating ten Privileges or targeted
+by ten `obligationStateOperand` conditions costs one status computation, not ten. The bounds above
+state the **memoized** cost; naive per-reference recomputation is not the intended cost and is not
+what these bounds describe.
+
+**(b) Compile-time closure construction.** Action-inclusion and type/subclass closures
+(`RL2_Compilation.md` §5, "Materialized closures") are computed once, at compile time, in O(`n_hier`)
+space. Their size feeds evaluation only as a constant-time index lookup per condition or evidence
+match; the closure-construction cost itself is amortized across every evaluation of the compiled
+module, not paid per `Eval` call.
+
+**(c) Profile-operator cost is outside core bounds.** A `rl2:ProfileOperator` (`RL2_Compilation.md`
+§9.1) is required to be pure and total, but its cost is declared and accounted by the profile that
+defines it, not by this section's parameters; core conformance makes no claim about a profile
+operator's running time.
+
+**(d) Snapshot assembly and universe selection are external and unbounded by core.** Constructing
+`WorldSnapshot` and selecting the `PolicyUniverse` supplied to `Eval` are assembler responsibilities
+(`RL2_Scope.md`, External Data) that occur before `Eval` is called; their cost — source fetching,
+credential verification, connector execution, catalog/selection logic — is the assembler's, not
+`Eval`'s, and is not bounded by any parameter in this section.
+
+**(e) Total, for reference.** Folding (a) into one expression: `O(n_clauses × (n_cond ×
+factLookup + n_ev × h + n_cells × n_cond) + n_dep + n_hier + k²)`, where the memoized status cost is
+already counted once per distinct Duty rather than per reference. Indexes may reduce lookup cost
+without changing meaning. Implementations may hash-index candidate norms by `(subject, action,
+object)` for the fast bound-norm path; `rl2:anyAgent`/`rl2:anyAsset` sentinel-subject or
+sentinel-object norms cannot key into that index and form a separate, always-scanned bucket.
 
 ### Totality Guarantees
 

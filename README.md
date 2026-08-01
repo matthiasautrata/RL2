@@ -1,9 +1,12 @@
 # RL2: A Deterministic Policy Language for ODRL
 
-RL2 is a candidate language contribution for the evolution of ODRL. It retains the familiar
+RL2 is a candidate language contribution for the evolution of ODRL: a deterministic target for
+the supported ODRL 2.2 fragment, not a wholesale replacement of it. It retains the familiar
 policy concepts of permissions, prohibitions, duties, actions, assets, parties, constraints,
 profiles, offers, and agreements while defining the inputs and algorithms needed for independent
-evaluators to agree.
+evaluators to agree. Translation from ODRL 2.2 is deliberately partial and fail-closed —
+unsupported constructs are rejected or profile-gated, never silently weakened
+([ODRL 2.2 migration](spec/RL2_ODRL_Mapping.md)).
 
 The proposal addresses three recurring sources of ambiguity:
 

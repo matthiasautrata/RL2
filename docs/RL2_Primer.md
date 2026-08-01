@@ -9,8 +9,9 @@ assets, actions, and constraints. It deliberately leaves important parts of poli
 to profiles and implementations. In particular, two systems can reasonably disagree about which
 facts a constraint reads, when a Duty is fulfilled, or how several applicable policies combine.
 
-RL2 is a candidate extension and clarification. It retains the recognizable ODRL policy model and
-adds a deterministic evaluation contract:
+RL2 is a candidate extension and clarification: a deterministic target for the supported ODRL 2.2
+fragment, not a wholesale replacement of ODRL 2.2. It retains the recognizable ODRL policy model
+and adds a deterministic evaluation contract:
 
 ```text
 Eval(PolicyUniverse, Request, WorldSnapshot, EvaluationConfiguration)
@@ -244,10 +245,19 @@ clauses, Duty and Promise statuses, and causal diagnostics. Resolution never dep
 statement order.
 
 An "everywhere except..." policy has more than one correct shape, and the right one depends on
-what the exception means: a single Privilege carrying a `neq`/complement condition, a scoped
-Prohibition combined with the chosen strategy, a priority-ranked override for break-glass access,
-or a non-default `defaultDecision` for a closed-world deployment. `RL2_Semantics.md`'s Exception
-patterns subsection works through all four and how each behaves when a fact is missing.
+what the exception means. Three authoring patterns cover the common cases:
+
+| Pattern | Shape | Meaning |
+|---|---|---|
+| "everywhere except X" | a single Privilege with `location neq X` | no permit *at* X — the request is simply unmatched there, not an affirmative prohibition |
+| "never except C" | a narrow Privilege plus `EvaluationConfiguration.defaultDecision = Deny` | **warning:** `defaultDecision` is evaluator-global — it changes the outcome for *every* otherwise-unmatched request in the whole universe, not just this policy's scope. For a locally-scoped closure, use a broad Prohibition plus a higher-priority narrow Privilege instead |
+| explicit override | a broad Prohibition plus a higher-priority narrow Privilege | affirmative denial by default, overridden by an explicit, independently attributable exception (break-glass) |
+
+In all three patterns a missing input yields `Indeterminate` with causes — never silently the
+exception, never silently the rule. `RL2_Semantics.md`'s Exception patterns subsection is the
+normative source: it derives these (plus a fourth, strategy-dependent Privilege/Prohibition pairing
+at equal priority) from `accessResult`, `resolveDecision`, and `choiceFold`, and works through every
+missing-fact case in full.
 
 ## 9. Offers and Promises
 
@@ -313,7 +323,24 @@ Persistent cases, event transport, source connectors, retries, commits, distribu
 enforcement, and verified implementation toolchains are possible companion work. They are not
 needed to state what an RL2 policy means.
 
-## 13. Reading Next
+## 13. What RL2 Does and Does Not Replace
+
+RL2 is narrower and more auditable for the finite-snapshot decision problem it defines; it is not a
+general claim of superiority over adjacent systems, which remain stronger in their own
+execution/enforcement domains.
+
+| System | RL2 advantage | RL2 does not replace |
+|---|---|---|
+| ODRL 2.2 + profiles | fixed request/snapshot boundary, canonical projection, explicit missing/conflict outcomes, Duty status, replay-anchored result | the full ODRL model; translation is deliberately partial |
+| OPA/Rego | RDF/ODRL interchange, normative duty/promise vocabulary, total 3-valued semantics | Rego's general queries over arbitrary structured data; mature bundle/Wasm enforcement ecosystem |
+| Cedar | first-class RDF policy exchange, duties/promises, ODRL migration | Cedar's mature entity schema/validation and verified fixed authorization semantics |
+| Immuta | portable semantic policy layer, reproducible input/result contract | database-native row/cell masking, query rewriting, tag-conflict behavior, lifecycle workflows |
+
+Immuta's tag-targeted policies in particular demonstrate a required integration surface — tag
+selection and enforcement — that RL2 does not itself supply; a deployment pairing RL2 with any of
+these systems still needs that system's own execution or enforcement layer.
+
+## 14. Reading Next
 
 - [Information Model](../spec/RL2_Model.md) defines the evaluation inputs and outputs.
 - [Formal Semantics](../spec/RL2_Semantics.md) defines the evaluator.

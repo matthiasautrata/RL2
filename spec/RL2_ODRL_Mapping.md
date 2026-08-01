@@ -1,6 +1,6 @@
 # ODRL 2.2 Migration to RL2
 
-**RL2 version:** 0.7
+**RL2 version:** 0.7 · **Status:** Draft proposal for review · **Date:** 2026-08-01
 
 ## 1. Purpose
 
