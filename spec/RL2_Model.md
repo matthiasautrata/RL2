@@ -201,16 +201,21 @@ resolveFact(k, τ, p, W, C) =
     let candidates = {
         f in W.facts |
         f.key = k and contains(f.validDuring, W.evaluationTime)
+        and admitsFact(k, f, C)
     }
     in if candidates = empty then Err(Missing({ site: SnapshotSite(k.path), target: None }))
-       else if any f in candidates is not admissibleFact(p, f.attribution, C)
-            then Err(Invalid({ site: SnapshotSite(k.path), target: None }))
        else if any f.value is not of type τ
             then Err(Invalid({ site: SnapshotSite(k.path), target: None }))
        else let values = distinctSemanticValues(candidates)
             in if |values| = 1 then Ok(the element of values)
                else Err(Conflict({ site: SnapshotSite(k.path), target: None }))
 ```
+
+`admitsFact` is the finite admissibility filter defined in §4.4; a candidate that fails it is
+excluded before the empty/type/conflict rules run, so a key for which every candidate fails the
+filter is `Missing` exactly like a key with no candidates at all — never a separate error kind.
+The profile `p` no longer participates in this filter (§4.4); it is retained in the signature for
+`τ`/`declaredType(op)` context and for the deferred per-operand data contract (`backlog.md` §6).
 
 Each `Err` carries the canonical `ErrorKey` record defined in `RL2_Semantics.md` (§Result and
 Truth Algebra): `site` identifies the failing snapshot path via `SnapshotSite(String)`, and
@@ -250,49 +255,81 @@ selectEvidence(selector, W, C) =
     let raw = {
         e in W.evidence |
         actorActionObjectTimeMatch(e, selector, W.evaluationTime)
+        and admitsEvidence(selector, e, C)
     }
-    in if any e in raw is not admissibleEvidence(e, C)
-       then Err(Invalid(selector))
-       else Ok(raw)
+    in Ok(raw)
 ```
 
 Core Duty and Promise selectors use the subject, the required action plus its finite set of
 included actions, the object, and the applicable temporal interval. These values come from the
-clause; they are not implicitly copied from the current Request. `admissibleEvidence` is the total
-finite rule supplied by the evaluation configuration; it may inspect the selected Evidence and
-its attribution. No matching evidence is `Ok(empty)`, meaning performance has not been established.
+clause; they are not implicitly copied from the current Request. `admitsEvidence` is the
+evidence-side admissibility filter defined in §4.4, over the `evidenceSigners` entry (if any) for
+this selector's Duty-evidence scope. An evidence item that fails the filter is excluded from `raw`
+exactly as if it had never matched; `selectEvidence` is therefore total. No matching evidence —
+whether because none was ever asserted or because every match was filtered out — is `Ok(empty)`,
+meaning performance has not been established, never a distinct error.
 
-### 4.4 Profile provenance and trust
+### 4.4 Admissibility and trust
 
-Core RL2 does not declare an issuer trustworthy merely because an assertion is present. A profile
-may define a total `admissibleFact(profile, attribution, configuration)` predicate and may require
-issuer, source, profile version, observation time, or other finite attribution fields. The
-configuration supplies any permitted trust anchors or finite interpretation parameters.
+**Trust verification is pre-`Eval` (normative).** Signature checking, provenance-chain validation,
+trust-anchor evaluation, and connector authentication happen in the trusted assembler, before
+`WorldSnapshot` exists. `WorldSnapshot` contains only already-admitted facts and evidence; each item
+carries its attribution metadata (`source`, `observedAt`, `issuer` — the `Attribution` fields
+defined in §4) as ordinary immutable fields. `Eval` never performs cryptographic or chain-of-trust
+verification of its own; `admitsFact`/`admitsEvidence` below only compare attribution fields already
+present on the snapshot against the finite record `C` supplies.
 
-For an operand with no profile attribution requirement,
-`admissibleFact(None, attribution, configuration) = true`. A referenced profile must define its
-fact predicate and be supported by the configuration; otherwise snapshot use fails with `Invalid`.
-The configuration likewise supplies one explicit `admissibleEvidence(Evidence, configuration)`
-rule; `AllowAllEvidence` is a valid declared rule, not an implicit default.
+**The admissibility record.** What `EvaluationConfiguration` carries for admissibility is not a
+predicate a profile authors. It is a finite declarative record, `Admissibility`, with exactly three
+optional per-scope constraint kinds. This set is closed — a profile may not extend it — which is
+what makes two conforming evaluators byte-identical over equal configuration:
 
-The admissibility rules are evaluated only over the supplied snapshot, profile declarations, and
-evaluation configuration. They perform no network access, credential refresh, or opaque callback.
-Missing or unaccepted required attribution on a relevant fact or evidence item is `Invalid`; the evaluator
-must not silently fall back to another candidate. Credential verification and construction of the
-attribution fields occur before `Eval`.
+| Constraint | Keyed by | Present: a candidate fails when | Absent |
+|---|---|---|---|
+| `allowedSources` | a left-operand's resolution path (`FactKey.path`) | `attribution.source` is outside the declared finite set of source IRIs | unrestricted — every source admitted |
+| `maxAge` | a left-operand's resolution path | `attribution.observedAt` is older than `evaluationTime - maxAge` (a `Duration`) | unrestricted — no freshness bound |
+| `evidenceSigners` | a Duty-evidence scope (the clause's `EvidenceSelector` shape) | `attribution.issuer` is outside the declared finite set of attestor/signer IRIs | unrestricted — every signer admitted |
+
+A scope absent from the record is unrestricted, not an error — there is no more "a profile required
+to declare a fact-admissibility predicate" obligation; admissibility is configuration-only data.
+`Admissibility` has a canonical JSON representation using the same conventions as the §5.1 canonical
+serialization (sorted keys). It is carried inside `EvaluationConfiguration` and therefore covered by
+the configuration echo/digest in `EvaluationResult` (`RL2_Compilation.md` §7): two evaluators given
+byte-equal configuration apply byte-equal admissibility.
+
+```text
+admitsFact(k, f, C)       = (k not in dom(C.admissibility.allowedSources)
+                                 or f.attribution.source in C.admissibility.allowedSources(k))
+                            and (k not in dom(C.admissibility.maxAge)
+                                 or f.attribution.observedAt >= W.evaluationTime - C.admissibility.maxAge(k))
+
+admitsEvidence(sel, e, C) = sel not in dom(C.admissibility.evidenceSigners)
+                                 or e.attribution.issuer in C.admissibility.evidenceSigners(sel)
+```
+
+**Filter semantics.** An item failing the filter is treated by resolution exactly as if absent —
+never a silent fallback to another candidate and never a distinct error kind. `resolveFact` (§4.2)
+filters `candidates` by `admitsFact` before the empty/type/conflict rules run: a key for which every
+candidate fails the filter is `Missing`, the ordinary attributed error for that operand, exactly like
+a key with no candidates at all. `selectEvidence` (§4.3) filters `raw` by `admitsEvidence` the same
+way: evidence filtered to empty is `Ok(empty)`, the same "not yet established" outcome as a selector
+that matched nothing. This keeps the filter inside the existing three-valued discipline and makes
+over-restrictive configuration visible in causes, rather than a hidden, unreported rejection.
 
 **Threat model (normative).** `WorldSnapshot` is the output of a single trusted assembler — the
-component, external to `Eval`, that gathers facts and evidence from underlying sources and
-constructs `W` before evaluation runs. `resolveFact`'s poisoning rule (`Invalid` if any candidate
-for a key is inadmissible, never a silent fallback to another candidate) is specified under this
-trust model: the assembler is assumed to have already applied any mixed-trust filtering — excluding,
-per key, facts from sources the deployment does not trust for that key — before `W` is constructed.
-`Eval` and `admissibleFact`/`admissibleEvidence` do not perform source-level trust arbitration; they
-check attribution fields (issuer, profile version, observation time, and similar) already present on
-the snapshot. A deployment that must combine facts from sources of differing trust levels is
-responsible for resolving or filtering that mixture in the assembler, before `Eval` sees the
-snapshot, not by relying on `resolveFact` to arbitrate between trusted and untrusted candidates for
-the same key at evaluation time.
+component, external to `Eval`, that gathers facts and evidence from underlying sources, performs the
+verification of the paragraph above, and constructs `W` before evaluation runs. `admitsFact` and
+`admitsEvidence` apply only the finite, configuration-declared filter above; they do not perform
+source-level trust arbitration or credential verification of their own. A deployment that must
+combine facts from sources of differing trust levels performs that combination — or excludes, per
+key, facts from sources the deployment does not trust for that key — in the assembler, before `Eval`
+sees the snapshot, not by relying on `resolveFact`/`selectEvidence` to arbitrate between trusted and
+untrusted candidates for the same key or scope at evaluation time.
+
+**Deferred.** The full per-operand data contract (value schema, cardinality, owner, provenance
+fields beyond `Attribution`, freshness semantics beyond `maxAge`, a trust-policy digest, and
+completeness scope) and a normative `RequiredInputs` companion are out of scope here; this section
+fixes only the admissibility record's shape and filter semantics (`backlog.md` §6).
 
 ### 4.5 Closed-world boundary
 
@@ -311,7 +348,9 @@ deployments and therefore must be explicit inputs, including:
 - the default decision (`defaultDecision : Permit | Deny | NotApplicable`, default `NotApplicable`),
   substituted for a resolved `NotApplicable` outcome only — never for `Indeterminate`;
 - the supported profile identifiers and versions;
-- one total finite evidence-admissibility rule, which may explicitly be `AllowAllEvidence`;
+- the finite `Admissibility` record (§4.4): `allowedSources` and `maxAge` per left-operand
+  resolution path, and `evidenceSigners` per Duty-evidence scope, each optional and unrestricted
+  when absent;
 - declared conformance bounds, including maximum policy-universe size, condition/path depth,
   collection size, fact count, and evidence count;
 - profile-defined interpretation parameters, where the profile permits them.
@@ -328,11 +367,15 @@ validateConfiguration(U, C) : finite set of EvalError =
     { Invalid(ConfigurationSite(field)) |
         field contains an unsupported Strategy,
         a profile/version required by a policy in U but unsupported by C,
-        a profile required by U without a total fact-admissibility predicate,
-        an absent or non-total evidence-admissibility rule,
+        a scope key in `C.admissibility` naming a constraint kind outside the closed
+            `allowedSources`/`maxAge`/`evidenceSigners` set (§4.4),
         a self-reference or cycle in the finite targetNorm status-dependency graph,
         or an absent/non-positive conformance bound }
 ```
+
+There is no longer a "profile declares a fact-admissibility predicate" or "absent/non-total
+evidence-admissibility rule" diagnostic: admissibility is optional, per-scope, configuration-only
+data (§4.4), and an absent scope is unrestricted, not a validation failure.
 
 The set is empty exactly when configuration is valid. There is no default strategy — unlike
 `strategy`, `defaultDecision` does have a stated default (`NotApplicable`), matching current
@@ -516,10 +559,10 @@ scheduling without changing core semantics.
   elapsed window. It is `Fulfilled` only after a finite window closes and the snapshot provides
   complete coverage establishing that the invariant held throughout. Without a window, it is
   `Active` when the invariant is true at the current snapshot and `Violated` when false.
-- An unknown applicability condition yields `IndeterminateStatus`. A missing, invalid,
-  inadmissible, ill-typed, or conflicting value that can change the content status
-  yields `IndeterminateStatus` with its causal errors. Missing qualifying action evidence alone
-  means “not yet fulfilled,” not an error.
+- An unknown applicability condition yields `IndeterminateStatus`. A missing, invalid, ill-typed,
+  or conflicting value that can change the content status yields `IndeterminateStatus` with its
+  causal errors — an admissibility-filtered value (§4.4) surfaces here as `Missing`, not as a
+  distinct kind. Missing qualifying action evidence alone means "not yet fulfilled," not an error.
 
 Promise status follows the proposed Duty's body. A promised action is fulfilled by qualifying
 action evidence and otherwise remains pending, since a Promise's own `dutyWindow` (if authored) is

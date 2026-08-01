@@ -107,6 +107,7 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
 | RDFC-1.0 source-RDF digests | Cross-party identity over raw RDF re-ingestion |
 | Violation-evidence vocabulary for the Remedies profile | Cross-party remedy interop |
 | Declarative operator DSL with a normative interpreter (machine-checkable profile-operator semantics, replacing prose denotations) | A profile requires machine-verified operator semantics (e.g. the Lean-verified evaluator track) |
+| Full per-operand data contract (value schema, cardinality, owner, provenance fields beyond `Attribution`, freshness semantics beyond `maxAge`, trust-policy digest, completeness scope) plus a normative, versioned `RequiredInputs` companion (F-13) | Cross-party snapshot exchange or a second independent assembler implementation |
 
 ## 7. Do not relitigate
 
@@ -163,3 +164,13 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   selection (e.g. tag-based, per port/asset) is the assembler's job, kept replayable via the
   informative `SelectedPolicyUniverse` manifest (`docs/RL2_ExternalData.md` §6), not a kernel
   concept.
+- F-13 (external-data admissibility language unpinned): trust verification (signatures, provenance
+  chains, trust anchors, connector authentication) is pre-`Eval`, performed by the trusted
+  assembler before `WorldSnapshot` exists; `Eval` never does cryptographic or chain-of-trust
+  verification. `EvaluationConfiguration` carries admissibility as a closed, finite three-kind
+  record (`allowedSources`, `maxAge` per left-operand resolution path; `evidenceSigners` per
+  Duty-evidence scope) — not a predicate language, not profile-extensible — with a canonical JSON
+  form covered by the configuration echo/digest in `EvaluationResult`. A fact or evidence item
+  failing the filter is treated exactly as absent, yielding the ordinary attributed `Missing`
+  (never a distinct error kind, never a silent skip). The full per-operand data contract and a
+  normative `RequiredInputs` companion stay deferred (§6).

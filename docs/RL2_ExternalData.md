@@ -61,12 +61,12 @@ RequiredInput = (
     key          : FactKey,                 -- scope + canonical path
     valueType    : ValueType,               -- declared via the operand's rl2:valueType
     cardinality  : SingleValued | SetValued,
-    trust        : profile's admissibleFact requirement, if any (issuer/source/profile/freshness)
+    trust        : the Admissibility record's allowedSources/maxAge entry for this path, if any
 )
 
 RequiredEvidence = (
     selector     : EvidenceSelector shape (actor/action-set/object/interval as declared by the clause),
-    trust        : configuration's admissibleEvidence requirement, if any
+    trust        : the Admissibility record's evidenceSigners entry for this scope, if any
 )
 
 RequiredInputs = (
@@ -94,10 +94,17 @@ evaluation time is ineligible. Storage order and arrival order have no semantic 
 
 ## 5. Provenance and Trust
 
-A required profile may declare a finite, pure fact-admissibility predicate. Evaluation
-configuration separately supplies one total evidence-admissibility rule, which may explicitly
-accept all Evidence. Cryptographic verification or source authentication happens before `Eval`;
-the evaluator consumes their attributed result.
+Trust verification is pre-`Eval`. Signature checking, provenance-chain validation, trust-anchor
+evaluation, and connector authentication all happen in the trusted assembler, before a
+`WorldSnapshot` exists; the snapshot it produces contains only already-admitted facts and
+evidence, each carrying its attribution (`source`, `observedAt`, `issuer`) as an ordinary immutable
+field. `Eval` never performs cryptographic or chain-of-trust verification of its own — the
+evaluator consumes the assembler's attributed result and checks only the finite, declarative
+`Admissibility` record (`RL2_Model.md` §4.4: `allowedSources` and `maxAge` per left-operand
+resolution path, `evidenceSigners` per Duty-evidence scope) that `EvaluationConfiguration` supplies.
+That record — not an open predicate language, and not a place for connector logic — is the only
+trust mechanism `Eval` itself applies; an item outside it is filtered exactly as if absent, never
+arbitrated.
 
 `RL2_Model.md` §4.4 states the threat model this rests on: `WorldSnapshot` is the output of a
 single trusted assembler, and mixed-trust filtering across sources happens there, before `Eval`

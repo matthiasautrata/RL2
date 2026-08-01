@@ -318,7 +318,7 @@ format for the same abstract values.
 |---|---|---|
 | `Request` | `RL2_Model.md` §3 | `parameters` as a canonical-JSON object keyed by name; `Numeric` parameter values as strings. |
 | `WorldSnapshot` | `RL2_Model.md` §4 | `facts` and `evidence` as canonical-JSON arrays in a fixed sort order (by `id`), so two structurally equal snapshots serialize identically. |
-| `EvaluationConfiguration` | `RL2_Model.md` §5 | Declared conformance bounds and supported-profile versions as explicit fields, not an open map — an unrecognized configuration field is a schema validation failure, not silently ignored input. |
+| `EvaluationConfiguration` | `RL2_Model.md` §5 | Declared conformance bounds and supported-profile versions as explicit fields, not an open map — an unrecognized configuration field is a schema validation failure, not silently ignored input. Its `admissibility` field serializes the closed, three-kind `Admissibility` record (`RL2_Model.md` §4.4: `allowedSources` and `maxAge` per left-operand resolution path, `evidenceSigners` per Duty-evidence scope) under the same canonical-JSON conventions as this document's §5.1 (sorted keys) — not an open predicate language. |
 | `EvaluationResult` | `RL2_Model.md` §6 | Replay-anchoring fields added at the interchange layer, listed below. These fields are additive to the abstract `EvaluationResult` value; they do not change its meaning, only what a caller retains alongside it. |
 
 **`EvaluationResult` as a replay-anchored audit record.** The interchange schema carries, in
@@ -329,7 +329,10 @@ addition to `decision`, `normativeEnvelope`, `dutyStatuses`, `promiseStatuses`, 
 - the compiled module's digest (§5.1);
 - the `WorldSnapshot`'s canonical digest (computed the same way, over its interchange serialization);
 - `evaluationTime` (echoed, not re-derived, from the snapshot used);
-- an echo of the `EvaluationConfiguration` actually applied.
+- an echo of the `EvaluationConfiguration` actually applied, including its `admissibility` record
+  (`RL2_Model.md` §4.4) in the same canonical JSON — two evaluators given byte-equal configuration
+  are therefore byte-comparable on the admissibility filter that was applied, not only on the rest
+  of the configuration.
 
 Every field is chosen so that a result is independently re-derivable from retained artifacts alone
 — the compiled module (by digest), the snapshot (by digest), and the configuration — without
@@ -388,9 +391,9 @@ Every constructor is assigned to exactly one side of the soundness theorem:
 | `Path` | Policy | Path syntax and root admissibility (`InvalidResolutionPath`) are checked by the `type` stage; a compiled module's paths are structurally admissible before evaluation. |
 | `ConfigurationSite(String)` — the status-dependency-cycle case | Policy | A self-reference or cycle in the `targetNorm` status-dependency graph is now rejected by the compiler's `cycle` stage (`StatusDependencyCycle`, §2.2); a successfully compiled module contains no such cycle, so `Eval` cannot encounter it. |
 | `SnapshotSite(String)` | Data | Depends on the `WorldSnapshot` supplied to a particular evaluation — missing, invalid, or conflicting facts are properties of runtime input `compile` never inspects. |
-| `EvidenceSelector` | Data | Depends on `WorldSnapshot.evidence` and the configured `admissibleEvidence` rule, both runtime inputs. |
+| `EvidenceSelector` | Data | Depends on `WorldSnapshot.evidence` and the configuration's `Admissibility` record (`evidenceSigners`, `RL2_Model.md` §4.4), both runtime inputs. |
 | `StatusSite(StateTarget)` | Data | Duty/Promise status depends on snapshot facts and evidence at evaluation time, not on module structure. |
-| `ConfigurationSite(String)` — every other case (unsupported strategy, an unsupported or missing profile/version, an absent or non-total fact- or evidence-admissibility rule, an absent or non-positive conformance bound) | Data | These describe `EvaluationConfiguration`, a runtime input independent of the compiled module; `compile` validates its own `CompileConfiguration` (§1) but does not — and cannot — foresee the `EvaluationConfiguration` a later, separate evaluation call will supply. |
+| `ConfigurationSite(String)` — every other case (unsupported strategy, an unsupported or missing profile/version, a malformed `Admissibility` record — an absent record or scope is unrestricted, never an error — an absent or non-positive conformance bound) | Data | These describe `EvaluationConfiguration`, a runtime input independent of the compiled module; `compile` validates its own `CompileConfiguration` (§1) but does not — and cannot — foresee the `EvaluationConfiguration` a later, separate evaluation call will supply. |
 
 `ConfigurationSite` is therefore the one constructor whose instances split across the partition,
 because it names two different objects in the current design: a compile-time configuration

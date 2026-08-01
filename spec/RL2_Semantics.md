@@ -713,12 +713,15 @@ deref(path, op, Env) =
                                       Env.Snapshot, Env.Configuration)
 ```
 
-`resolveFact` and its `admissibleFact` admissibility check are defined in `RL2_Model.md` §4.2/§4.4,
+`resolveFact` and its `admitsFact` admissibility filter are defined in `RL2_Model.md` §4.2/§4.4,
 along with the normative threat model they operate under: `WorldSnapshot` is the output of a single
-trusted assembler, `resolveFact`'s strict poisoning rule (`Invalid` on any inadmissible candidate,
-never a silent fallback) is specified under that trust model, and mixed-trust filtering across
-sources is the assembler's responsibility before the snapshot is constructed — `Eval` performs no
-source-level trust arbitration of its own.
+trusted assembler, and mixed-trust filtering across sources is the assembler's responsibility
+before the snapshot is constructed — `Eval` performs no source-level trust arbitration of its own.
+Filtering happens during `resolveFact`'s candidate-set construction, not as a separate poisoning
+step: a fact whose attribution fails the configuration's finite `Admissibility` record (§4.4) is
+excluded from the candidate set exactly as if it were absent, so a key for which every candidate is
+filtered out yields the same attributed `Missing` as a key with no candidates at all — never a
+distinct error kind and never a silent fallback to another candidate.
 
 `requestField(None,_,path)` returns `Invalid({ site: Path(path), target: None })`; a request path therefore cannot
 silently read a Duty or Promise status environment.
@@ -867,7 +870,12 @@ achievementStatus(d, rw, U, W, C) =
 ```
 
 No matching action evidence is `Ok(∅)`, not `Missing`: it means the Achievement has not yet been
-fulfilled. Relevant malformed, inadmissible, or conflicting evidence remains an error.
+fulfilled. Evidence excluded by the configuration's admissibility record (`RL2_Model.md` §4.4) is
+absent from the candidate set in exactly the same way — a definite status, never an error. In core,
+`selectEvidence` never returns `Err`: the snapshot interchange schema excludes malformed evidence
+before `Eval`, and the admissibility record filters rather than errors. The `Err` branch here (and
+in `promiseStatus`) is retained for `EvalValue` type totality and for any future evidence-side
+error source a revision may introduce, not for present reachability.
 
 For a windowed Maintenance Duty, `elapsed(rw,now)` is the set of instants inside its resolved
 window no later than `now`:
