@@ -365,20 +365,21 @@ observable result for the complete evaluation input.
 
 ### 7.1 Canonical Duty forms
 
-A Duty node denotes one obligation occurrence and has exactly one of two content forms:
+A Duty node denotes one obligation occurrence and has exactly one of two body forms:
 
 ```text
-AchievementDuty(subject, counterparty?, action, object, condition?, postCondition?, dutyWindow?)
-MaintenanceDuty(subject, counterparty?, invariant, object, condition?, dutyWindow?)
+Duty(subject, counterparty?, object, condition?, dutyWindow?, body)
+DutyBody ::= Achieve(action, postCondition?) | Maintain(invariant)
 ```
 
 `condition` is always an applicability guard. It is never reused as satisfaction content or as a
 deadline. Before the guard is true, the Duty is `Pending`; unknown guard data makes its status
-indeterminate. An Achievement Duty is satisfied by qualifying evidence that its `action` occurred;
+indeterminate. An `Achieve` body is satisfied by qualifying evidence that its `action` occurred;
 when `postCondition` is present, that condition must also hold at the witness occurrence time. A
-Maintenance Duty has no action: its `invariant` must hold throughout the elapsed part of its
-window. Without a window it is an ongoing requirement assessed at the current snapshot. The
-content form determines the interpretation; canonical RDF has no separate mode field.
+`Maintain` body has no action: its `invariant` must hold throughout the elapsed part of the Duty's
+window. Without a window it is an ongoing requirement assessed at the current snapshot. The body
+form determines the interpretation; canonical RDF has no separate mode field — `rl2:action` and
+`rl2:invariant` project one-to-one to `Achieve` and `Maintain`.
 
 A `DutyWindow` is one finite half-open interval:
 
@@ -437,12 +438,13 @@ scheduling without changing core semantics.
   yields `IndeterminateStatus` with its causal errors. Missing qualifying action evidence alone
   means “not yet fulfilled,” not an error.
 
-Promise status follows its content. A promised action is fulfilled by qualifying action evidence
-and otherwise remains pending because a Promise has no `dutyWindow`. A promised state is assessed
+Promise status follows the proposed Duty's body. A promised action is fulfilled by qualifying
+action evidence and otherwise remains pending, since a Promise's own `dutyWindow` (if authored) is
+carried to the materialized Duty and is not consulted pre-acceptance. A promised state is assessed
 from its condition at the evaluation snapshot. Acceptance may crystallize a Promise into a bounded
 Duty; that pure transformation is specified in the next section. Promise status is re-derived for
-every snapshot and is not a persistent terminal state. Only a crystallized Maintenance Duty with
-a finite window can represent a completed maintenance period.
+every snapshot, never yields `Active`, and is not a persistent terminal state. Only a crystallized
+Maintenance Duty with a finite window can represent a completed maintenance period.
 
 ## 8. Policy Transformation
 
@@ -464,19 +466,20 @@ Identity allocation is explicit input: `materialize` never calls an unspecified 
 operation. `MaterializationResult` is either one complete Agreement plus its source-clause map or
 a non-empty canonical set of attributed errors; no partial Agreement is returned.
 
-Promises of actions crystallize into Achievement Duties. Promises of states crystallize into
-Maintenance Duties. Each generated Duty names the promisor as subject and the promisee as
-counterparty. The counterparty identifies the beneficiary of the Duty; no separate Claim node is
-generated.
+A Promise is structurally a proposed Duty, so crystallization is an unwrap-and-rebind: the
+generated Duty reuses the proposed Duty's subject, condition, and body directly, with the Promise's
+required counterparty (the promisee) retained as the Duty's counterparty and the object bound from
+the Promise's authored value or, when absent, from the Acceptance's object binding. No separate
+Claim node is generated.
 
 All policy-local Norms receive Agreement-local identifiers while retaining top-level or attached
 placement. Policy-local Norms are exactly top-level Norm clauses plus prerequisite Duties attached
 to top-level Privileges; other Norm-valued properties are references rather than ownership.
 References to local terms are rewritten through the source map; external Norm references are
-unchanged. A Promise-valued target must name a sibling Promise clause in the same Offer. A
-Promise-state query is rewritten to the crystallized Duty's
-status query; other Promise-valued queries are rejected because no Promise survives in an
-Agreement. A supplied Duty window must be a valid finite half-open interval.
+unchanged. A Promise-valued target must name a sibling Promise clause in the same Offer. Its
+`obligationStateOperand` query is unchanged by materialization; only the `targetNorm` rebinds from
+the Promise to its crystallized Duty. A supplied Duty window must be a valid finite half-open
+interval.
 
 An Offer-level `condition` is the proposed Agreement applicability guard, not an offer-validity or
 acceptance-authorization test. The output copies that condition and semantic metadata and records

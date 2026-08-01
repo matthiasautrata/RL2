@@ -50,17 +50,21 @@ We define RL2 expressions as:
 Norm ::=
     Privilege(Agent, Action, Asset, Condition,
               prerequisiteDuties: finite set of Duty)
-  | AchievementDuty(Agent subject, Agent? counterparty, Action, Asset, Condition,
-                    postCondition: Condition?, dutyWindow: DutyWindow?)
-  | MaintenanceDuty(Agent subject, Agent? counterparty, Asset, Condition,
-                    invariant: Condition, dutyWindow: DutyWindow?)
+  | Duty(Agent subject, Agent? counterparty, Asset, Condition,
+         dutyWindow: DutyWindow?, body: DutyBody)
   | Prohibition(Agent, Action, Asset, Condition)
+
+DutyBody ::=
+    Achieve(Action, postCondition: Condition?)
+  | Maintain(invariant: Condition)
 ```
 
-`Condition` in both Duty forms is the ordinary applicability guard. Duty satisfaction is
-structural: an Achievement Duty requires action evidence and may additionally require a
-`postCondition`; a Maintenance Duty requires its `invariant` throughout its `dutyWindow` and has
-no action. The two forms are mutually exclusive in canonical RDF; no separate mode field exists.
+`Condition` on a `Duty` is the ordinary applicability guard. Duty satisfaction is structural and
+determined by which `DutyBody` form is present: `Achieve` requires action evidence and may
+additionally require a `postCondition`; `Maintain` requires its `invariant` throughout the Duty's
+`dutyWindow` and admits no action. The canonical RDF projection maps `rl2:action` to `Achieve` and
+`rl2:invariant` to `Maintain`; the two forms are mutually exclusive in canonical RDF, and no
+separate mode field exists — `Duty.body` is the single formal locus of that structural dispatch.
 
 `Privilege.prerequisiteDuties` is projected from zero or more `rl2:prerequisiteDuty` values.
 The set is conjunctive: every applicable member must be Fulfilled before the Privilege can
@@ -78,15 +82,14 @@ interval with omitted endpoints.
 #### Promises
 
 ```
-Promise ::= Promise(Agent promisor, Agent promisee, Asset? object, PromiseContent)
-
-PromiseContent ::=
-    PromisedAction(Action)          -- action commitment; object is Promise.object
-  | PromisedState(Condition)        -- state commitment; from rl2:promisedState
+Promise ::= Promise(proposed : Duty)
 ```
 
-`PromiseContent` maps one-to-one to `rl2:promisedAction` and `rl2:promisedState`. A well-formed
-Promise carries exactly one.
+A Promise is structurally a proposed Duty: `promisor(p) ≡ p.proposed.subject` and
+`promisee(p) ≡ p.proposed.counterparty`. Unlike on a Duty, a Promise's `counterparty` is
+required — a Promise always names its promisee. A Promise's `object` may be absent, left for
+Acceptance to bind when the Offer is materialized; its `condition` and `dutyWindow`, if present,
+are carried unevaluated to the materialized Duty (see Materialization below).
 
 #### Conditions
 
@@ -104,15 +107,15 @@ Condition ::=
 Notes:
 - `And`, `Or`, and `Xone` take at least two conditions, matching
   `AndOrXoneOperandCardinalityShape`
-- `leftOperand` is drawn from profile-defined operands; core defines `currentDateTime`,
-  `obligationStateOperand`, and `promiseStateOperand`
+- `leftOperand` is drawn from profile-defined operands; core defines `currentDateTime` and
+  `obligationStateOperand`
 - Time-based conditions use `AtomicConstraint` with `leftOperand = currentDateTime` (e.g., `currentDateTime lte deadline`)
 - Dynamic value resolution on the left side uses `LeftOperand` with `resolutionPath`
 - Dynamic value resolution on the right side uses `RuntimeReference` (e.g., `currentAgent`)
 - Set comparisons use one inline `ValueSet`; asset collections are not value sets
 - The stable RDF property `rl2:targetNorm` is interpreted as the tagged `StateTarget` defined
-  below, preserving whether it references a Duty or a Promise. It is required for the two status
-  operands and forbidden for every other left operand.
+  below, preserving whether it references a Duty or a Promise. It is required for
+  `obligationStateOperand` and forbidden for every other left operand.
 
 #### Policies
 
@@ -178,7 +181,7 @@ We use:
 ### Types
 
 ```
-τ ::= Agent | Action | Asset | Condition | Time | Boolean | Norm | Promise | DutyWindow
+τ ::= Agent | Action | Asset | Condition | Time | Boolean | Norm | Promise | DutyWindow | DutyBody
     | WorldSnapshot | EvaluationConfiguration | EvaluationResult
 ```
 
@@ -196,15 +199,22 @@ Privilege:
 Duty:
 
 ```
-Γ ⊢ a : Agent     Γ ⊢ b : Agent?      Γ ⊢ x : Action     Γ ⊢ s : Asset
-Γ ⊢ c : Condition Γ ⊢ pc : Condition? Γ ⊢ w : DutyWindow?
+Γ ⊢ a : Agent     Γ ⊢ b : Agent?     Γ ⊢ s : Asset
+Γ ⊢ c : Condition Γ ⊢ w : DutyWindow?  Γ ⊢ body : DutyBody
 --------------------------------------------------------------------------------
-        Γ ⊢ AchievementDuty(a, b, x, s, c, pc, w) : Norm
+        Γ ⊢ Duty(a, b, s, c, w, body) : Norm
+```
 
-Γ ⊢ a : Agent     Γ ⊢ b : Agent?      Γ ⊢ s : Asset      Γ ⊢ c : Condition
-Γ ⊢ i : Condition Γ ⊢ w : DutyWindow?
---------------------------------------------------------------------------
-        Γ ⊢ MaintenanceDuty(a, b, s, c, i, w) : Norm
+DutyBody formation:
+
+```
+Γ ⊢ x : Action     Γ ⊢ pc : Condition?
+--------------------------------------------------------------------------------
+        Γ ⊢ Achieve(x, pc) : DutyBody
+
+Γ ⊢ i : Condition
+--------------------------------------------------------------------------------
+        Γ ⊢ Maintain(i) : DutyBody
 ```
 
 Prohibition:
@@ -219,10 +229,14 @@ Prohibition:
 Promise:
 
 ```
-Γ ⊢ p : Agent   Γ ⊢ q : Agent   Γ ⊢ s : Asset?   Γ ⊢ content : PromiseContent
+Γ ⊢ d : Duty
 --------------------------------------------------------------------------------
-       Γ ⊢ Promise(p, q, s?, content) : Promise
+       Γ ⊢ Promise(d) : Promise
 ```
+
+A Promise's `proposed` Duty carries a required `counterparty` and an optional `object`, the
+reverse of the Duty typing rule's own cardinalities; this is the one documented exception, noted
+here rather than by introducing a separate proposed-Duty type.
 
 Condition types follow typical logical typing rules.
 
@@ -520,19 +534,14 @@ failure(kind, site, target, note) =
 
 resolve(op, Env, targetNorm) =
     case op of
-        -- Core derived-status operands
+        -- Core derived-status operand
         obligationStateOperand →
             case targetNorm of
                 Some(NormTarget(d : Duty)) →
                     resolveDutyStatus(d, Env.Universe, Env.Snapshot, Env.Configuration)
-                None → failure(Missing, op, None, "obligationStateOperand requires a targetNorm")
-                _    → failure(Invalid, op, targetNorm, "obligationStateOperand requires a Duty target")
-        promiseStateOperand →
-            case targetNorm of
                 Some(PromiseTarget(p)) →
                     resolvePromiseStatus(p, Env.Universe, Env.Snapshot, Env.Configuration)
-                None → failure(Missing, op, None, "promiseStateOperand requires a targetNorm")
-                _    → failure(Invalid, op, targetNorm, "promiseStateOperand requires a Promise target")
+                None → failure(Missing, op, None, "obligationStateOperand requires a targetNorm")
         -- Profile-declared snapshot operands
         _ | op.resolutionPath ≠ ⊥ →
             deref(op.resolutionPath, op, Env)
@@ -541,12 +550,11 @@ resolve(op, Env, targetNorm) =
 ```
 
 Where:
-* `obligationStateOperand` accepts `NormTarget(d : Duty)` and queries the derived Duty status
-* `promiseStateOperand` accepts `PromiseTarget(p)` and queries the derived Promise status
+* `obligationStateOperand` accepts either `NormTarget(d : Duty)`, querying the derived Duty
+  status, or `PromiseTarget(p)`, querying the derived status of an Offer-local Promise
 * `op.resolutionPath` — path expression declared on the operand via `rl2:resolutionPath`
 * `Err(Missing(key),note)` indicates the operand could not be resolved — never fatal,
-  always lifted to `Unknown` at the condition level; a present target of the wrong variant is
-  `Err(Invalid(key),note)` instead
+  always lifted to `Unknown` at the condition level
 
 All policy-visible contextual data uses declared `rl2:LeftOperand` instances. Core status
 operands use the fixed branches above, `currentDateTime` uses its fixed `state.Clock` path, and
@@ -560,8 +568,8 @@ profile operands use explicit snapshot paths. This provides:
 RL2 Core defines the following left operand instances:
 
 * `currentDateTime` → `WorldSnapshot.evaluationTime`
-* `obligationStateOperand` → derived Duty status (requires a Duty-valued `targetNorm`)
-* `promiseStateOperand` → derived Promise status (requires a Promise-valued `targetNorm`)
+* `obligationStateOperand` → derived Duty status, or the derived status of an Offer-local
+  Promise, depending on whether `targetNorm` is `NormTarget` or `PromiseTarget`
 
 Profiles define domain-specific left operands with resolution paths, such as:
 * `purpose` → `rl2:resolutionPath "context.purpose"`
@@ -715,10 +723,10 @@ time; later unrelated state cannot retroactively make an action successful:
 
 ```
 achievementCandidates(d, U, W, C) =
-    selectEvidence(actionSelector(d.subject, d.action, d.object, d.window, U), W, C)
+    selectEvidence(actionSelector(d.subject, d.body.action, d.object, d.window, U), W, C)
 
 qualifies(d, e, U, W, C) =
-    case d.postCondition of
+    case d.body.postCondition of
         None     → { truth: True, causes: ∅ }
         Some(pc) → evalAt(pc, e.occurredAt, U, d.subject, Some(d.object), W, C)
 ```
@@ -773,11 +781,11 @@ and therefore yields `Unknown`.
 maintenanceStatus(d, U, W, C) =
     if before(d, W.evaluationTime) then Known(Pending)
     else if d.window = None then
-        case evalAt(d.invariant,W.evaluationTime,U,d.subject,Some(d.object),W,C) of
+        case evalAt(d.body.invariant,W.evaluationTime,U,d.subject,Some(d.object),W,C) of
             { truth: True, _ }       → Known(Active)
             { truth: False, _ }      → Known(Violated)
             { truth: Unknown, causes } → IndeterminateStatus(causes)
-    else let r = throughout(d.invariant, d, U, W, C) in
+    else let r = throughout(d.body.invariant, d, U, W, C) in
             if r.truth = False then Known(Violated)
             else if r.truth = Unknown then IndeterminateStatus(r.causes)
             else if closed(d, W.evaluationTime) then Known(Fulfilled)
@@ -793,9 +801,9 @@ dutyStatus(d, U, W, C) =
     else case dutyApplicabilityResult(d,U,W,C) of
         { truth: False, _ }          → Known(Pending)
         { truth: Unknown, causes }   → IndeterminateStatus(causes)
-        { truth: True, _ } → case d of
-            AchievementDuty(_) → achievementStatus(d,U,W,C)
-            MaintenanceDuty(_) → maintenanceStatus(d,U,W,C)
+        { truth: True, _ } → case d.body of
+            Achieve(_) → achievementStatus(d,U,W,C)
+            Maintain(_) → maintenanceStatus(d,U,W,C)
 ```
 
 A false applicability guard therefore denotes a Duty that is not currently required and remains
@@ -808,13 +816,16 @@ the invariant is true now, Violated when false now, and cannot be Fulfilled. It 
 about an interval with an unspecified start. For a windowed Maintenance Duty, complete coverage
 is required; merely observing the invariant as true at `evaluationTime` is insufficient.
 
-Promise status is derived without a Promise state machine:
+Promise status is derived without a Promise state machine, evaluated over `pr.proposed`, the
+Promise's proposed Duty:
 
 ```
 promiseStatus(pr, U, W, C) =
-    let Promise(p,q,s?,content) = pr in
-    case content of
-        PromisedAction(x) →
+    let d = pr.proposed in
+    let p = d.subject in
+    let s? = d.object in
+    case d.body of
+        Achieve(x, _) →
             case s? of
                 None → IndeterminateStatus({
                     Missing({ site: StatusSite(PromiseTarget(pr)),
@@ -824,7 +835,7 @@ promiseStatus(pr, U, W, C) =
                     Ok(∅)     → Known(Pending)
                     Ok(_)     → Known(Fulfilled)
 
-        PromisedState(c) →
+        Maintain(c) →
             case ⟦c⟧(mkStatusEnv(U,p,s?,W,C)) of
                 { truth: True,  _ }      → Known(Fulfilled)
                 { truth: False, _ }      → Known(Violated)
@@ -833,10 +844,14 @@ promiseStatus(pr, U, W, C) =
 ```
 
 `mkStatusEnv` admits `agent.*`, `asset.*`, `state.*`, `context.*`, and `global.*`, binding agent and
-asset to the Promise content rather than an access Request. A status condition that uses
+asset to the proposed Duty's content rather than an access Request. A status condition that uses
 `request.*` is invalid because status derivation has no access Request.
-`PromisedAction` has no Duty window: it may be fulfilled by evidence but does not become Violated
-solely through elapsed time. Acceptance can crystallize it into a bounded Duty.
+An `Achieve` Promise body has no Duty window applied pre-acceptance: it may be fulfilled by
+evidence but does not become Violated solely through elapsed time. Acceptance can crystallize it
+into a bounded Duty. `promiseStatus` never yields `Active` — that status distinguishes Duties in
+force from Promises, which are not yet operative. The proposed Duty's own `condition` and
+`dutyWindow`, if present, are carried unevaluated to the materialized Duty and are not consulted by
+`promiseStatus` prior to acceptance.
 
 Status dependencies induced by `targetNorm` must be acyclic. Canonical projection rejects a
 self-reference or cycle with `Invalid(ConfigurationSite("statusDependency"))`; memoized structural
@@ -940,13 +955,13 @@ subjectMatches(a, requested, Env) =
 objectMatches(s, requested, U) =
     s = requested ∨ requested ∈ members(s,U)
 
-actionMatches(AchievementDuty(_,_,x,_,_,_,_), requested, U) =
+actionMatches(Duty(_,_,_,_,_,Achieve(x,_)), requested, U) =
     x = requested ∨ includedInAction(requested,x,U)
 actionMatches(Privilege(_,x,_,_,_), requested, U) =
     x = requested ∨ includedInAction(requested,x,U)
 actionMatches(Prohibition(_,x,_,_), requested, U) =
     x = requested ∨ includedInAction(requested,x,U)
-actionMatches(MaintenanceDuty(_), _, _) = true
+actionMatches(Duty(_,_,_,_,_,Maintain(_)), _, _) = true
 ```
 
 Where:
@@ -1090,7 +1105,7 @@ shapes. The input is valid only when:
 A failure of item 6 yields `InvalidDutyWindow(ref(p))`; a failure of item 7 yields
 `InvalidOffer(site, NonLocalPromiseTarget)`. `StatusDependencyCycle` reports a cycle already
 present in the Offer's status-dependency graph: injective renaming and the typed Promise-to-Duty
-operand rewrite cannot create one.
+target rebinding cannot create one.
 
 Materialization-error identity is the constructor plus its typed fields; explanatory prose is not
 part of identity. Errors are enumerated by constructor, site, and referenced identifier, so
@@ -1101,36 +1116,29 @@ are still collected.
 
 ### Crystallization
 
-For a Promise `p = Promise(promisor, promisee, object?, content)`, let `s` be its authored object
-or accepted object binding, and let `w` be its accepted Duty window if one exists:
+Crystallization is an unwrap-and-rebind of the Promise's proposed Duty, not a re-derivation from
+separate promisor/promisee/content fields. For a Promise `p = Promise(d)`, let `s` be `d`'s
+authored object or accepted object binding, and let `w` be `d`'s authored or accepted Duty window,
+if one exists:
 
 ```text
 crystallize(p,A) =
-    case p.content of
-        PromisedAction(x) →
-            AchievementDuty(subject = p.promisor,
-                            counterparty = Some(p.promisee),
-                            action = x,
-                            object = s,
-                            condition = True,
-                            postCondition = None,
-                            dutyWindow = w)
-
-        PromisedState(i) →
-            MaintenanceDuty(subject = p.promisor,
-                            counterparty = Some(p.promisee),
-                            object = s,
-                            condition = True,
-                            invariant = i,
-                            dutyWindow = w)
-
+    let d = p.proposed in
+    Duty(subject      = d.subject,
+         counterparty = Some(d.counterparty),
+         object       = s,
+         condition    = d.condition,
+         dutyWindow   = w,
+         body         = d.body)
 ```
 
-The Duty identifier is `A.primaryIds[ref(p)]`. The Promise beneficiary is retained as the Duty's
-`counterparty`; no additional norm is generated.
+The Duty identifier is `A.primaryIds[ref(p)]`. The proposed Duty's `counterparty` (the Promise's
+promisee) is retained on the materialized Duty; no additional norm is generated. The proposed
+Duty's `condition` and `dutyWindow`, authored on the Promise and not evaluated pre-acceptance, are
+carried through unchanged unless `A.dutyWindows` supplies a window binding.
 
-A `PromisedAction` without an accepted window creates an unbounded Achievement Duty, which can
-remain Pending. A `PromisedState` without a window creates an ongoing Maintenance Duty, which can
+An `Achieve` body without an accepted window creates an unbounded Achievement Duty, which can
+remain Pending. A `Maintain` body without a window creates an ongoing Maintenance Duty, which can
 be Active or Violated but cannot become Fulfilled. A finite accepted window gives the resulting
 Duty the status boundaries defined in §Declarative Duty and Promise status.
 
@@ -1148,14 +1156,15 @@ rewriteRef(r) =
 
 rewriteAtomic(a) =
     if a.targetNorm = PromiseTarget(p) then
-        a[targetNorm  ↦ NormTarget(sourceMap(p)),
-          leftOperand ↦ obligationStateOperand]
+        a[targetNorm ↦ NormTarget(sourceMap(p))]
     else a[targetNorm ↦ rewriteRef(a.targetNorm)]
 ```
 
 `rewriteRef` applies to `prerequisiteDuty` and Norm-valued `targetNorm`. A Promise-valued
-`targetNorm` necessarily uses `promiseStateOperand` by the canonical syntax and has the rewrite
-shown above. Conditions without `targetNorm` are copied structurally.
+`targetNorm` already uses `obligationStateOperand` — the same operand as a Duty-valued
+`targetNorm` — so crystallization only rebinds the target from `PromiseTarget(p)` to
+`NormTarget(sourceMap(p))`; the `leftOperand` is unchanged. Conditions without `targetNorm` are
+copied structurally.
 
 The result is:
 

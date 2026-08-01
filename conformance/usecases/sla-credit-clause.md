@@ -8,8 +8,10 @@ Duty is violated.
 
 ## Why it matters
 
-Materialization is pure: it creates an Agreement value and reads no snapshot. Status-dependent
-terms are rewritten to target the generated Duty.
+Materialization is pure: it creates an Agreement value and reads no snapshot. The Promise is
+structurally a proposed Duty, so crystallization unwraps and rebinds it rather than re-deriving a
+Duty from separate fields. Status-dependent terms use `obligationStateOperand` both before and
+after acceptance; only the `targetNorm` rebinds, from the Promise to the generated Duty.
 
 ## Source Offer
 
@@ -34,9 +36,9 @@ ex:uptimeMeetsTarget a rl2:AtomicConstraint ;
     rl2:rightOperand "99.9"^^xsd:decimal .
 
 ex:uptimePromise a rl2:Promise ;
-    rl2:promisor ex:Provider ;
-    rl2:promisee ex:Customer ;
-    rl2:promisedState ex:uptimeMeetsTarget ;
+    rl2:subject ex:Provider ;
+    rl2:counterparty ex:Customer ;
+    rl2:invariant ex:uptimeMeetsTarget ;
     rl2:object ex:Service .
 
 ex:creditDuty a rl2:Duty ;
@@ -47,7 +49,7 @@ ex:creditDuty a rl2:Duty ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:uptimePromise ;
-        rl2:leftOperand rl2:promiseStateOperand ;
+        rl2:leftOperand rl2:obligationStateOperand ;
         rl2:constraintOperator rl2:eq ;
         rl2:rightOperandRef rl2:Violated
     ] .

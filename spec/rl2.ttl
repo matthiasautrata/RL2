@@ -65,38 +65,16 @@ rl2:Promise a owl:Class ;
     rdfs:subClassOf rl2:Clause ;
     rdfs:label "Promise" ;
     owl:disjointWith rl2:Norm ;
-    rdfs:comment """A proposed commitment from a promisor to a promisee. A Promise occurs
-    in an Offer and becomes a Duty when that Offer is accepted.""" .
-
-rl2:promisor a owl:ObjectProperty ;
-    rdfs:domain rl2:Promise ;
-    rdfs:range rl2:Agent ;
-    rdfs:comment "Agent making the promise." .
-
-rl2:promisee a owl:ObjectProperty ;
-    rdfs:domain rl2:Promise ;
-    rdfs:range rl2:Agent ;
-    rdfs:comment "Agent receiving the benefit of the promise." .
-
-# Promise content uses exactly one property with one defined interpretation.
-
-rl2:promisedAction a owl:ObjectProperty ;
-    rdfs:domain rl2:Promise ;
-    rdfs:range rl2:Action ;
-    rdfs:label "Promised Action" ;
-    rdfs:comment """Action commitment: the promisor commits to performing this action on the
-    authored or acceptance-bound rl2:object. Fulfilled when the promisor has performed it
-    (subsumption-aware, per the evidence selector in RL2_Semantics). On acceptance it
-    crystallizes to an Achievement Duty.""" .
-
-rl2:promisedState a owl:ObjectProperty ;
-    rdfs:domain rl2:Promise ;
-    rdfs:range rl2:Condition ;
-    rdfs:label "Promised State" ;
-    rdfs:comment """State commitment: the promisor commits to a state of affairs holding.
-    Its snapshot-derived status follows the state condition. On
-    acceptance it crystallizes to a Maintenance Duty whose rl2:invariant is this
-    condition; the accepted Duty's rl2:dutyWindow sets any warranty period.""" .
+    rdfs:comment """A Promise is a proposed Duty: it carries Duty-shaped content (rl2:subject as
+    the promisor, rl2:counterparty as the promisee, rl2:object, exactly one of rl2:action or
+    rl2:invariant, an optional rl2:condition, and an optional rl2:dutyWindow) but occurs only in
+    an Offer and is not itself operative. An action commitment (rl2:action) is fulfilled when the
+    promisor has performed the action (subsumption-aware, per the evidence selector in
+    RL2_Semantics) and crystallizes to an Achievement Duty on acceptance. A state commitment
+    (rl2:invariant) has its snapshot-derived status follow that condition and crystallizes to a
+    Maintenance Duty on acceptance, with the accepted Duty's rl2:dutyWindow setting any warranty
+    period. Unlike on a Duty, a Promise's rl2:counterparty is required and its rl2:object is
+    optional (it may be left for Acceptance to bind).""" .
 
 ############################################################
 # 3. Agents and Roles
@@ -108,14 +86,14 @@ rl2:Agent a owl:Class ;
 
 # Normative roles (core semantic roles)
 rl2:subject a owl:ObjectProperty ;
-    rdfs:domain rl2:Norm ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
     rdfs:range rl2:Agent ;
-    rdfs:comment "The agent bearing the normative status." .
+    rdfs:comment "The agent bearing the normative status; on a Promise, the promisor." .
 
 rl2:counterparty a owl:ObjectProperty ;
-    rdfs:domain rl2:Duty ;
+    rdfs:domain [ owl:unionOf (rl2:Duty rl2:Promise) ] ;
     rdfs:range rl2:Agent ;
-    rdfs:comment "The beneficiary or other agent to whom a Duty is owed." .
+    rdfs:comment "The beneficiary or other agent to whom a Duty is owed; on a Promise, the promisee." .
 
 # Functional (syntactic) roles
 rl2:grantor a owl:ObjectProperty ;
@@ -185,35 +163,26 @@ rl2:targetNorm a owl:ObjectProperty ;
     rdfs:domain rl2:AtomicConstraint ;
     rdfs:label "Target Norm" ;
     rdfs:comment """Specifies the norm (or, pre-acceptance inside an Offer, the promise)
-    whose derived status is being queried. It is used with rl2:obligationStateOperand for a Duty
-    or rl2:promiseStateOperand for an Offer-local Promise. When present,
+    whose derived status is being queried, always via rl2:obligationStateOperand. When present,
     resolve(leftOperand) evaluates this specific norm or promise.
     An Offer-stage clause may target a sibling Promise before it has crystallized. The
     targeted Promise and the condition containing this reference MUST belong to the same
     Offer; cross-policy Promise references are invalid.
     On Agreement formation, materialize() (RL2_Semantics.md
-    §Pure Offer Acceptance) rewrites a core promiseStateOperand query to the crystallized
-    Duty and obligationStateOperand. An Agreement's targetNorm usage is therefore
-    Norm-valued; no Promise survives materialization. SHACL validates the target type.""" .
+    §Pure Offer Acceptance) rebinds a targetNorm that pointed at an Offer-local Promise to
+    the crystallized Duty; the obligationStateOperand itself does not change. An Agreement's
+    targetNorm usage is therefore Norm-valued; no Promise survives materialization. SHACL
+    validates the target type.""" .
 
 # Left operands for norm state queries
 rl2:obligationStateOperand a rl2:LeftOperand ;
     rdfs:label "Obligation State Operand" ;
     rdfs:range rl2:ObligationState ;
-    rdfs:comment """Queries the status of the targeted Duty as derived from policy content
-    and the immutable WorldSnapshot.
-    Returns Pending, Active, Fulfilled, or Violated.
-    Requires rl2:targetNorm to specify which Duty to query.""" .
-
-# Promise-state operands require a Promise-valued rl2:targetNorm.
-rl2:promiseStateOperand a rl2:LeftOperand ;
-    rdfs:label "Promise State Operand" ;
-    rdfs:range rl2:PromiseState ;
-    rdfs:comment """Queries the status of the targeted Promise as derived from its content
-    and the immutable WorldSnapshot.
-    Returns Pending, Fulfilled, or Violated (never Active — see rl2:PromiseState).
-    Requires rl2:targetNorm to specify which promise to query.
-    The Promise-valued counterpart of rl2:obligationStateOperand.""" .
+    rdfs:comment """Queries the derived status of the norm or Offer-local Promise named by
+    rl2:targetNorm, as derived from policy content and the immutable WorldSnapshot.
+    Returns Pending, Active, Fulfilled, or Violated for a Duty target; Pending, Fulfilled, or
+    Violated (never Active) for a Promise target.
+    Requires rl2:targetNorm to specify which Duty or Promise to query.""" .
 
 rl2:currentDateTime a rl2:LeftOperand ;
     rdfs:label "Current Date Time" ;
@@ -247,9 +216,9 @@ rl2:includedIn a owl:ObjectProperty, owl:TransitiveProperty ;
     Do NOT use rdfs:subClassOf for action hierarchies.""" .
 
 rl2:action a owl:ObjectProperty ;
-    rdfs:domain rl2:Norm ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
     rdfs:range rl2:Action ;
-    rdfs:comment "Action specified in a norm." .
+    rdfs:comment "Action specified in a norm; on a Promise, the promised action, which crystallizes to an Achievement Duty." .
 
 rl2:prohibitedAction a owl:ObjectProperty ;
     rdfs:domain rl2:Prohibition ;
@@ -271,7 +240,7 @@ rl2:member a owl:ObjectProperty ;
     concern. Membership is read from the canonical PolicyUniverse.""" .
 
 rl2:condition a owl:ObjectProperty ;
-    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Policy) ] ;
+    rdfs:domain [ owl:unionOf (rl2:Norm rl2:Policy rl2:Promise) ] ;
     rdfs:range rl2:Condition ;
     rdfs:comment """Applicability condition for a norm or policy. It determines whether
     the normative proposition applies; it does not define Duty satisfaction. On an Offer it
@@ -299,13 +268,14 @@ rl2:postCondition a owl:ObjectProperty ;
     is not permitted on a Maintenance Duty.""" .
 
 rl2:invariant a owl:ObjectProperty ;
-    rdfs:domain rl2:Duty ;
+    rdfs:domain [ owl:unionOf (rl2:Duty rl2:Promise) ] ;
     rdfs:range rl2:Condition ;
     rdfs:label "Invariant" ;
     rdfs:comment """Condition that must hold throughout a Maintenance Duty's dutyWindow.
     Without a dutyWindow it is an ongoing condition assessed at the current snapshot. A Duty
     with an invariant has no action or postCondition. Complete temporal coverage, not a point
-    observation at evaluation time, is required to fulfill a windowed Maintenance Duty.""" .
+    observation at evaluation time, is required to fulfill a windowed Maintenance Duty. On a
+    Promise, the promised state, which crystallizes to a Maintenance Duty's invariant.""" .
 
 rl2:DutyWindow a owl:Class ;
     rdfs:label "Duty Window" ;
@@ -314,13 +284,14 @@ rl2:DutyWindow a owl:Class ;
     occurrences, not by resetting a status or repeating this interval inside Eval.""" .
 
 rl2:dutyWindow a owl:ObjectProperty ;
-    rdfs:domain rl2:Duty ;
+    rdfs:domain [ owl:unionOf (rl2:Duty rl2:Promise) ] ;
     rdfs:range rl2:DutyWindow ;
     rdfs:label "Duty Window" ;
     rdfs:comment """The optional finite assessment interval for this Duty occurrence.
     An Achievement Duty without a window can be fulfilled but does not become Violated
     merely through passage of time. A Maintenance Duty without a window can be Active or
-    Violated but cannot become Fulfilled.""" .
+    Violated but cannot become Fulfilled. On a Promise, the window is carried unevaluated to
+    the materialized Duty; it is not assessed pre-acceptance.""" .
 
 rl2:startInclusive a owl:DatatypeProperty ;
     rdfs:domain rl2:DutyWindow ;
@@ -505,18 +476,7 @@ rl2:Fulfilled a rl2:ObligationState ;
 
 rl2:Violated a rl2:ObligationState ;
     rdfs:label "Violated" ;
-    rdfs:comment "The Duty's violation condition holds." .
-
-# Promise States (enumeration pattern) — aligned with ObligationState vocabulary
-rl2:PromiseState a owl:Class ;
-    rdfs:label "Promise State" ;
-    rdfs:comment "State of a promise. Uses the shared state individuals: Pending, Fulfilled, Violated. (Promises do not use Active.)" ;
-    owl:oneOf (rl2:Pending rl2:Fulfilled rl2:Violated) .
-
-# Shared state individuals are also PromiseState values
-rl2:Pending a rl2:PromiseState .
-rl2:Fulfilled a rl2:PromiseState .
-rl2:Violated a rl2:PromiseState .
+    rdfs:comment "The Duty's violation condition holds, or a Promise's promised state or action has been breached." .
 
 ############################################################
 # 5. Policy Containers

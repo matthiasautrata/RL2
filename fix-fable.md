@@ -92,10 +92,22 @@ a declared supported profile; annotations survive only in the source map [G].
 **Effort:** the largest single work item; ~2–3 person-months for the compile contract, schemas, and
 diagnostics ([G]'s estimate; [O]'s 3–4 weeks covered a narrower typing pass).
 
-### P2 · Population subjects and classification-based targeting
+### P2 · Population subjects and classification-based targeting — DECIDED 2026-08-01
 
 **Origin:** [O] G1/G2 (language-level fix) and [G] C2-6 (assembly-boundary fix). These look like
 competing answers; adjudication below concludes they are complementary and both are needed.
+
+**Decisions (owner-confirmed):**
+1. **Both mechanisms**: `rl2:AgentCollection` (closed enumerated groups, direct `rl2:member`,
+   mirroring `AssetCollection`) AND unbound subjects/objects for attribute-defined populations.
+   Matching unifies into one rule with a per-axis declared preorder (absorbs [O] O1).
+2. **Unbound form = sentinel individuals** `rl2:anyAgent` / `rl2:anyAsset` — SHACL keeps
+   `minCount 1`, so an unbound norm is always an explicit authoring act, never a forgotten
+   property silently becoming a universal grant (the fail-closed property matters doubly for
+   AI-generated policies). One canonical form per proposition holds.
+3. **Assembly contract is informative in 0.7** — documented
+   `assemble(Catalogue, SelectionRule, Bindings) → PolicyUniverse | AssemblyErrors` with
+   identity/digest/provenance requirements pinned; normative once a deployment exercises it.
 
 **Problem.** `subjectMatches(a, requested) = a = requested` (`spec/RL2_Semantics.md:909-910`) with
 `sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent` (`spec/rl2-shacl.ttl:102,144,197`): every norm

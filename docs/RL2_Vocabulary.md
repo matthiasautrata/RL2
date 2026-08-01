@@ -35,7 +35,7 @@ node to restate the beneficiary-facing relation.
 | `rl2:clause` | Policy → Clause | Direct policy content. |
 | `rl2:grantor` | Policy → Agent | Party granting or proposing the terms. |
 | `rl2:grantee` | Policy → Agent | Party receiving or accepting the terms. |
-| `rl2:condition` | Policy or Norm → Condition | Applicability guard. |
+| `rl2:condition` | Policy, Norm, or Promise → Condition | Applicability guard. |
 | `rl2:requiresProfile` | Policy → Profile | Required profile and version. |
 
 An Agreement requires exactly one grantor and one grantee; an Offer may state them; a Set carries
@@ -45,9 +45,9 @@ neither. A Policy requires at least one clause and has at most one policy-level 
 
 | Term | Use |
 |---|---|
-| `rl2:subject` | Agent bearing a Norm. |
-| `rl2:counterparty` | Beneficiary or other Agent to whom a Duty is owed. |
-| `rl2:action` | Action of a Privilege or Achievement Duty. |
+| `rl2:subject` | Agent bearing a Norm; on a Promise, the promisor. |
+| `rl2:counterparty` | Beneficiary or other Agent to whom a Duty is owed; required on a Promise, where it is the promisee. |
+| `rl2:action` | Action of a Privilege or Achievement Duty; on a Promise, the promised action. |
 | `rl2:prohibitedAction` | Action of a Prohibition. |
 | `rl2:object` | Asset or resource governed by a Norm or Promise. |
 | `rl2:priority` | Integer on a Privilege or Prohibition, used before conflict-strategy resolution; default `0`. |
@@ -78,13 +78,20 @@ They are evaluator results and comparison values, not asserted Duty properties.
 
 ## 5. Promises
 
-| Term | Meaning |
-|---|---|
-| `rl2:promisor` | Agent making the proposed commitment. |
-| `rl2:promisee` | Intended beneficiary. |
-| `rl2:promisedAction` | Action content; materializes as an Achievement Duty. |
-| `rl2:promisedState` | Condition content; materializes as a Maintenance Duty. |
-A Promise has exactly one content property. Its derived states are `Pending`, `Fulfilled`, and
+A Promise is structurally a proposed Duty: it reuses `rl2:subject`, `rl2:counterparty`,
+`rl2:object`, `rl2:condition`, `rl2:dutyWindow`, and exactly one of `rl2:action` or
+`rl2:invariant`, rather than a distinct set of promise-only properties. Two cardinalities differ
+from a Duty:
+
+| Property | On a Duty | On a Promise |
+|---|---|---|
+| `rl2:counterparty` | Optional | Required — a Promise always names its promisee. |
+| `rl2:object` | Required | Optional — may be left for Acceptance to bind on materialization. |
+
+An action commitment (`rl2:action`) materializes as an Achievement Duty; a state commitment
+(`rl2:invariant`) materializes as a Maintenance Duty. A Promise has exactly one of the two. Its
+`rl2:condition` and `rl2:dutyWindow`, if present, are carried unevaluated to the materialized Duty
+and are not consulted before acceptance. Its derived states are `Pending`, `Fulfilled`, and
 `Violated`; Promises do not use `Active`. Policy RDF does not assert Promise status.
 
 ## 6. Agents, Actions, and Assets
@@ -133,8 +140,7 @@ Comparison operators are `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `isA`, `isAnyOf`
 | `rl2:RuntimeReference` | Dynamic right-side value. |
 | `rl2:currentDateTime` | `WorldSnapshot.evaluationTime`. |
 | `rl2:currentAgent` | Requesting agent, for a right-operand reference. |
-| `rl2:obligationStateOperand` | Derived status of the Duty named by `targetNorm`. |
-| `rl2:promiseStateOperand` | Derived status of an Offer-local Promise. |
+| `rl2:obligationStateOperand` | Derived status of the Duty or Offer-local Promise named by `targetNorm`. |
 
 Every profile-defined LeftOperand has one `resolutionPath`. Canonical roots are `agent`, `asset`,
 `context`, `state`, `request`, and `global`; the information model defines their scopes.

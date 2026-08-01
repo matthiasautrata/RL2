@@ -31,9 +31,9 @@ ex:isFresh a rl2:AtomicConstraint ;
     rl2:rightOperand "PT6H"^^xsd:dayTimeDuration .
 
 ex:freshnessPromise a rl2:Promise ;
-    rl2:promisor ex:Provider ;
-    rl2:promisee ex:Consumer ;
-    rl2:promisedState ex:isFresh ;
+    rl2:subject ex:Provider ;
+    rl2:counterparty ex:Consumer ;
+    rl2:invariant ex:isFresh ;
     rl2:object ex:CustomerDataset .
 
 ex:freshnessOffer a rl2:Offer ;

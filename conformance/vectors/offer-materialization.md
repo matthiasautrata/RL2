@@ -7,11 +7,11 @@ returns either one complete Agreement and a source map, or a canonical non-empty
 
 | ID | Source content | Expected Agreement content |
 |---|---|---|
-| M1 | `PromisedAction(x)` with object `s` | Achievement Duty with promisor as subject, promisee as counterparty, action `x`, object `s` |
+| M1 | Promise with `Achieve(x)` body and object `s` | Achievement Duty with promisor as subject, promisee as counterparty, action `x`, object `s` |
 | M2 | M1 with a supplied finite window | The same Duty with that `dutyWindow` |
-| M3 | `PromisedState(i)` with object `s` | Maintenance Duty with invariant `i` and object `s` |
+| M3 | Promise with `Maintain(i)` body and object `s` | Maintenance Duty with invariant `i` and object `s` |
 | M4 | Promise has no object; Acceptance supplies `s` | Duty uses `s` |
-| M5 | Promise-state condition targets a sibling Promise | Rewritten to the corresponding Duty and `obligationStateOperand` |
+| M5 | An `obligationStateOperand` condition targets a sibling Promise | `targetNorm` rebinds to the corresponding Duty; the operand is unchanged |
 | M6 | Offer Privilege has an attached prerequisite Duty | Both receive Agreement-local identifiers; the Duty remains attached |
 | M7 | Offer has an applicability condition and parties agree | Agreement copies the condition and records derivation provenance |
 | M8 | Unaccepted Offer supplied to `Out` | No normative atom is derived |

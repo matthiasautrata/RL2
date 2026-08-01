@@ -241,9 +241,11 @@ materialize(Offer, Acceptance)
 ```
 
 The Acceptance supplies the parties and output identifiers needed to make the result
-deterministic. An action Promise becomes an Achievement Duty; a state Promise becomes a
-Maintenance Duty. The Promise's promisor becomes the Duty subject and its promisee becomes the
-counterparty. No Promise remains in the Agreement.
+deterministic. A Promise is structurally a proposed Duty, so crystallization unwraps and rebinds
+it rather than re-deriving a Duty from separate fields: an action Promise becomes an Achievement
+Duty; a state Promise becomes a Maintenance Duty. The Promise's promisor becomes the Duty subject
+and its promisee (required on every Promise) becomes the counterparty; an object left unbound on
+the Promise is taken from the Acceptance. No Promise remains in the Agreement.
 
 This transformation does not model negotiation, signatures, authorization to accept, storage, or
 delivery. Those are protocol concerns. General assignment, delegation, amendment, revocation,

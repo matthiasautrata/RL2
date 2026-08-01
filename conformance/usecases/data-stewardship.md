@@ -21,9 +21,9 @@ ex:steward a rl2:Action .
 ex:access a rl2:Action .
 
 ex:stewardshipPromise a rl2:Promise ;
-    rl2:promisor ex:Researcher ;
-    rl2:promisee ex:DataOwner ;
-    rl2:promisedAction ex:steward ;
+    rl2:subject ex:Researcher ;
+    rl2:counterparty ex:DataOwner ;
+    rl2:action ex:steward ;
     rl2:object ex:SensitiveData .
 
 ex:offeredAccess a rl2:Privilege ;
@@ -33,7 +33,7 @@ ex:offeredAccess a rl2:Privilege ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:stewardshipPromise ;
-        rl2:leftOperand rl2:promiseStateOperand ;
+        rl2:leftOperand rl2:obligationStateOperand ;
         rl2:constraintOperator rl2:eq ;
         rl2:rightOperandRef rl2:Fulfilled
     ] .
