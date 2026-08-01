@@ -21,7 +21,91 @@ Value ordering rationale: an item ranks higher the more it (a) blocks the spec's
 independently found by multiple reviews. Items 1–5 are release stoppers; 6–15 are semantic
 correctness; the rest is structure and hygiene (§2).
 
-### P1 · Specify the end-to-end compilation contract (SHACL → typed module → Eval)
+### P1 · Specify the end-to-end compilation contract (SHACL → typed module → Eval) — DESIGN
+DECISIONS 2026-08-01 (D1–D8 below; execution = the final document sweep)
+
+**D1 · Check ownership — single ownership.** Every validation check is normatively owned by
+exactly one phase. SHACL (①) keeps only graph-structural checks (classes, cardinalities, xone,
+clause kinds, locality, endpoint exclusivity, invariant-operand reachability). The compiler (②)
+owns everything needing the type system, closures, or cross-graph knowledge (datatype/operator
+compatibility, duration classification, float rejection, path validity, profile resolution,
+cycles, bounds, closed-property rule). `rl2:OperandRangeTypeShape` is deleted; its job is a ②
+hard error. A normative table assigns every check its home. Both phases are conformance
+requirements: published policy RDF passes ①; evaluators accept only ②'s output.
+
+**D2 · Module serialization — canonical JSON, mandatory source map.** The abstract flat typed
+module is normative; its one canonical serialization is JSON (sorted keys; **Numeric values as
+strings** — JSON numbers are IEEE doubles and would destroy exact-decimal semantics); module
+digest = SHA-256 over canonical bytes; CBOR/protobuf permitted privately, non-normative. The
+source map (every node → authored origin) is mandatory — it powers explanation, SourceRef, and
+vector expectations.
+
+**D3 · Identity — node table + SHOULD-IRIs (the odrl:uid lesson).** SourceRef anchors on the
+deterministic canonical node table; authored IRIs are primary when present. Clause positions
+(objects of `rl2:clause`, `rl2:prerequisiteDuty` targets, Policy nodes — NOT condition
+substructure) get a **stern SHACL `sh:Warning`** when they are blank nodes, because authors
+ignore soft recommendations unless validation complains (ODRL 2.2's odrl:uid experience,
+owner-stated). A missing IRI degrades capability (no cross-compile references), never validity.
+Cross-compile references (`rl2:acceptedUnder`, provenance) MUST target IRIs. RDFC-1.0 not
+adopted; adoptable later without breaking this.
+
+**D4 · Closed-world property rule — reject, with a property-level allowlist.** Core namespace
+closed (unknown `rl2:` property = compile error — the typo-catcher). Non-core properties on RL2
+nodes are valid iff a declared supported profile defines them; otherwise **rejected** with a
+stable diagnostic (fail-closed: a hallucinated-but-meaningful-looking property must fail loudly).
+Triples about non-RL2 subjects are outside the projection entirely. The allowlist is
+**property-level, not namespace-level** (rdfs: proves why — label is annotation, subClassOf is a
+semantic core input, range is the legacy operand typing):
+- *Semantic core inputs* (read by ②): `rdf:type`, `rdfs:subClassOf`; `rdfs:range` on
+  LeftOperands only until `rl2:valueType` lands.
+- *Annotation allowlist* (source-map-retained, semantically ignored): `rdfs:label/comment/
+  seeAlso`; `dcterms:title/description/creator/created/modified/identifier` (dc11 normalized to
+  dcterms at projection); `skos:prefLabel/altLabel/note/definition/example`;
+  `prov:wasDerivedFrom/wasAttributedTo/generatedAtTime` (materialize() writes wasDerivedFrom).
+- *Named rejections with dedicated diagnostics*: `owl:sameAs` on RL2 nodes (identity smuggling
+  would bypass matching and determinism); `skos:broader/narrower` (hierarchy must go through
+  `rl2:includedIn`/`rdfs:subClassOf`, never SKOS).
+- *Extensible*: a ProfileModule may declare additional annotation-only terms.
+- *Transition*: operand typing moves to `rl2:valueType`; an operand used in a policy without
+  `valueType` is a ② error; `rdfs:range` on operands demotes to tolerated documentation. Corpus
+  + privacy profile migrate in the sweep.
+
+**D5 · Diagnostics — strict conformance.** Phase ① reports via standard SHACL validation
+reports (no custom taxonomy). Phase ② emits `CompileDiagnostic = {code, stage, severity, site:
+SourceRef, detail}` with ordered stages parse → SHACL → profileResolution → projection → link →
+type → cycle → bounds; all diagnostics collected within a stage, stop at first failing stage;
+codes in a spec registry table. **Conforming compilers emit identical (code, site) sets in
+canonical order** — negative vectors are fully portable; codes are versioned spec surface. The
+importer's 14 migration diagnostics remain a separate pre-compile family.
+
+**D6 · Interchange schemas — JSON Schemas, replay-anchored results.** Request, WorldSnapshot,
+EvaluationConfiguration, EvaluationResult get published JSON Schemas under D2's conventions,
+versioned with the spec; vectors and PDP APIs consume the same schemas. `EvaluationResult` is a
+replay-anchored audit record: decision, determining SourceRefs, status map, causes, diagnostics,
+**plus module digest + snapshot digest + evaluationTime + configuration echo** — every result
+independently re-derivable from retained artifacts.
+
+**D7 · Soundness theorem + byte-identity determinism.** If `compile(G, profiles, cfg) = Ok(m)`
+then `Eval(m, …)` over schema-valid inputs returns no **policy-origin** cause (no
+`Invalid(ComparisonSite(…))`, no policy-structure site); every residual cause has a
+**data-origin** site (`SnapshotSite`, `EvidenceSelector`, `StatusSite`). The spec carries the
+site-partition table. Companions: projection determinism = byte-identical module (⇒ same
+digest); evaluation determinism = byte-identical canonical result. Normative obligations now;
+Lean later.
+
+**D8 · Profile contract + namespace.**
+(a) Profiles are authored as **RDF** — any serialization (Turtle, JSON-LD, …); the graph is
+normative, the corpus uses Turtle — and compiled into a canonical-JSON ProfileModule with the
+same digest discipline as policies (one pipeline). Plug-in operators are declared in the profile
+RDF with typed signatures; the declaration is inside the digest; implementation conformance =
+that profile's vectors.
+(b) **Inline operand declarations are legal** (self-contained micro-profile: typed +
+resolution-pathed in the policy graph — the existing corpus idiom, 32 cases);
+`rl2:requiresProfile` is required only for external terms the graph does not declare.
+Fail-closed is preserved: an undeclared term is rejected (D4).
+(c) Namespace: **`https://w3id.org/rl2#`** replaces `rl2.example` — stable until a possible
+future W3C or company adoption forces a swap (owner-acknowledged); keep the namespace
+single-point-defined and prefix-declared everywhere so a future swap stays mechanical.
 
 **Origin:** [O] F8+§10.1 and [G] C3-1, independently converging on the same architecture; [A]
 endorses the AST-interpreter direction. The strongest agreement across all three reviews.

@@ -16,7 +16,7 @@ requirements. RL2 then resolves that fact deterministically at the evaluation ti
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix compliance: <https://example.org/profile/compliance#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:Processor a rl2:Agent .
@@ -24,7 +24,7 @@ ex:SensitiveDataset a rl2:Asset .
 ex:process a rl2:Action .
 
 compliance:processorStatus a rl2:LeftOperand ;
-    rdfs:range compliance:Status ;
+    rl2:valueType compliance:Status ;
     rl2:resolutionPath "agent.complianceStatus" .
 compliance:Certified a compliance:Status .
 

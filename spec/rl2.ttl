@@ -1,17 +1,17 @@
-@base <https://rl2.example/ontology#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@base <https://w3id.org/rl2#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 
-<https://rl2.example/ontology>
+<https://w3id.org/rl2>
   a owl:Ontology ;
   rdfs:label "RL2 Ontology" ;
   dc:description "A deterministic policy language extending and clarifying ODRL 2.2." ;
   owl:versionInfo "0.7" ;
-  owl:versionIRI <https://rl2.example/ontology/0.7> .
+  owl:versionIRI <https://w3id.org/rl2/0.7> .
 
 ############################################################
 # 1. Normative Clauses
@@ -197,7 +197,7 @@ rl2:targetNorm a owl:ObjectProperty ;
 # Left operands for norm state queries
 rl2:obligationStateOperand a rl2:LeftOperand ;
     rdfs:label "Obligation State Operand" ;
-    rdfs:range rl2:ObligationState ;
+    rl2:valueType rl2:ObligationState ;
     rdfs:comment """Queries the derived status of the norm or Offer-local Promise named by
     rl2:targetNorm, as derived from policy content and the immutable WorldSnapshot.
     Returns Pending, Active, Fulfilled, or Violated for a Duty target; Pending, Fulfilled, or
@@ -206,17 +206,17 @@ rl2:obligationStateOperand a rl2:LeftOperand ;
 
 rl2:currentDateTime a rl2:LeftOperand ;
     rdfs:label "Current Date Time" ;
-    rdfs:range xsd:dateTimeStamp ;
+    rl2:valueType xsd:dateTimeStamp ;
     rdfs:comment """Resolves to WorldSnapshot.evaluationTime.
     Used in AtomicConstraints for temporal validity checks.
     Example: currentDateTime lte "2025-01-01T00:00:00Z"^^xsd:dateTimeStamp
     Resolution path: 'state.Clock'.
-    rdfs:range is xsd:dateTimeStamp (timezone-mandatory), not xsd:dateTime:
+    valueType is xsd:dateTimeStamp (timezone-mandatory), not xsd:dateTime:
     a total instant ordering requires every compared instant to carry a
     timezone offset. Ingestion MUST normalize bare xsd:dateTime literals
     compared against this operand to xsd:dateTimeStamp before evaluation.
-    rl2:OperandRangeTypeShape warns if a rightOperand literal's datatype
-    does not match.""" ;
+    The compile pass rejects a rightOperand literal whose datatype does
+    not match.""" ;
     rl2:resolutionPath "state.Clock" .
 
 # Dynamic reference for current agent
@@ -411,6 +411,17 @@ rl2:resolutionPath a owl:DatatypeProperty ;
 
     Resolution semantics are defined by deref(path, leftOperand, Env) in RL2_Semantics.
     SECURITY: Implementations MUST validate paths against allowed roots.""" .
+
+rl2:valueType a owl:ObjectProperty ;
+    rdfs:domain rl2:LeftOperand ;
+    rdfs:label "Value Type" ;
+    rdfs:comment """Declares the operand's value type for the compile-time typing pass: a
+    datatype IRI (e.g. xsd:dateTimeStamp, xsd:boolean) or a profile-defined value class (e.g.
+    privacy:Purpose). No rdfs:range is declared for rl2:valueType itself, because its values are
+    heterogeneous — datatype IRIs and classes both occur, and neither alone is the range.
+    Replaces the earlier use of rdfs:range on operand individuals, which is now tolerated
+    documentation only. An operand used in a policy without a declared valueType is a compile
+    error.""" .
 
 rl2:leftOperand a owl:ObjectProperty ;
     rdfs:domain rl2:Condition ;

@@ -12,7 +12,7 @@ RL2 evaluates a certification fact supplied by a trusted registry; it does not p
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:ConsumerConnector a rl2:Agent .
 ex:ProductionData a rl2:Asset .
 ex:receive a rl2:Action .
 ex:certificationValid a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "agent.connectorCertification.valid" .
 
 ex:certifiedConnectorAccess a rl2:Privilege ;

@@ -17,7 +17,7 @@ as ordinary pre-duty gating, and is canonically expressed with `rl2:prerequisite
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:DataOwner a rl2:Agent .
 ex:Researcher a rl2:Agent .

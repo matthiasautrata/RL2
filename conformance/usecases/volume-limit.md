@@ -24,7 +24,7 @@ both styles remain valid in RL2 0.7.
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -33,10 +33,10 @@ ex:Subscriber a rl2:Agent .
 ex:DataService a rl2:Asset .
 ex:retrieve a rl2:Action .
 ex:requestedRecords a rl2:LeftOperand ;
-    rdfs:range xsd:integer ;
+    rl2:valueType xsd:integer ;
     rl2:resolutionPath "request.parameters.requestedRecords" .
 ex:requestFitsRemainingQuota a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "global.quota.requestedWithinRemaining" .
 
 ex:limitedRetrieval a rl2:Privilege ;

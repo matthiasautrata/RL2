@@ -15,7 +15,7 @@ admissible snapshot data under the governing profile.
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix certification: <https://example.org/profile/certification#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:Contractor a rl2:Agent .
@@ -23,7 +23,7 @@ ex:ClassifiedDataset a rl2:Asset .
 ex:access a rl2:Action .
 
 certification:held a rl2:LeftOperand ;
-    rdfs:range rl2:ValueSet ;
+    rl2:valueType rl2:ValueSet ;
     rl2:resolutionPath "agent.certifications" .
 
 certification:Clearance a certification:Type .

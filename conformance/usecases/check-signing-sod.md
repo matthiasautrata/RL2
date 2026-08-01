@@ -15,7 +15,7 @@ with `rl2:prerequisiteDuty`, not a status-condition equality test.
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:Alice a rl2:Agent .
 ex:Bob a rl2:Agent .

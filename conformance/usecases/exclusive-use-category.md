@@ -16,7 +16,7 @@ exclusive classifications are tested in one condition.
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix licensing: <https://example.org/profile/licensing#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:Licensee a rl2:Agent .
@@ -24,7 +24,7 @@ ex:Track a rl2:Asset .
 ex:use a rl2:Action .
 
 licensing:useCategory a rl2:LeftOperand ;
-    rdfs:range licensing:UseCategory ;
+    rl2:valueType licensing:UseCategory ;
     rl2:resolutionPath "context.useCategory" .
 
 licensing:Advertising a licensing:UseCategory .

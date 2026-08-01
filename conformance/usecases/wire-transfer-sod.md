@@ -15,7 +15,7 @@ policy instance for each authorized pair. The gate is ordinary pre-duty gating â
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:Alice a rl2:Agent .
 ex:Bob a rl2:Agent .

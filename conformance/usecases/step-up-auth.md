@@ -12,7 +12,7 @@ Authentication assurance is attributed external evidence. The policy specifies i
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -23,7 +23,7 @@ ex:read a rl2:Action .
 ex:authenticate a rl2:Action .
 
 ex:authenticationLevel a rl2:LeftOperand ;
-    rdfs:range xsd:integer ;
+    rl2:valueType xsd:integer ;
     rl2:resolutionPath "agent.authentication.level" .
 
 ex:highRiskReadPrivilege a rl2:Privilege ;

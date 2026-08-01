@@ -12,7 +12,7 @@ Jurisdiction is a fact supplied in the evaluation snapshot, not an implicit prop
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:Customer a rl2:Agent .
 ex:Dataset a rl2:Asset .
 ex:access a rl2:Action .
 ex:jurisdiction a rl2:LeftOperand ;
-    rdfs:range xsd:string ;
+    rl2:valueType xsd:string ;
     rl2:resolutionPath "context.requestJurisdiction" .
 
 ex:euAccess a rl2:Privilege ;

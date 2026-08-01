@@ -12,7 +12,7 @@ The core meaning of data sovereignty is that use is governed by explicit, inspec
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:Supplier a rl2:Agent .
 ex:ProductionData a rl2:Asset .
 ex:access a rl2:Action .
 ex:submitUsageRecord a rl2:Action .
-ex:purpose a rl2:LeftOperand ; rdfs:range xsd:string ; rl2:resolutionPath "context.purpose" .
+ex:purpose a rl2:LeftOperand ; rl2:valueType xsd:string ; rl2:resolutionPath "context.purpose" .
 
 ex:productionSupportAccess a rl2:Privilege ;
     rl2:subject ex:Supplier ; rl2:action ex:access ; rl2:object ex:ProductionData ;

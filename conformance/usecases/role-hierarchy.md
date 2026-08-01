@@ -24,14 +24,14 @@ particular agent is snapshot data).
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix role: <https://example.org/profile/role#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:InternalReport a rl2:Asset .
 ex:read a rl2:Action .
 
 role:currentRole a rl2:LeftOperand ;
-    rdfs:range role:Role ;
+    rl2:valueType role:Role ;
     rl2:resolutionPath "agent.role" .
 role:Role a rdfs:Class .
 role:Analyst a rdfs:Class ; rdfs:subClassOf role:Role .

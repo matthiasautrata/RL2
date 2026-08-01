@@ -12,7 +12,7 @@ A half-open temporal interval has an unambiguous boundary: the start is included
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 ex:Provider a rl2:Agent .

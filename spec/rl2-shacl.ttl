@@ -1,5 +1,5 @@
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
-@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix rl2:  <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
@@ -133,7 +133,7 @@ rl2:PrerequisiteDutyShape a sh:NodeShape ;
         a sh:SPARQLConstraint ;
         sh:message "Every Privilege that references a prerequisite Duty must be a clause of a Policy." ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT $this WHERE {
                 ?referencer rl2:prerequisiteDuty $this .
                 FILTER NOT EXISTS { ?referencer a rl2:Policy . }
@@ -172,7 +172,7 @@ rl2:DutyWindowShape a sh:NodeShape ;
         a sh:SPARQLConstraint ;
         sh:message "A DutyWindow with both endpoints Absolute must satisfy startInclusive < endExclusive. (Relative endpoints resolve at evaluation time and are not statically orderable.)" ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT $this WHERE {
                 $this rl2:startInclusive ?start ;
                       rl2:endExclusive ?end .
@@ -322,7 +322,7 @@ rl2:StatusTargetOnlyShape a sh:NodeShape ;
         a sh:SPARQLConstraint ;
         sh:message "targetNorm is permitted only with obligationStateOperand." ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT $this WHERE {
                 $this rl2:leftOperand ?op .
                 FILTER(?op NOT IN (rl2:obligationStateOperand))
@@ -335,7 +335,7 @@ rl2:NormStateConstraintShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT ?this WHERE {
                 ?this a rl2:AtomicConstraint ;
                       rl2:leftOperand ?op .
@@ -363,7 +363,7 @@ rl2:InvariantOperandRestrictionShape a sh:NodeShape ;
         a sh:SPARQLConstraint ;
         sh:message "A Maintenance Duty's or Promise's invariant may not contain obligationStateOperand in RL2 0.7; status operands are permitted only in applicability conditions." ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT $this WHERE {
                 $this rl2:leftOperand rl2:obligationStateOperand .
                 ?owner rl2:invariant ?root .
@@ -380,7 +380,7 @@ rl2:PromiseTargetLocalityShape a sh:NodeShape ;
         a sh:SPARQLConstraint ;
         sh:message "A Promise-valued targetNorm must target a sibling Promise clause in the same Offer as the containing condition." ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT $this WHERE {
                 $this rl2:targetNorm ?promise .
                 ?promise a rl2:Promise .
@@ -426,7 +426,7 @@ rl2:NotOperandCardinalityShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT ?this WHERE {
                 ?this a rl2:LogicalConstraint ;
                       rl2:constraintOperator rl2:not .
@@ -444,7 +444,7 @@ rl2:AndOrXoneOperandCardinalityShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT ?this WHERE {
                 ?this a rl2:LogicalConstraint ;
                       rl2:constraintOperator ?op .
@@ -487,30 +487,6 @@ rl2:AccessPriorityShape a sh:NodeShape ;
     ] .
 
 ############################################################
-# Additional consistency checks
-############################################################
-
-# Check a literal rightOperand against the declared leftOperand datatype.
-rl2:OperandRangeTypeShape a sh:NodeShape ;
-    sh:targetClass rl2:AtomicConstraint ;
-    sh:severity sh:Warning ;
-    sh:sparql [
-        a sh:SPARQLConstraint ;
-        sh:message "leftOperand's declared rdfs:range does not match rightOperand's actual type." ;
-        sh:select """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX rl2: <https://rl2.example/ontology#>
-            SELECT $this WHERE {
-                $this rl2:leftOperand ?op ;
-                      rl2:rightOperand ?right .
-                ?op rdfs:range ?expected .
-                FILTER(isLiteral(?right) && isIRI(?expected))
-                FILTER(datatype(?right) != ?expected)
-            }
-        """
-    ] .
-
-############################################################
 # Profile-Declared Operand Shapes
 ############################################################
 #
@@ -524,11 +500,10 @@ rl2:OperandRangeTypeShape a sh:NodeShape ;
 rl2:LeftOperandShape a sh:NodeShape ;
     sh:targetClass rl2:LeftOperand ;
     sh:property [
-        sh:path rdfs:range ;
-        sh:minCount 1 ;
+        sh:path rl2:valueType ;
         sh:maxCount 1 ;
         sh:nodeKind sh:IRI ;
-        sh:message "A LeftOperand must declare exactly one semantic value type."
+        sh:message "A LeftOperand declares at most one semantic value type via rl2:valueType."
     ] ;
     sh:property [
         sh:path rl2:resolutionPath ;
@@ -543,7 +518,7 @@ rl2:OperandResolutionPathShape a sh:NodeShape ;
     sh:target [
         a sh:SPARQLTarget ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT ?this WHERE {
                 ?this a rl2:LeftOperand .
                 FILTER NOT EXISTS { ?this rl2:resolutionPath ?p }
@@ -555,7 +530,7 @@ rl2:OperandResolutionPathShape a sh:NodeShape ;
         a sh:SPARQLConstraint ;
         sh:message "A profile-defined LeftOperand must specify resolutionPath." ;
         sh:select """
-            PREFIX rl2: <https://rl2.example/ontology#>
+            PREFIX rl2: <https://w3id.org/rl2#>
             SELECT $this WHERE {
                 FILTER NOT EXISTS { $this rl2:resolutionPath ?p }
             }
@@ -603,3 +578,30 @@ rl2:RequiresProfileShape a sh:NodeShape ;
         sh:class rl2:Profile ;
         sh:message "rl2:requiresProfile must reference a declared rl2:Profile (with a version), so the evaluator can run the unknown-profile / version-negotiation check."
     ] .
+
+# ----------------------------------------------------------------------------
+# Identity Recommendation (blank-node clause warning)
+# ----------------------------------------------------------------------------
+# Module-local identity (blank nodes) always exists, but cross-compile references and stable
+# citation require an IRI (cf. the ODRL 2.2 odrl:uid experience: authors ignore soft
+# recommendations unless validation complains). These are sh:Warning-only: a missing IRI
+# degrades capability, never validity. Scoped to clause/prerequisite-Duty/Policy nodes only —
+# condition substructure is deliberately not targeted.
+
+rl2:ClauseIriRecommendationShape a sh:NodeShape ;
+    sh:targetObjectsOf rl2:clause ;
+    sh:severity sh:Warning ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Clause, prerequisite Duty, and Policy nodes should be named IRIs: module-local identity always exists, but cross-compile references and stable citation require an IRI (cf. odrl:uid practice)." .
+
+rl2:PrerequisiteDutyIriRecommendationShape a sh:NodeShape ;
+    sh:targetObjectsOf rl2:prerequisiteDuty ;
+    sh:severity sh:Warning ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Clause, prerequisite Duty, and Policy nodes should be named IRIs: module-local identity always exists, but cross-compile references and stable citation require an IRI (cf. odrl:uid practice)." .
+
+rl2:PolicyIriRecommendationShape a sh:NodeShape ;
+    sh:targetClass rl2:Policy ;
+    sh:severity sh:Warning ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Clause, prerequisite Duty, and Policy nodes should be named IRIs: module-local identity always exists, but cross-compile references and stable citation require an IRI (cf. odrl:uid practice)." .

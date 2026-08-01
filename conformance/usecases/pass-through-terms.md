@@ -12,7 +12,7 @@ This pattern separates the admission question from the continuing obligation. It
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -23,7 +23,7 @@ ex:LicensedData a rl2:Asset .
 ex:redistribute a rl2:Action .
 ex:maintainTerms a rl2:Action .
 ex:downstreamTermsBound a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "context.downstreamTerms.bound" .
 
 ex:redistributeUnderTerms a rl2:Privilege ;

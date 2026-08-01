@@ -193,7 +193,8 @@ Both cases attribute the value to the Request itself, not to a snapshot fact —
 `WorldSnapshot`. Other request metadata uses a declared `context.*` fact or a separate interchange
 profile; no other `request.*` field is a canonical core path.
 
-For a required key `k`, expected value type `τ`, profile `p`, snapshot `W`, and configuration `C`:
+For a required key `k`, expected value type `τ` (`declaredType(op)`, read from the operand's
+`rl2:valueType`), profile `p`, snapshot `W`, and configuration `C`:
 
 ```text
 resolveFact(k, τ, p, W, C) =

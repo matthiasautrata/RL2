@@ -12,7 +12,7 @@ Temporal feature limits are ordinary conditions over the evaluation time. No pol
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 ex:TrialUser a rl2:Agent .

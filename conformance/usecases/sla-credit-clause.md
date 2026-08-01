@@ -17,7 +17,7 @@ after acceptance; only the `targetNorm` rebinds, from the Promise to the generat
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -27,7 +27,7 @@ ex:Service a rl2:Asset .
 ex:issueCredit a rl2:Action .
 
 ex:monthlyUptime a rl2:LeftOperand ;
-    rdfs:range xsd:decimal ;
+    rl2:valueType xsd:decimal ;
     rl2:resolutionPath "asset.metadata.monthlyUptime" .
 
 ex:uptimeMeetsTarget a rl2:AtomicConstraint ;
@@ -83,7 +83,7 @@ Acceptance(
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -93,7 +93,7 @@ ex:Service a rl2:Asset .
 ex:issueCredit a rl2:Action .
 
 ex:monthlyUptime a rl2:LeftOperand ;
-    rdfs:range xsd:decimal ;
+    rl2:valueType xsd:decimal ;
     rl2:resolutionPath "asset.metadata.monthlyUptime" .
 
 ex:uptimeMeetsTarget a rl2:AtomicConstraint ;

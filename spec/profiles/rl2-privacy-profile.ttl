@@ -1,18 +1,18 @@
-@base <https://rl2.example/profile/privacy#> .
-@prefix privacy: <https://rl2.example/profile/privacy#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@base <https://w3id.org/rl2/profiles/privacy#> .
+@prefix privacy: <https://w3id.org/rl2/profiles/privacy#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 
-<https://rl2.example/profile/privacy>
+<https://w3id.org/rl2/profiles/privacy>
     a owl:Ontology, rl2:Profile ;
     rdfs:label "RL2 Privacy Profile" ;
     dc:description "Illustrative operands, value classes, and actions for privacy policies." ;
     rl2:profileVersion "0.1.0" ;
     owl:versionInfo "0.1.0" ;
-    owl:imports <https://rl2.example/ontology/0.7> .
+    owl:imports <https://w3id.org/rl2/0.7> .
 
 ############################################################
 # Operands
@@ -22,84 +22,84 @@ privacy:dataOwnerOperand a rl2:LeftOperand ;
     rdfs:label "Data subject" ;
     rdfs:comment "Agent to whom the requested personal-data asset relates." ;
     rl2:resolutionPath "asset.dataOwner" ;
-    rdfs:range rl2:Agent .
+    rl2:valueType rl2:Agent .
 
 privacy:dataControllerOperand a rl2:LeftOperand ;
     rdfs:label "Data controller" ;
     rdfs:comment "Controller responsible for the requested asset." ;
     rl2:resolutionPath "asset.controller" ;
-    rdfs:range rl2:Agent .
+    rl2:valueType rl2:Agent .
 
 privacy:dataProcessorOperand a rl2:LeftOperand ;
     rdfs:label "Data processor" ;
     rdfs:comment "Processor identified for the evaluation context." ;
     rl2:resolutionPath "context.processor" ;
-    rdfs:range rl2:Agent .
+    rl2:valueType rl2:Agent .
 
 privacy:purposeOperand a rl2:LeftOperand ;
     rdfs:label "Requested purpose" ;
     rl2:resolutionPath "context.purpose" ;
-    rdfs:range privacy:Purpose .
+    rl2:valueType privacy:Purpose .
 
 privacy:originalPurposeOperand a rl2:LeftOperand ;
     rdfs:label "Collection purpose" ;
     rl2:resolutionPath "asset.collectionPurpose" ;
-    rdfs:range privacy:Purpose .
+    rl2:valueType privacy:Purpose .
 
 privacy:consentStatusOperand a rl2:LeftOperand ;
     rdfs:label "Consent status" ;
     rl2:resolutionPath "asset.consentRecord.status" ;
-    rdfs:range privacy:ConsentStatus .
+    rl2:valueType privacy:ConsentStatus .
 
 privacy:consentPurposeOperand a rl2:LeftOperand ;
     rdfs:label "Consent purpose" ;
     rl2:resolutionPath "asset.consentRecord.purpose" ;
-    rdfs:range privacy:Purpose .
+    rl2:valueType privacy:Purpose .
 
 privacy:consentExpiryOperand a rl2:LeftOperand ;
     rdfs:label "Consent expiry" ;
     rl2:resolutionPath "asset.consentRecord.expiryDate" ;
-    rdfs:range xsd:dateTimeStamp .
+    rl2:valueType xsd:dateTimeStamp .
 
 privacy:dataClassificationOperand a rl2:LeftOperand ;
     rdfs:label "Data classification" ;
     rl2:resolutionPath "asset.classification" ;
-    rdfs:range privacy:DataClassification .
+    rl2:valueType privacy:DataClassification .
 
 privacy:specialCategoryOperand a rl2:LeftOperand ;
     rdfs:label "Special-category data" ;
     rl2:resolutionPath "asset.isSpecialCategory" ;
-    rdfs:range xsd:boolean .
+    rl2:valueType xsd:boolean .
 
 privacy:dataLocationOperand a rl2:LeftOperand ;
     rdfs:label "Storage jurisdiction" ;
     rl2:resolutionPath "asset.storageLocation" ;
-    rdfs:range privacy:Jurisdiction .
+    rl2:valueType privacy:Jurisdiction .
 
 privacy:processingLocationOperand a rl2:LeftOperand ;
     rdfs:label "Processing jurisdiction" ;
     rl2:resolutionPath "context.processingLocation" ;
-    rdfs:range privacy:Jurisdiction .
+    rl2:valueType privacy:Jurisdiction .
 
 privacy:dataSubjectLocationOperand a rl2:LeftOperand ;
     rdfs:label "Data-subject jurisdiction" ;
     rl2:resolutionPath "asset.dataSubjectLocation" ;
-    rdfs:range privacy:Jurisdiction .
+    rl2:valueType privacy:Jurisdiction .
 
 privacy:retentionExpiryOperand a rl2:LeftOperand ;
     rdfs:label "Retention expiry" ;
     rl2:resolutionPath "asset.retentionExpiry" ;
-    rdfs:range xsd:dateTimeStamp .
+    rl2:valueType xsd:dateTimeStamp .
 
 privacy:collectionDateOperand a rl2:LeftOperand ;
     rdfs:label "Collection date" ;
     rl2:resolutionPath "asset.collectionDate" ;
-    rdfs:range xsd:dateTimeStamp .
+    rl2:valueType xsd:dateTimeStamp .
 
 privacy:lawfulBasisOperand a rl2:LeftOperand ;
     rdfs:label "Declared lawful basis" ;
     rl2:resolutionPath "context.lawfulBasis" ;
-    rdfs:range privacy:LawfulBasis .
+    rl2:valueType privacy:LawfulBasis .
 
 ############################################################
 # Value vocabularies

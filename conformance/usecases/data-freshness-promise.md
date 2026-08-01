@@ -12,7 +12,7 @@ The example expresses an ongoing quality commitment as a snapshot-derived invari
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -22,7 +22,7 @@ ex:CustomerDataset a rl2:Asset .
 ex:inspect a rl2:Action .
 
 ex:datasetAge a rl2:LeftOperand ;
-    rdfs:range xsd:dayTimeDuration ;
+    rl2:valueType xsd:dayTimeDuration ;
     rl2:resolutionPath "asset.metadata.datasetAge" .
 
 ex:isFresh a rl2:AtomicConstraint ;

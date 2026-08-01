@@ -594,6 +594,9 @@ Where:
 * `obligationStateOperand` accepts either `NormTarget(d : Duty)`, querying the derived Duty
   status, or `PromiseTarget(p)`, querying the derived status of an Offer-local Promise
 * `op.resolutionPath` — path expression declared on the operand via `rl2:resolutionPath`
+* `declaredType(op)` — the operand's expected value type, read from `rl2:valueType` (a
+  datatype IRI or profile value class); `rdfs:range` on an operand individual is tolerated
+  documentation only and is not consulted by the compile pass
 * `Err(Missing(key),note)` indicates the operand could not be resolved — never fatal,
   always lifted to `Unknown` at the condition level
 
@@ -601,7 +604,7 @@ All policy-visible contextual data uses declared `rl2:LeftOperand` instances. Co
 operands use the fixed branches above, `currentDateTime` uses its fixed `state.Clock` path, and
 profile operands use explicit snapshot paths. This provides:
 
-- Type safety (operands can declare expected ranges)
+- Type safety (operands declare an expected value type via `rl2:valueType`)
 - Validation (SHACL can verify operand usage)
 - Specifiability (one finite lookup algorithm)
 - Auditability (all data access points are declared)

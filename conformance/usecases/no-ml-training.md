@@ -12,7 +12,7 @@ AI training is a distinct action with distinct commercial and governance consequ
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:Publisher a rl2:Agent .
 ex:Licensee a rl2:Agent .

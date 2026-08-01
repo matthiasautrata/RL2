@@ -7,7 +7,8 @@
 This document is an informative index. The authoritative vocabulary and structural constraints
 are `../spec/rl2.ttl` and `../spec/rl2-shacl.ttl`.
 
-Namespace: `https://rl2.example/ontology#` (provisional)
+Namespace: `https://w3id.org/rl2#` — stable unless future W3C or organizational adoption forces
+a change; single-point-defined and always prefix-declared so a swap remains mechanical.
 
 ## 1. Policy and Clause Classes
 
@@ -146,13 +147,15 @@ Comparison operators are `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `isA`, `isAnyOf`
 | Term | Meaning |
 |---|---|
 | `rl2:LeftOperand` | Typed value resolved from the Request, WorldSnapshot, or a defined status query. |
+| `rl2:valueType` | The operand's declared value type (a datatype IRI or profile value class), read by the compile-time typing pass. Replaces the earlier use of `rdfs:range` on operand individuals, which is now tolerated documentation only. |
 | `rl2:resolutionPath` | Canonical scoped fact key declared by a profile operand. |
 | `rl2:RuntimeReference` | Dynamic right-side value. |
 | `rl2:currentDateTime` | `WorldSnapshot.evaluationTime`. |
 | `rl2:currentAgent` | Requesting agent, for a right-operand reference. |
 | `rl2:obligationStateOperand` | Derived status of the Duty or Offer-local Promise named by `targetNorm`. |
 
-Every profile-defined LeftOperand has one `resolutionPath`. Canonical roots are `agent`, `asset`,
+Every profile-defined LeftOperand has one `resolutionPath` and a `valueType`; an operand used in
+a policy without a declared `valueType` is a compile error. Canonical roots are `agent`, `asset`,
 `context`, `state`, `request`, and `global`; the information model defines their scopes.
 
 ## 9. Evidence

@@ -12,7 +12,7 @@ Actions, rather than ambiguous labels on a general “use” action, preserve th
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:Vendor a rl2:Agent .
 ex:Subscriber a rl2:Agent .

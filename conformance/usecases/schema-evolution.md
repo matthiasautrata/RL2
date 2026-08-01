@@ -12,7 +12,7 @@ The policy separates the business classification of a proposed change from the d
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -22,10 +22,10 @@ ex:deployChange a rl2:Action .
 ex:notifyConsumers a rl2:Action .
 
 ex:changeIsBreaking a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "state.schemaChange.breaking" .
 ex:noticePeriodElapsed a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "state.schemaChange.noticePeriodElapsed" .
 
 ex:compatibleChangePrivilege a rl2:Privilege ;

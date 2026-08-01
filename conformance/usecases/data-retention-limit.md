@@ -12,7 +12,7 @@ The access restriction and the deletion obligation are separate norms. A conditi
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 ex:Provider a rl2:Agent .

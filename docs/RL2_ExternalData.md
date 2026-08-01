@@ -33,9 +33,9 @@ selected by explicit actor, action, object, interval, and profile criteria.
 
 ## 3. Profile-Declared Operands
 
-A profile defines an operand's identity, value type, cardinality, allowed operators, and canonical
-`rl2:resolutionPath`. It may also require explicit issuer, source, profile version, or freshness
-metadata.
+A profile defines an operand's identity, value type (via `rl2:valueType`), cardinality, allowed
+operators, and canonical `rl2:resolutionPath`. It may also require explicit issuer, source, profile
+version, or freshness metadata.
 
 A resolution path is a key in the semantic snapshot. It is not a host-language property path and
 does not authorize a live lookup. Unknown operands and unsupported profile versions are errors.
@@ -59,7 +59,7 @@ module:
 ```text
 RequiredInput = (
     key          : FactKey,                 -- scope + canonical path
-    valueType    : ValueType,               -- declared operand range
+    valueType    : ValueType,               -- declared via the operand's rl2:valueType
     cardinality  : SingleValued | SetValued,
     trust        : profile's admissibleFact requirement, if any (issuer/source/profile/freshness)
 )

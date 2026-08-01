@@ -15,14 +15,14 @@ the real gating work instead of a subject match against one hardcoded agent.
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:PersonalFile a rl2:Asset .
 ex:read a rl2:Action .
 
 ex:dataOwner a rl2:LeftOperand ;
-    rdfs:range rl2:Agent ;
+    rl2:valueType rl2:Agent ;
     rl2:resolutionPath "asset.dataOwner" .
 
 ex:ownerPrivilege a rl2:Privilege ;

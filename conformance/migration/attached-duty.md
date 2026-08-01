@@ -29,7 +29,7 @@ ex:source a odrl:Set ;
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:user a rl2:Agent .
 ex:dataset a rl2:Asset .

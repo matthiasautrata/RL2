@@ -18,14 +18,14 @@ permitted and obligated.
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:read a rl2:Action .
 ex:logAccess a rl2:Action .
 
 ex:dataClassification a rl2:LeftOperand ;
-    rdfs:range ex:Classification ;
+    rl2:valueType ex:Classification ;
     rl2:resolutionPath "asset.classification" .
 
 ex:Classification a rdfs:Class .

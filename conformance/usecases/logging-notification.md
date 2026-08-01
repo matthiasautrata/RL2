@@ -12,7 +12,7 @@ RL2 can express the duties and classify them from snapshot evidence. It does not
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -23,7 +23,7 @@ ex:access a rl2:Action .
 ex:recordUsage a rl2:Action .
 ex:notifyIncident a rl2:Action .
 ex:securityIncident a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "global.securityIncident.confirmed" .
 
 ex:accessSharedData a rl2:Privilege ;

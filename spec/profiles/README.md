@@ -8,18 +8,18 @@ version 0.1.0 and imports the RL2 0.7 ontology.
 
 A profile-defined operand used by `Eval` declares:
 
-- one semantic value type with `rdfs:range`; and
+- one semantic value type with `rl2:valueType`; and
 - one `rl2:resolutionPath` into the immutable `WorldSnapshot`.
 
 ```turtle
 @prefix ex:   <https://example.org/profile#> .
-@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix rl2:  <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
 ex:department a rl2:LeftOperand ;
     rdfs:label "Department" ;
-    rdfs:range xsd:string ;
+    rl2:valueType xsd:string ;
     rl2:resolutionPath "agent.department" .
 ```
 

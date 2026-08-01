@@ -16,14 +16,14 @@ requester, correctly delimits the population to approved agents only.
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:SensitiveDataset a rl2:Asset .
 ex:access a rl2:Action .
 
 ex:approvalValid a rl2:LeftOperand ;
-    rdfs:range <http://www.w3.org/2001/XMLSchema#boolean> ;
+    rl2:valueType <http://www.w3.org/2001/XMLSchema#boolean> ;
     rl2:resolutionPath "agent.ethicsApprovalValid" .
 
 ex:datasetAccessPrivilege a rl2:Privilege ;

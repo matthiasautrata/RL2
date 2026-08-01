@@ -15,7 +15,7 @@ Negation must preserve missing-data semantics instead of treating an unknown fac
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix account: <https://example.org/profile/account#> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:User a rl2:Agent .
@@ -23,7 +23,7 @@ ex:Platform a rl2:Asset .
 ex:access a rl2:Action .
 
 account:status a rl2:LeftOperand ;
-    rdfs:range account:Status ;
+    rl2:valueType account:Status ;
     rl2:resolutionPath "agent.accountStatus" .
 account:Suspended a account:Status .
 

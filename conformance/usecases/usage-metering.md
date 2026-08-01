@@ -12,7 +12,7 @@ Metered rights require an unambiguous admission test. RL2 evaluates a supplied i
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:Subscriber a rl2:Agent .
 ex:AnalyticsService a rl2:Asset .
 ex:query a rl2:Action .
 ex:quotaAdmitsRequest a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "global.quota.requestedPlusUsedWithinLimit" .
 
 ex:meteredQuery a rl2:Privilege ;

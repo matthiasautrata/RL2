@@ -22,7 +22,7 @@ every `EvaluationResult` for this policy, independent of which action was reques
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 ex:Regulator a rl2:Agent .

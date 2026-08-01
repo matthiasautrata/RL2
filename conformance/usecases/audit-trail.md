@@ -12,7 +12,7 @@ The policy treats audit evidence as a prerequisite Duty and exposes the distinct
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 
 ex:Trader a rl2:Agent .
 ex:Order a rl2:Asset .

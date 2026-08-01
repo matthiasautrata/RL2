@@ -12,7 +12,7 @@ A data vendor licenses reference data to a company for use within that company. 
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:Licensee a rl2:Agent .
 ex:ReferenceData a rl2:Asset .
 ex:use a rl2:Action .
 ex:recipientClass a rl2:LeftOperand ;
-    rdfs:range xsd:string ;
+    rl2:valueType xsd:string ;
     rl2:resolutionPath "context.recipient.class" .
 
 ex:internalUse a rl2:Privilege ;

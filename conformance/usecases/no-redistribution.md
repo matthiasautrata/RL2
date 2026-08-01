@@ -12,7 +12,7 @@ Redistribution is distinct from ordinary use. An explicit prohibition makes the 
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:Bank a rl2:Agent .
 ex:MarketData a rl2:Asset .
 ex:redistribute a rl2:Action .
 ex:requiredDisclosure a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "context.requiredDisclosure" .
 
 ex:noRedistribution a rl2:Prohibition ;

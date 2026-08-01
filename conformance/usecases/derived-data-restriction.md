@@ -12,7 +12,7 @@ Whether a derivative is externally distributable is often determined by a docume
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -21,7 +21,7 @@ ex:Bank a rl2:Agent .
 ex:MarketIndicator a rl2:Asset .
 ex:distribute a rl2:Action .
 ex:nonReconstructing a rl2:LeftOperand ;
-    rdfs:range xsd:boolean ;
+    rl2:valueType xsd:boolean ;
     rl2:resolutionPath "asset.assessment.nonReconstructing" .
 
 ex:distributeSafeDerivative a rl2:Privilege ;

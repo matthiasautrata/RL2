@@ -56,7 +56,7 @@ The following Set authorizes research use of a dataset when the request context 
 research purpose.
 
 ```turtle
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix ex:  <https://example.org/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -79,7 +79,7 @@ ex:Researcher a rl2:Agent .
 ex:use a rl2:Action .
 ex:Dataset a rl2:Asset .
 ex:purpose a rl2:LeftOperand ;
-    rdfs:range xsd:string ;
+    rl2:valueType xsd:string ;
     rl2:resolutionPath "context.purpose" .
 ```
 
@@ -141,7 +141,7 @@ by qualifying evidence that the Duty subject performed the action on the Duty ob
 postcondition, if present, must hold at that witness.
 
 ```turtle
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix ex:  <https://example.org/> .
 
 ex:noticePolicy a rl2:Set ;
@@ -169,7 +169,7 @@ half-open `rl2:dutyWindow` represents a warranty-like period: the invariant must
 `[startInclusive, endExclusive)`.
 
 ```turtle
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix ex:  <https://example.org/> .
@@ -199,7 +199,7 @@ ex:Provider a rl2:Agent .
 ex:Customer a rl2:Agent .
 ex:Service a rl2:Asset .
 ex:availability a rl2:LeftOperand ;
-    rdfs:range xsd:decimal ;
+    rl2:valueType xsd:decimal ;
     rl2:resolutionPath "asset.availability" .
 ```
 

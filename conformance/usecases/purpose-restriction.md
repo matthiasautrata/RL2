@@ -12,7 +12,7 @@ Purpose is a policy-visible input. Declaring its resolution path makes two evalu
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -20,7 +20,7 @@ ex:Provider a rl2:Agent .
 ex:Institution a rl2:Agent .
 ex:HealthDataset a rl2:Asset .
 ex:process a rl2:Action .
-ex:purpose a rl2:LeftOperand ; rdfs:range xsd:string ; rl2:resolutionPath "context.purpose" .
+ex:purpose a rl2:LeftOperand ; rl2:valueType xsd:string ; rl2:resolutionPath "context.purpose" .
 
 ex:researchProcessing a rl2:Privilege ;
     rl2:subject ex:Institution ; rl2:action ex:process ; rl2:object ex:HealthDataset ;

@@ -49,7 +49,7 @@ the same evaluator semantics as any other policy.
 ## Example
 
 ```turtle
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rl2: <https://w3id.org/rl2#> .
 @prefix ex:  <https://example.org/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -91,5 +91,6 @@ uv run tools/validate.py --per-fence spec/RL2_Semantics.md
 
 ## Status
 
-RL2 0.7 is a draft proposal for technical and academic review. The example namespace is
-provisional.
+RL2 0.7 is a draft proposal for technical and academic review. The namespace is
+`https://w3id.org/rl2#`, stable unless future W3C or organizational adoption forces a change; the
+namespace is single-point-defined and always prefix-declared so a swap remains mechanical.
