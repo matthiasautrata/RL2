@@ -47,7 +47,8 @@ Request = (
     requestingAgent : Agent,
     requestedAction : Action,
     requestedAsset  : Asset,
-    parameters      : finite map Name -> Value
+    parameters      : finite map Name -> Value,
+    id              : (IRI | String)?
 )
 ```
 
@@ -55,6 +56,14 @@ Request = (
 `rl2:anyAgent` and `rl2:anyAsset` (used only in norm `rl2:subject`/`rl2:object` to declare an
 attribute-defined population; see `RL2_Semantics.md` §Request Matching) are never valid values
 here. A Request naming a sentinel is invalid and rejected before evaluation.
+
+`id` is an OPTIONAL caller-supplied stable identifier for this request/decision — an IRI or a
+string, at the caller's discretion. Identifier allocation is explicit caller input, exactly like
+`materialize`'s `Acceptance`-supplied identifiers (§8): `Eval` never mints a fresh identifier of
+its own. `id` has no meaning to matching, conditions, or resolution; its sole normative role is as
+the per-grant occurrence-identity input to `occurrenceOf` (`RL2_Semantics.md` §Duty Template
+Binding). A Request omitting `id` is ordinary and fully valid — the fallback per-member occurrence
+identity (§7.2) applies.
 
 `parameters` carries request-specific input that the requester itself supplies — a record count,
 a target format, a stated purpose — resolved through `request.parameters.<name>` (see
@@ -117,12 +126,13 @@ AttributedFact = (
 )
 
 Evidence = (
-    id          : IRI,
-    occurredAt  : Time,
-    actor       : Agent,
-    action      : Action,
-    object      : Resource,
-    attribution : Attribution
+    id           : IRI,
+    occurredAt   : Time,
+    actor        : Agent,
+    action       : Action,
+    object       : Resource,
+    attribution  : Attribution,
+    dischargeOf  : (IRI, IRI | String)?
 )
 ```
 
@@ -131,7 +141,13 @@ records an observed action used by Duty and Promise status functions. `id` ident
 assertion or evidence item, not the real-world entity described by it. `Attribution.observedAt`
 is the assembler-recorded assertion time (distinct from `validDuring`, which bounds applicability,
 not observation); a profile may expose it as an ordinary resolvable operand for a freshness check
-(see `RL2_ExternalData.md` §5).
+(see `RL2_ExternalData.md` §5). `dischargeOf` is optional and, when present, names the PER-GRANT
+`occurrenceId` — `(sourceIdentity, Request.id)`, the identifier `occurrenceOf` assigns at grant
+time (§7.2) — of the specific bound occurrence this evidence claims to discharge. Only PER-GRANT
+occurrences are discharge-correlated: PER-MEMBER occurrences, gated bound prerequisites, and
+authored concrete Duties all use ordinary evidence selection, so an assembler that cannot
+correlate evidence to a specific grant leaves the field absent, and absence never disqualifies
+evidence from any Duty without a PER-GRANT occurrence to discharge (§4.3).
 
 The snapshot is a coherent mathematical value. RL2 does not require that it be stored as one
 record, produced by event sourcing, or shared across evaluations. Implementations may assemble it
@@ -251,23 +267,37 @@ supplied. There is no ambient request scope.
 The query functions make the error boundary explicit:
 
 ```text
-selectEvidence(selector, W, C) =
+selectEvidence(d, selector, W, C) =
     let raw = {
         e in W.evidence |
         actorActionObjectTimeMatch(e, selector, W.evaluationTime)
-        and admitsEvidence(selector, e, C)
+        and admitsEvidence(d, e, C)
     }
     in Ok(raw)
 ```
 
 Core Duty and Promise selectors use the subject, the required action plus its finite set of
 included actions, the object, and the applicable temporal interval. These values come from the
-clause; they are not implicitly copied from the current Request. `admitsEvidence` is the
-evidence-side admissibility filter defined in §4.4, over the `evidenceSigners` entry (if any) for
-this selector's Duty-evidence scope. An evidence item that fails the filter is excluded from `raw`
+clause; they are not implicitly copied from the current Request. `d` is the Duty (or, for a
+Promise, its proposed Duty, `RL2_Semantics.md` §Denotational Semantics for Norms) whose evidence is
+being selected — carried alongside `selector` because `admitsEvidence`'s key is the Duty's own
+identity, not the selector's shape (below). `admitsEvidence` is the evidence-side admissibility
+filter defined in §4.4, over the `evidenceSigners` entry (if any) for `d`. An evidence item that
+fails the filter is excluded from `raw`
 exactly as if it had never matched; `selectEvidence` is therefore total. No matching evidence —
 whether because none was ever asserted or because every match was filtered out — is `Ok(empty)`,
 meaning performance has not been established, never a distinct error.
+
+**Per-grant discharge correlation.** When the Duty being evaluated is a PER-GRANT bound occurrence
+(§7.2 — its `occurrenceId` is `(sourceIdentity, Request.id)`, because the originating Request
+carried an `id`), an evidence item matching `actorActionObjectTimeMatch` additionally discharges it
+only when `e.dischargeOf` equals that same `occurrenceId`; uncorrelated evidence — `dischargeOf`
+absent or naming a different occurrence — matches the selector's actor/action/object/time shape
+but does not discharge this specific grant, so it is excluded from `achievementCandidates` for that
+occurrence's status even though it may remain visible for another query. A PER-MEMBER bound
+occurrence and an authored concrete Duty (one with no `occurrenceId` at all) are unaffected by
+`dischargeOf`: matching is `actorActionObjectTimeMatch` and `admitsEvidence` alone, exactly as
+before this field existed.
 
 ### 4.4 Admissibility and trust
 
@@ -286,12 +316,18 @@ what makes two conforming evaluators byte-identical over equal configuration:
 
 | Constraint | Keyed by | Present: a candidate fails when | Absent |
 |---|---|---|---|
-| `allowedSources` | a left-operand's resolution path (`FactKey.path`) | `attribution.source` is outside the declared finite set of source IRIs | unrestricted — every source admitted |
-| `maxAge` | a left-operand's resolution path | `attribution.observedAt` is older than `evaluationTime - maxAge` (a `Duration`) | unrestricted — no freshness bound |
-| `evidenceSigners` | a Duty-evidence scope (the clause's `EvidenceSelector` shape) | `attribution.issuer` is outside the declared finite set of attestor/signer IRIs | unrestricted — every signer admitted |
+| `allowedSources` | a left-operand's resolution path (`FactKey.path`) | `attribution.source` is outside the declared finite set of source IRIs, or absent | unrestricted — every source admitted |
+| `maxAge` | a left-operand's resolution path | `attribution.observedAt` is older than `evaluationTime - maxAge` (a `Duration`), or absent | unrestricted — no freshness bound |
+| `evidenceSigners` | **the owning Duty's own stable identity** — `sourceIdentity(d)`, its compiled-module IRI/`SourceRef` (`RL2_Semantics.md` §Duty Template Binding) — not the clause's `EvidenceSelector` shape | `attribution.issuer` is outside the declared finite set of attestor/signer IRIs, or absent | unrestricted — every signer admitted |
 
 A scope absent from the record is unrestricted, not an error — there is no more "a profile required
 to declare a fact-admissibility predicate" obligation; admissibility is configuration-only data.
+Keying `evidenceSigners` by `sourceIdentity(d)` rather than by selector shape means a bound
+occurrence — whether a per-grant or per-member `occurrenceId`, or a `BoundIdentity` from
+prerequisite gating (§7.2) — inherits its originating template's entry unchanged: binding varies the
+agent, asset, and (for `occurrenceOf`) the window and identity, but never the Duty's own
+`sourceIdentity`, so one authored `evidenceSigners` entry governs every occurrence of that Duty
+regardless of who requested it.
 `Admissibility` has a canonical JSON representation using the same conventions as the §5.1 canonical
 serialization (sorted keys). It is carried inside `EvaluationConfiguration` and therefore covered by
 the configuration echo/digest in `EvaluationResult` (`RL2_Compilation.md` §7): two evaluators given
@@ -299,13 +335,24 @@ byte-equal configuration apply byte-equal admissibility.
 
 ```text
 admitsFact(k, f, C)       = (k not in dom(C.admissibility.allowedSources)
-                                 or f.attribution.source in C.admissibility.allowedSources(k))
+                                 or (f.attribution.source is present
+                                     and f.attribution.source in C.admissibility.allowedSources(k)))
                             and (k not in dom(C.admissibility.maxAge)
-                                 or f.attribution.observedAt >= W.evaluationTime - C.admissibility.maxAge(k))
+                                 or (f.attribution.observedAt is present
+                                     and f.attribution.observedAt >= W.evaluationTime - C.admissibility.maxAge(k)))
 
-admitsEvidence(sel, e, C) = sel not in dom(C.admissibility.evidenceSigners)
-                                 or e.attribution.issuer in C.admissibility.evidenceSigners(sel)
+admitsEvidence(d, e, C)   = sourceIdentity(d) not in dom(C.admissibility.evidenceSigners)
+                                 or (e.attribution.issuer is present
+                                     and e.attribution.issuer in C.admissibility.evidenceSigners(sourceIdentity(d)))
 ```
+
+**Absent-attribution rule.** When a constraint is configured for a key or Duty but the specific
+candidate's corresponding attribution field is itself absent — no `source`, no `observedAt`, or no
+`issuer` — the candidate fails that filter; an absent field is never treated as vacuously
+admissible in either direction: a configured constraint with an absent field always fails
+(conservative), and an unconfigured scope never inspects the field at all, present or absent
+(deterministic — `admitsFact`/`admitsEvidence` are total, pure functions of `C` and the candidate's
+own fields).
 
 **Filter semantics.** An item failing the filter is treated by resolution exactly as if absent —
 never a silent fallback to another candidate and never a distinct error kind. `resolveFact` (§4.2)
@@ -313,8 +360,17 @@ filters `candidates` by `admitsFact` before the empty/type/conflict rules run: a
 candidate fails the filter is `Missing`, the ordinary attributed error for that operand, exactly like
 a key with no candidates at all. `selectEvidence` (§4.3) filters `raw` by `admitsEvidence` the same
 way: evidence filtered to empty is `Ok(empty)`, the same "not yet established" outcome as a selector
-that matched nothing. This keeps the filter inside the existing three-valued discipline and makes
-over-restrictive configuration visible in causes, rather than a hidden, unreported rejection.
+that matched nothing. This keeps the filter inside the existing three-valued discipline, but the
+visibility claim needs to be read precisely, not as a blanket "always visible in causes":
+a fact candidate filtered by `allowedSources`/`maxAge` surfaces as an ordinary attributed `Missing`
+cause, because `resolveFact` has an empty-candidates branch that already produces one. Evidence
+filtered by `evidenceSigners` has no analogous branch: `selectEvidence` filtering `raw` to empty is
+`Ok(empty)`, a definite status (typically `Pending`, or `Known(Fulfilled)` failing to hold) with
+**no distinct cause of its own** — indistinguishable, from inside one evaluation, from no evidence
+having been asserted at all. An `evidenceSigners` entry that is simply too narrow (excluding a
+signer that should have been trusted) is therefore visible only by comparing two evaluations'
+`Admissibility` configuration digests (`RL2_Compilation.md` §7) side by side, never by inspecting
+one evaluation's `diagnostics` or causes.
 
 **Threat model (normative).** `WorldSnapshot` is the output of a single trusted assembler — the
 component, external to `Eval`, that gathers facts and evidence from underlying sources, performs the
@@ -390,7 +446,7 @@ An `EvaluationResult` is an immutable semantic value:
 EvaluationResult = (
     decision           : Decision,
     normativeEnvelope : finite set of AttributedNormativeAtom,
-    dutyStatuses       : finite map Duty -> StatusResult<DutyStatus>,
+    dutyStatuses       : finite map (Duty | OccurrenceId | BoundIdentity) -> StatusResult<DutyStatus>,
     promiseStatuses    : finite map Promise -> StatusResult<PromiseStatus>,
     diagnostics        : finite set of EvalError
 )
@@ -408,16 +464,24 @@ Decision ::= Permit
 `normativeEnvelope` is the complete policy- and clause-attributed input to resolution, including
 definite and indeterminate atoms. It is intentionally not claimed to be a minimal proof set.
 The two status maps expose the declarative results for Duties and Promises in the supplied policy
-universe: `dutyStatuses` covers every independent or attached Duty reachable from any supplied
-policy, including an Offer, and `promiseStatuses` covers every Promise clause. A status reported
-for an Offer is descriptive only; it does not make the Offer or any of its clauses operative. A
-Duty status participates in access derivation only through a `prerequisiteDuty` relation — declared
-on an owning Privilege or on its owning Policy; a Duty that is a Policy clause only, and never the
-object of `prerequisiteDuty`, never changes the access decision. Every Duty named by an `obligate`
-atom in `normativeEnvelope` — whether from an independent clause or from a firing `consequentDuty`
-(§7.2) — is a concrete, sentinel-free occurrence: a sentinel-carrying Duty template is bound to the
-request's agent and asset before it is ever placed in the envelope (`RL2_Semantics.md` §Duty
-Template Binding). `diagnostics`
+universe. `dutyStatuses` has two disjoint kinds of entry, by construction never colliding: a
+**concrete-Duty entry**, keyed by Duty identity, covers every concrete (sentinel-free) Duty
+reachable from any supplied policy, including an Offer — a template contributes no entry under its
+own identity, since `dutyStatus` is never applied to one (§7.2); and a **bound-occurrence entry**,
+present only when this evaluation's Request actually produced one, keyed by the `occurrenceId`
+`occurrenceOf` assigned at a consequent-duty or independent-clause site, or by the `(sourceIdentity,
+agent, asset)` `BoundIdentity` a template resolved to at a prerequisite-gating site (§7.2,
+`RL2_Semantics.md`'s `boundOccurrenceStatuses`). A bound-occurrence entry lets a later query
+re-identify that occurrence's status from the recorded key without re-deriving the binding.
+`promiseStatuses` covers every Promise clause. A status reported for an Offer is descriptive only;
+it does not make the Offer or any of its clauses operative. A Duty status participates in access
+derivation only through a `prerequisiteDuty` relation — declared on an owning Privilege or on its
+owning Policy; a Duty that is a Policy clause only, and never the object of `prerequisiteDuty`,
+never changes the access decision. Every Duty named by an `obligate` atom in `normativeEnvelope` —
+whether from an independent clause or from a firing `consequentDuty` (§7.2) — is a concrete,
+sentinel-free occurrence: a sentinel-carrying Duty template is bound to the request's agent and
+asset before it is ever placed in the envelope (`RL2_Semantics.md` §Duty Template Binding).
+`diagnostics`
 uses the causal error algebra defined by the Semantics. Explanatory labels, localized
 messages, traces, timestamps, signatures, and persistence identifiers are optional interchange or
 implementation metadata unless a profile gives them policy meaning.
@@ -511,12 +575,28 @@ A Duty has one or more of three structural roles, and any combination may hold a
 
 A Duty's `rl2:subject` or `rl2:object` may be the sentinel `rl2:anyAgent` / `rl2:anyAsset` (§3);
 such a Duty is a **template** naming an attribute-defined population, not a concrete occurrence,
-and has no standalone status of its own. In every request-context place a template Duty is
-consulted or emitted — prerequisite gating, consequent-duty firing, and independent-clause atom
-emission — it is first bound to the request's concrete agent and asset (`RL2_Semantics.md` §Duty
-Template Binding); no sentinel ever appears in an emitted `obligate` atom or in a `dutyStatus`
-query. A **bound occurrence** produced this way, once recorded in an `EvaluationResult`, is an
-ordinary concrete Duty and may be status-evaluated again against a later snapshot.
+and has no standalone status of its own; it never receives an entry in `dutyStatuses` as itself
+(§6). In every request-context place a template Duty is consulted or emitted, it is first bound to
+the request's concrete agent and asset (`RL2_Semantics.md` §Duty Template Binding), by one of two
+mechanisms depending on the site:
+
+- **prerequisite gating and attached-duty reporting** use unchanged, pure substitution —
+  `bind(d,agent,asset)` — with no request-scoped transformation; a `request.*` path read in these
+  request-free contexts yields an attributed `Missing`, not a value.
+- **consequent-duty firing and independent-clause atom emission** use `occurrenceOf(d, Env)`,
+  which additionally (a) consumes the Duty's `condition` — evaluated once, in the request
+  environment, and dropped from the emitted occurrence; (b) resolves `window` to an `Absolute`
+  window or `None` at grant time via `resolveWindow`, never an unresolved `Relative` window (a
+  `resolveWindow` failure yields an indeterminate atom carrying that failure's causes instead of an
+  occurrence); and (c) assigns an `occurrenceId` — `(sourceIdentity(d), Request.id)` when the
+  request carries an `id` (PER-GRANT), else `(sourceIdentity(d), agent, asset)` (PER-MEMBER
+  fallback, coalescing repeated grants by the same agent/asset pair).
+
+No sentinel ever appears in an emitted `obligate` atom or in a `dutyStatus` query. A **bound
+occurrence** produced by either mechanism, once recorded in an `EvaluationResult`, is an ordinary
+concrete Duty value and may be status-evaluated again against a later snapshot; an occurrence
+produced by `occurrenceOf` is additionally re-identifiable by its recorded `occurrenceId`
+(`RL2_Semantics.md`'s `boundOccurrenceStatuses`, §6 below).
 
 A Duty that is both a Policy clause and a prerequisite is a standing obligation that also gates
 access: it contributes its own `obligate` atom as an independent clause, and independently gates

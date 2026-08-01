@@ -62,8 +62,12 @@ may be shared by several Privileges.
 `rl2:prerequisiteDuty` and `rl2:consequentDuty` may both carry a Duty whose subject or object is a
 sentinel (`rl2:anyAgent`/`rl2:anyAsset`, §6): such a Duty is a template with no standalone status,
 bound to the request's concrete agent and asset wherever it is consulted or emitted
-(`RL2_Semantics.md` §Duty Template Binding). No sentinel ever appears in an emitted `obligate` atom
-or in a `dutyStatus` query.
+(`RL2_Semantics.md` §Duty Template Binding). Prerequisite gating uses plain substitution
+(`bind`); `consequentDuty` firing additionally consumes the Duty's condition, resolves its window
+at grant time, and assigns it a per-grant or per-member `occurrenceId` (`occurrenceOf`,
+`RL2_Semantics.md` §Duty Template Binding) — the two mechanisms share the same sentinel-elimination
+guarantee but are not interchangeable. No sentinel ever appears in an emitted `obligate` atom or in
+a `dutyStatus` query.
 
 ## 4. Duty Forms
 

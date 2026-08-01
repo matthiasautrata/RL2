@@ -23,13 +23,31 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
   missing anchor; sentinel-population norm with missing population fact.
 - F-01 vectors (sentinel Duty binding, `rl2:consequentDuty`): positive — a Privilege's
   `consequentDuty` fires on grant and the envelope carries the *bound* obligate atom
-  (`bind(d, requestAgent, requestAsset)`), never the sentinel-bearing template; bound
+  (`occurrenceOf(d, Env)`), never the sentinel-bearing template; bound
   prerequisite-gating positive and negative — a sentinel-carrying `prerequisiteDuty` template is
   gated via `dutyStatus(bind(d, requestAgent, requestAsset))`, both fulfilled and unmet; a
   consequent Duty with an `Unknown` condition of its own — confirms the decision outcome is
   unaffected by a consequent Duty's condition value (only the Privilege's own `accessResult.truth
   = True` gates firing); `UnboundStatusTarget` negative compile vector — an
   `rl2:obligationStateOperand` targeting a Duty whose `rl2:subject`/`rl2:object` is a sentinel.
+- R-01/R-02/R-03 vectors (status-map and occurrence model, `spec/RL2_Semantics.md` §Duty Template
+  Binding and Eval composition): a template Duty (prerequisite, consequent, or independent) reached
+  via the widened `allDuties(P)` receives **no** entry in `dutyStatuses` under its own identity —
+  only `concrete(d)` Duties do; a bound occurrence produced by `occurrenceOf` at a consequent-duty
+  or independent-clause site contributes a `dutyStatuses` entry keyed by its `occurrenceId`,
+  disjoint from the concrete-Duty key space (`boundOccurrenceStatuses`). TWO-IDENTICAL-READS — same
+  agent, same asset, two distinct `Request.id` values against the same template, with Evidence
+  carrying `dischargeOf` naming only the first occurrence's `occurrenceId` — the first occurrence is
+  `Known(Fulfilled)` and the second stays `Known(Pending)`, confirming per-grant discharge does not
+  leak across `Request.id` values. Per-member fallback — two grants of the same template to the same
+  agent/asset with no `Request.id` on either request coalesce onto one `occurrenceId`, so evidence
+  discharging the first grant also discharges the second. Consequent-duty trigger condition
+  consumed — an `occurrenceOf`-produced occurrence carries `condition := None` (the Privilege's own
+  `accessResult` already decided applicability at grant time), so a later `dutyStatus`
+  re-evaluation of that recorded occurrence cannot re-decide firing eligibility, only fulfillment.
+  Occurrence window resolved at grant time — an occurrence's `window` is `resolveWindow`'s output
+  computed once against the granting evaluation's own snapshot, so a later evaluation supplying a
+  different snapshot does not re-anchor a relative window to the new snapshot's clock.
 - F-05 materialization vectors — action Promise with postCondition crystallizes into an
   Achievement Duty carrying it (positive); state Promise with postCondition rejected by
   `PromiseShape` (negative).
@@ -131,14 +149,30 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   vocabulary question; `odrl:implies` stays rejected; `includedIn` stays core.
 - F-01 (sentinel Duty subject/object with no instance binding): resolved via new
   `rl2:consequentDuty` (Privilege → Duty, non-gating, the post-use/companion counterpart to
-  `rl2:prerequisiteDuty`) plus a universal `bind(d, a, o)` substitution applied at exactly four
-  request-context sites — prerequisite gating, attached-duty reporting, `consequentDuty` emission,
-  and independent-clause atom emission. Envelope atoms and `dutyStatus` queries are always
-  concrete and sentinel-free;
-  `dutyStatus` itself stays defined on concrete duties only (a bound occurrence recorded in an
-  `EvaluationResult` is concrete and re-evaluable). Sentinels remain legal in Duty templates but
-  are `SentinelMisuse` on a Promise (a Promise crystallizes at materialization with no binding
-  source). ODRL `odrl:duty` from a Permission is `clarified`, not `normalized`: a
+  `rl2:prerequisiteDuty`). The regression review (`fix-codex.md` R-01..R-03) correctly called this
+  cycle's original "resolved" claim premature: a single `bind(d, a, o)` substitution at all four
+  request-context sites left template Duties reachable by `dutyStatus` unbound (R-01), gave a bound
+  Duty no per-grant occurrence identity (R-02), and gave Duty conditions incompatible request/status
+  evaluation scopes (R-03). The completed model instead splits the four sites into two mechanisms:
+  **prerequisite gating** and **attached-duty reporting** keep unchanged, pure `bind(d, a, o)`
+  substitution, with a `request.*` path in these request-free contexts yielding an attributed
+  `Missing`; **`consequentDuty` emission** and **independent-clause atom emission** use
+  `occurrenceOf(d, Env)` instead, which additionally consumes the Duty's `condition` (evaluated once,
+  in the request environment), resolves `window` to `Absolute` or `None` via `resolveWindow` at grant
+  time (never an unresolved `Relative` window — a `resolveWindow` failure yields an indeterminate
+  atom, not a broken occurrence), and assigns an `occurrenceId` — `(sourceIdentity(d), Request.id)`
+  when the request carries one (PER-GRANT), else `(sourceIdentity(d), agent, asset)` (PER-MEMBER
+  fallback, coalescing repeated grants). `dutyStatuses` (`RL2_Model.md` §6) is restricted to
+  `concrete(d)` Duties under their own identity — a template contributes no entry there — plus a
+  lazily-computed entry per bound occurrence, keyed by `occurrenceId` (from `occurrenceOf`) or by
+  `BoundIdentity` (from a bound prerequisite at gating); the two key spaces are disjoint by
+  construction (`RL2_Semantics.md`'s `boundOccurrenceStatuses`). `Evidence.dischargeOf`
+  (`RL2_Model.md` §4.3) correlates evidence to a specific PER-GRANT occurrence; PER-MEMBER
+  occurrences and authored concrete Duties are unaffected. Envelope atoms and `dutyStatus` queries
+  are always concrete and sentinel-free; a bound occurrence recorded in an `EvaluationResult` is
+  concrete and re-evaluable, and re-identifiable by its recorded key. Sentinels remain legal in Duty
+  templates but are `SentinelMisuse` on a Promise (a Promise crystallizes at materialization with no
+  binding source). ODRL `odrl:duty` from a Permission is `clarified`, not `normalized`: a
   `TranslationConfiguration` must declare per profile/policy whether it means
   `prerequisiteDuty` or `consequentDuty`; an undeclared interpretation is
   `MissingTranslationInterpretation`.
@@ -174,3 +208,17 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   failing the filter is treated exactly as absent, yielding the ordinary attributed `Missing`
   (never a distinct error kind, never a silent skip). The full per-operand data contract and a
   normative `RequiredInputs` companion stay deferred (§6).
+- R-04/R-05 (admissibility completion and closure complexity, `fix-codex.md`): `evidenceSigners` is
+  keyed by the owning Duty's own stable identity (`sourceIdentity(d)`), not by `EvidenceSelector`
+  shape, so a bound occurrence inherits its template's entry unchanged regardless of who requested
+  it. A configured constraint (`allowedSources`, `maxAge`, or `evidenceSigners`) whose candidate
+  lacks the attribution field it reads fails that filter, deterministically and conservatively in
+  both directions. The "visible in causes" claim for admissibility filtering is qualified, not
+  retracted: a filtered fact surfaces as an ordinary attributed `Missing`; filtered-to-empty evidence
+  is a definite status (typically `Pending`) with no distinct cause of its own; an over-restrictive
+  `evidenceSigners` entry is visible only by comparing two evaluations' configuration digests side by
+  side, never by inspecting one evaluation's causes. Separately, the Complexity Analysis section's
+  closure-construction claim (O(`n_hier`) space *and* O(1) membership for the same representation)
+  was not simultaneously achievable and is corrected: `n_closure` (reachable pairs, up to `V²`) names
+  the materialized closure's actual size, and the section now states the materialized-vs-compact
+  space/lookup-cost trade-off explicitly instead of asserting both sides of it at once.

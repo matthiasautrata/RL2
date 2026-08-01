@@ -207,8 +207,16 @@ The Duties reachable from a Policy are:
 ```
 independentDuties(P) = { d : Duty | d ∈ P.clauses }
 attachedDuties(P)    = ⋃ { effectivePrerequisites(P,n) | n : Privilege ∈ P.clauses }
-allDuties(P)         = independentDuties(P) ∪ attachedDuties(P)
+allDuties(P)         = independentDuties(P) ∪ attachedDuties(P) ∪
+                        ⋃ { n.consequentDuties | n : Privilege ∈ P.clauses }
 ```
+
+`allDuties(P)` now also collects every `rl2:consequentDuty` reachable from `P`'s Privilege clauses,
+so it is the complete set of Duties a Policy reaches through any of its three structural roles
+(`RL2_Model.md` §7.2: prerequisite, independent, consequent). `allDuties` has exactly one caller,
+`deriveDutyStatuses` (§Normative Derivation vs Resolution), and this widening only adds members to
+the set that function filters by `concrete(d)` — a template consequent Duty still receives no
+unconditional status-map entry, exactly as before.
 
 A Duty may occur in both sets: it may be an independent clause of a Policy while also being
 referenced — directly on a Privilege or via that Privilege's owning Policy's `prerequisiteDuty` —
@@ -836,7 +844,7 @@ time; later unrelated state cannot retroactively make an action successful:
 
 ```
 achievementCandidates(d, rw, U, W, C) =
-    selectEvidence(actionSelector(d.subject, d.body.action, d.object, rw, U), W, C)
+    selectEvidence(d, actionSelector(d.subject, d.body.action, d.object, rw, U), W, C)
 
 qualifies(d, e, U, W, C) =
     case d.body.postCondition of
@@ -849,6 +857,19 @@ is equal to or included in `x` under `U.actionAncestors`, and whose occurrence t
 (or unrestricted when `w=None`). `w` here is the *resolved* window (see `resolveWindow` above),
 never an unresolved `Relative` endpoint. `selectEvidence` then applies the snapshot's attribution
 rules from `RL2_Model.md` §4.3.
+
+**Per-grant discharge correlation.** When `d` is a bound occurrence carrying a PER-GRANT
+`occurrenceId` (§Duty Template Binding — an `occurrenceId` derived from a `Request.id`),
+`achievementCandidates` requires the further conjunct `e.dischargeOf = d.occurrenceId` for an
+evidence item `e` to remain a candidate, in addition to the ordinary actor/action/object/window
+match: `selectEvidence(d, actionSelector(d.subject, d.body.action, d.object, rw, U), W, C)` filtered
+to `{ e | e.dischargeOf = d.occurrenceId }`. Uncorrelated evidence — any `e` without a matching
+`dischargeOf` — never discharges a per-grant occurrence, so evidence recorded for one read cannot
+discharge another read of the same template by the same agent and asset. This is the honest cost
+of per-grant identity: the caller who wants two reads tracked separately must also correlate their
+evidence. A PER-MEMBER occurrence (no `Request.id`, §Duty Template Binding) and every authored
+concrete Duty (no `occurrenceId` at all) use `achievementCandidates` exactly as defined above, with
+no `dischargeOf` conjunct — ordinary evidence selection is entirely unaffected by this rule.
 
 `achievementStatus` is total; it takes the already-resolved window `rw` from its caller
 (`dutyStatus`), which performs `resolveWindow` once:
@@ -984,7 +1005,7 @@ promiseStatus(pr, U, W, C) =
                 None → IndeterminateStatus({
                     Missing({ site: StatusSite(PromiseTarget(pr)),
                               target: Some(PromiseTarget(pr)) }) })
-                Some(s) → case selectEvidence(actionSelector(p,x,s,None,U), W, C) of
+                Some(s) → case selectEvidence(d, actionSelector(p,x,s,None,U), W, C) of
                     Err(e)    → IndeterminateStatus({e})
                     Ok(∅)     → Known(Pending)
                     Ok(_)     → Known(Fulfilled)
@@ -1086,11 +1107,16 @@ here only; implementing a profile's operators is that profile's own, separate co
 
 ## Denotational Semantics for Norms
 
-Norms are evaluated in the context of a **Request** `R = (a_req, x_req, s_req)` specifying the requesting agent, requested action, and target asset. The denotation takes both the request and an environment constructed from it.
+Norms are evaluated in the context of a **Request** `R = (a_req, x_req, s_req, id?)` specifying
+the requesting agent, requested action, target asset, and an OPTIONAL caller-supplied stable
+identifier `id` for this request/decision (`RL2_Model.md` §3). `id` is explicit caller input, never
+a value `Eval` mints; it plays no role in matching or conditions and is consulted only by
+`occurrenceOf` (§Duty Template Binding) to derive a bound occurrence's per-grant identity. The
+denotation takes both the request and an environment constructed from it.
 
 ### Environment Construction
 
-Given a PolicyUniverse `U`, Request `R = (a_req, x_req, s_req)`, WorldSnapshot `W`, and
+Given a PolicyUniverse `U`, Request `R = (a_req, x_req, s_req, id?)`, WorldSnapshot `W`, and
 EvaluationConfiguration `C`:
 
 ```
@@ -1205,27 +1231,85 @@ bind(d, a, o) = d with
     -- all other fields (condition, dutyWindow, body, counterparty) unchanged
 ```
 
-`bind` is the identity on a Duty that carries no sentinel. It is applied in exactly four
-request-context places, each tied to a Privilege or Duty that has already matched the current
-Request `R = Env.Request`, so the substitution values are always `R.requestingAgent` and
-`R.requestedAsset`:
+`bind` is the identity on a Duty that carries no sentinel, and it is a pure subject/object
+substitution only — condition, window, body, and counterparty are untouched. It is applied,
+unchanged, in exactly two of the four request-context places a template Duty is consulted:
 
 1. **Prerequisite gating** (§Pre-Resolution Normative Envelope) — `prerequisiteResult` consults
    the bound duty, not the raw (possibly sentinel-bearing) template.
 2. **Attached-duty reporting** (§Normative Derivation) — `ownerScopeResult` evaluates the bound
    duty's applicability, and the `obligate`/`indeterminate` atoms emitted for `attachedDuties(P)`
    target the bound duty.
-3. **`rl2:consequentDuty` derivation** (§Normative Derivation) — the obligate atom emitted when a
-   Privilege fires is that of the bound duty.
+
+Both places evaluate the Duty's own applicability `condition` through `dutyConditionResult`, i.e.
+request-free, scoped by `mkStatusEnv(U, bound.subject, Some(bound.object), W, C)` — the same
+discipline `dutyStatus` itself later uses for the identical Duty. A `condition` written against
+`request.*` is therefore invalid in either role: `mkStatusEnv` sets `Request` to `None`
+(§Declarative Duty and Promise status), so a `request.*` path resolves to an attributed `Missing`,
+never to the live Request.
+
+The remaining two places do not merely substitute subject/object — they produce a **bound
+occurrence**: the concrete, freestanding value placed in the envelope and, later, optionally
+re-queried by `dutyStatus` against a subsequent snapshot with no request context at all:
+
+```
+occurrenceOf(d, Env) =
+    let bd = bind(d, Env.Request.requestingAgent, Env.Request.requestedAsset) in
+    case resolveWindow(bd.window, bd, Env.Universe, Env.Snapshot, Env.Configuration) of
+        Err(causes) → Err(causes)
+        Ok(rw)      → Ok(bd with
+                            condition    := None,
+                            window       := rw,
+                            occurrenceId := occurrenceId(d, bd, Env.Request))
+
+occurrenceId(d, bd, R) =
+    case R.id of
+        Some(rid) → (sourceIdentity(d), rid)              -- PER-GRANT
+        None      → (sourceIdentity(d), bd.subject, bd.object)  -- PER-MEMBER (fallback)
+```
+
+`occurrenceOf` performs three further transformations beyond `bind`:
+
+a. **`condition := None`.** For a consequent or independent Duty, the Duty's applicability
+   `condition` — folded into `effectiveCondition(P,d)` — is evaluated exactly once, in the full
+   request environment, to decide whether the atom is emitted at all (§Pre-Resolution Normative
+   Envelope, below). The atom's presence already records that outcome, so the condition is
+   **consumed by the trigger**: nothing request-scoped survives into the occurrence. This is what
+   makes a bound occurrence re-evaluable against a later snapshot with no request context —
+   `dutyStatus` sees `condition = None` and treats the occurrence as unconditionally applicable,
+   correctly, since applicability was already decided at grant time.
+b. **`window := resolveWindow(...)`.** `resolveWindow` runs once, at grant time, against *this*
+   evaluation's own snapshot and configuration (`Env.Snapshot`, `Env.Configuration`). The
+   occurrence therefore carries an `Absolute` window or `None`, never an unresolved `Relative`
+   endpoint: "log within 24h" anchors at this grant's own `receivedAt`, not at whatever snapshot a
+   later status query happens to supply. If `resolveWindow` fails, `occurrenceOf` returns `Err`;
+   the emission site (§Pre-Resolution Normative Envelope) turns this into an `indeterminate` atom
+   carrying those causes in place of the `obligate` atom the Duty would otherwise have received —
+   an occurrence is never emitted with a broken window.
+c. **`occurrenceId := ...`.** `sourceIdentity(d)` is the template Duty's own stable node identity
+   (its compiled-module IRI/`SourceRef`). When `Env.Request.id` is present, the occurrence's
+   identity pairs that source identity with the caller-supplied request identifier — **PER-GRANT**:
+   two evaluations of an otherwise identical request (same template, same agent, same asset) but
+   distinct `Request.id` values yield two distinct occurrences, independently tracked and
+   independently dischargeable (`RL2_Model.md` §4.3, `Evidence.dischargeOf`). When `Request.id` is
+   absent, the identity instead pairs the source identity with the bound agent and asset —
+   **PER-MEMBER**: repeated grants of the same template to the same agent and asset coalesce onto
+   one standing bound obligation. Per-member is the documented fallback semantics, and the only
+   behavior available when the caller supplies no `Request.id`.
+
+`occurrenceOf` is applied in the other two of the four request-context places:
+
+3. **`rl2:consequentDuty` derivation** (§Normative Derivation) — the atom emitted when a
+   Privilege fires targets the occurrence.
 4. **Independent Duty clause atom emission** (§Normative Derivation, the existing
-   `independentDuties(P)` rule) — the emitted `obligate` atom is bound likewise.
+   `independentDuties(P)` rule) — the emitted atom targets the occurrence likewise.
 
 **Invariant.** No sentinel individual (`rl2:anyAgent`, `rl2:anyAsset`) ever appears as the subject
 or object of a Duty inside an emitted `NormativeAtom`, nor as the `d.subject`/`d.object` supplied
 to a `dutyStatus` query. Every duty reaching `dutyStatus` or an envelope atom in a request context
-has already passed through `bind`. `dutyStatus` itself is unchanged and continues to assume a
-concrete, sentinel-free duty (§Declarative Duty and Promise status) — templates are made concrete
-by their caller, not by `dutyStatus`.
+has already passed through `bind` (sites 1–2) or `occurrenceOf` (sites 3–4). `dutyStatus` itself is
+unchanged and continues to assume a concrete, sentinel-free duty (§Declarative Duty and Promise
+status) — templates are made concrete by their caller, not by `dutyStatus`.
 
 Action subsumption is defined by the transitive closure of `rl2:includedIn`:
 
@@ -1560,33 +1644,46 @@ Out(S, Env) =
     ⋃ { deriveNorms(P, Env) | P ∈ S }
 
 bindReq(d, Env) = bind(d, Env.Request.requestingAgent, Env.Request.requestedAsset)
-    -- (§Duty Template Binding): the concrete duty for atoms and status queries raised in this
-    -- request's own evaluation
+    -- (§Duty Template Binding): the concrete duty consulted for prerequisite gating and attached-
+    -- duty reporting — sites 1–2, pure subject/object substitution only
 
 deriveNorms(P, Env) =
     if P : Offer then ∅
     else
         { permit(n, P)   | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
         { forbid(n, P)   | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
-        { obligate(bindReq(d,Env), P) | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
+        { obligate(o, P) | d ∈ independentDuties(P), matchesRequest(d, Env),
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = True, occurrenceOf(d,Env) = Ok(o) } ∪
         { obligate(bindReq(d,Env), P) | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = True } ∪
-        { obligate(bindReq(d,Env), P)
+        { obligate(o, P)
                          | n : Privilege ∈ P.clauses, d ∈ n.consequentDuties,
                            matchesRequest(n, Env), accessResult(P,n,Env).truth = True,
-                           ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = True, occurrenceOf(d,Env) = Ok(o) } ∪
         { indeterminate(n, P, accessResult(P,n,Env).causes)
                          | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
         { indeterminate(n, P, accessResult(P,n,Env).causes)
                          | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
         { indeterminate(bindReq(d,Env), P, ⟦effectiveCondition(P,d)⟧(Env).causes)
                          | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown } ∪
+        { indeterminate(bindReq(d,Env), P, causes)
+                         | d ∈ independentDuties(P), matchesRequest(d, Env),
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = True, occurrenceOf(d,Env) = Err(causes) } ∪
         { indeterminate(bindReq(d,Env), P, attachedDutyResult(P,d,Env).causes)
                          | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = Unknown } ∪
         { indeterminate(bindReq(d,Env), P, ⟦effectiveCondition(P,d)⟧(Env).causes)
                          | n : Privilege ∈ P.clauses, d ∈ n.consequentDuties,
                            matchesRequest(n, Env), accessResult(P,n,Env).truth = True,
-                           ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown }
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown } ∪
+        { indeterminate(bindReq(d,Env), P, causes)
+                         | n : Privilege ∈ P.clauses, d ∈ n.consequentDuties,
+                           matchesRequest(n, Env), accessResult(P,n,Env).truth = True,
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = True, occurrenceOf(d,Env) = Err(causes) }
 ```
+
+The two new `occurrenceOf(d,Env) = Err(causes)` clauses fire only when the Duty's applicability
+condition already evaluated `True` (the atom would otherwise have been `obligate`) but grant-time
+`resolveWindow` failed; they report the window-resolution causes on the bound-but-unresolved duty,
+never a silently absent or broken-window occurrence.
 
 The `rl2:consequentDuty` clause above fires only alongside its own Privilege's grant
 (`accessResult(P,n,Env).truth = True`); it contributes no term to `accessResult` itself and so
@@ -1595,9 +1692,14 @@ cannot affect whether that Privilege — or any other norm — resolves to `Perm
 existing independent-Duty condition discipline, the same rule `independentDuties(P)` uses just
 above, not the status-scoped `mkStatusEnv` discipline used for prerequisite gating: a
 `consequentDuty` is a request-context obligation like an independent clause, not a status
-observation. Both the independent-clause and consequent-duty atoms are emitted for the *bound*
-duty (`bindReq`, §Duty Template Binding); a sentinel-carrying template Duty never itself becomes
-the target of an `obligate` or `indeterminate` atom.
+observation. Both the independent-clause and consequent-duty atoms are emitted for the
+*occurrence* produced by `occurrenceOf` (§Duty Template Binding): the condition above is what
+decided whether the atom fires at all and is consumed rather than carried into the emitted
+occurrence, whose own `window` is separately resolved at this same grant and whose identity is
+per-grant or per-member depending on whether this Request carries an `id`. A sentinel-carrying
+template Duty never itself becomes the target of an `obligate` or `indeterminate` atom, and an
+unresolved `Relative` window never reaches the envelope as part of an occurrence — a grant-time
+window-resolution failure yields an `indeterminate` atom instead (above).
 
 `deriveNorms` reads the Request, snapshot, and configuration only through `Env`; there is no free
 mutable state or external-context argument.
@@ -1736,10 +1838,12 @@ Eval(U, R, W, C) =
     in if errors ≠ ∅ then
         EvaluationResult(Indeterminate, ∅, ∅, ∅, errors)
     else
-        let dutyStatuses = deriveDutyStatuses(U, W, C)     -- pure, memoizable support
+        let concreteStatuses = deriveDutyStatuses(U, W, C)     -- pure, memoizable support
         let promiseStatuses = derivePromiseStatuses(U, W, C)
         let Env = mkEnv(U, R, W, C)
         let envelope = Out(U, Env)
+        let boundStatuses = boundOccurrenceStatuses(U, Env, envelope)
+        let dutyStatuses = concreteStatuses ∪ boundStatuses    -- disjoint key spaces (below)
         let resolved = resolveDecision(envelope, C.strategy)
         let decision = if resolved = NotApplicable then C.defaultDecision else resolved
         in EvaluationResult(decision,
@@ -1749,17 +1853,61 @@ Eval(U, R, W, C) =
                             diagnosticsOf(envelope, dutyStatuses, promiseStatuses))
 ```
 
-`deriveDutyStatuses` is total over every independent or attached Duty reachable from the policy
-universe and returns an immutable map. This makes every prerequisite result defined even when
-the Duty does not itself produce an envelope atom:
+`deriveDutyStatuses` is restricted to **concrete** Duties. `concrete(d) = d.subject ≠
+rl2:anyAgent ∧ d.object ≠ rl2:anyAsset`, defined once and used wherever concreteness is tested.
+A template — including a template reached only via the widened `allDuties` above — receives no
+entry in this unconditional map: `dutyStatus` is never applied to a template (§Duty Template
+Binding's invariant), so the map that fed it one is repaired to match:
 
 ```text
 deriveDutyStatuses(U, W, C) =
-    { d ↦ dutyStatus(d,U,W,C) | P ∈ U, d ∈ allDuties(P) }
+    { d ↦ dutyStatus(d,U,W,C) | P ∈ U, d ∈ allDuties(P), concrete(d) }
 
 derivePromiseStatuses(U, W, C) =
     { p ↦ promiseStatus(p,U,W,C) | p is a Promise clause in U }
 ```
+
+Gating is unaffected by this restriction: `fulfilledResult` (§Pre-Resolution Normative Envelope)
+calls `dutyStatus(bind(...))` inline on the already-bound duty, not through this map, exactly as
+before.
+
+**Bound-occurrence entries.** `dutyStatuses` also carries a lazily-computed entry for every bound
+occurrence produced *during this evaluation* — a concrete value that exists only because this
+particular Request was matched, and so cannot be precomputed independently of `R`:
+
+```text
+boundOccurrenceStatuses(U, Env, envelope) =
+    { o.occurrenceId ↦ dutyStatus(o,U,Env.Snapshot,Env.Configuration)
+        | atom ∈ envelope, atom = obligate(o,_) ∨ atom = indeterminate(o,_,_), occurrenceOf produced o } ∪
+    { boundIdentity(d,bd) ↦ dutyStatus(bd,U,Env.Snapshot,Env.Configuration)
+        | P ∈ U, n : Privilege ∈ P.clauses, d ∈ effectivePrerequisites(P,n), ¬concrete(d),
+          bd = bind(d,Env.Request.requestingAgent,Env.Request.requestedAsset) }
+
+boundIdentity(d, bd) = (Prerequisite, sourceIdentity(d), bd.subject, bd.object)
+```
+
+The first clause covers every occurrence emitted at the consequent-duty and independent-clause
+sites (3–4): its key is the `occurrenceId` computed by `occurrenceOf` (§Duty Template Binding),
+which is per-grant when this Request carried an `id` and per-member otherwise. The second clause
+covers a template consulted as a bound prerequisite at gating (site 1): `fulfilledResult`'s
+internal `dutyStatus(bind(...))` call is exactly what this clause re-exposes under a stable key, so
+a later status query can find the same result the access decision itself relied on. Attached-duty
+reporting (site 2) contributes no map entry: `ownerScopeResult` only evaluates the Duty's
+applicability truth value, never a full `dutyStatus`, so there is no status here to expose without
+computing one that gating itself never needed.
+
+**Key spaces are disjoint by construction.** `concreteStatuses` is keyed by Duty identity (a
+compiled-module Duty node — concrete Duties are never templates, so they are never also
+`occurrenceId`s or `boundIdentity`s, which exist only for templates). `occurrenceId` and
+`boundIdentity` are disjoint by the explicit `Prerequisite` role tag on `boundIdentity`. The tag is
+not decoration: one template Duty may legitimately be both an independent clause and a
+prerequisite (§Abstract Syntax, Policies), and for a Request without an `id` its per-member
+`occurrenceId` `(sourceIdentity(d), agent, asset)` would otherwise be the same tuple as its gating
+`boundIdentity` — while mapping to *different* values (the emitted occurrence has its condition
+consumed and its window grant-resolved; the gated bound duty keeps both). The tag keeps the two
+entries distinct. A later status query re-identifies a bound occurrence by the `occurrenceId` or
+`boundIdentity` recorded against it in the audit record (`RL2_Compilation.md` §7), not by
+re-deriving it from scratch.
 
 Input errors short-circuit policy derivation because no condition may read an invalid semantic
 input.
@@ -2158,7 +2306,8 @@ operators, and snapshot assembly — are named rather than folded into one opaqu
 | `n_cond` | Number of condition nodes (AtomicConstraint/LogicalConstraint) reachable from those clauses (`≤ MaxConditionDepth`-bounded per clause) |
 | `n_facts` | Number of `WorldSnapshot.facts` referenced during one evaluation (`≤ MaxSnapshotFacts`) |
 | `n_ev` | Number of `WorldSnapshot.evidence` items considered (`≤ MaxSnapshotEvidence`) |
-| `n_hier` | Number of action/type hierarchy edges (`rl2:includedIn`, `rdfs:subClassOf`) in the compiled closure |
+| `n_hier` | Number of action/type hierarchy edges (`rl2:includedIn`, `rdfs:subClassOf`) declared in the module, before closure |
+| `n_closure` | Number of reachable pairs in the hierarchy's transitive closure (`n_hier ≤ n_closure ≤ V²`, `V` the number of hierarchy nodes — a dense DAG can make `n_closure` quadratic in `V` even for modest `n_hier`) |
 | `n_dep` | Number of edges in the finite `targetNorm`/`obligationStateOperand` status-dependency graph (acyclic by `StatusDependencyCycle`, `RL2_Compilation.md` §2.2) |
 | `n_cells` | Number of temporal cells constructed for a windowed Maintenance Duty's invariant evaluation |
 
@@ -2167,7 +2316,7 @@ operators, and snapshot assembly — are named rather than folded into one opaqu
 | Operation | Complexity |
 |-----------|------------|
 | Per-clause condition evaluation | O(`n_cond` × fact-lookup-cost) — O(1) per lookup with a fact index, O(`n_facts`) without one |
-| Evidence selection | O(`n_ev` × h), h a bounded action-hierarchy lookup (`h ≤ n_hier`) |
+| Evidence selection | O(`n_ev` × h), h one action-hierarchy lookup — O(1) with a materialized closure, O(depth) or O(`n_hier`) with a compact representation (b) |
 | Windowed Maintenance Duty evaluation | O(`n_cells` × `n_cond`) — the invariant condition is evaluated once per temporal cell, not once total |
 | Status-dependency traversal | O(`n_dep`) to visit the acyclic `targetNorm` graph in dependency order |
 | Norm matching | O(`n_clauses`) — `n_clauses` already totals clauses across the universe |
@@ -2181,10 +2330,24 @@ state the **memoized** cost; naive per-reference recomputation is not the intend
 what these bounds describe.
 
 **(b) Compile-time closure construction.** Action-inclusion and type/subclass closures
-(`RL2_Compilation.md` §5, "Materialized closures") are computed once, at compile time, in O(`n_hier`)
-space. Their size feeds evaluation only as a constant-time index lookup per condition or evidence
-match; the closure-construction cost itself is amortized across every evaluation of the compiled
-module, not paid per `Eval` call.
+(`RL2_Compilation.md` §5, "Materialized closures") are computed once, at compile time, from the
+`n_hier` declared edges — but a transitive closure's own size is not bounded by `n_hier`: it is
+`n_closure`, the number of reachable pairs, which can be quadratic in the hierarchy's node count
+even when `n_hier` is small (a shallow, wide DAG). Claiming both O(`n_hier`) space and constant-time
+membership lookup for the same representation is not simultaneously achievable in general, so a
+compiled module's representation makes an explicit trade-off, and closure construction time is paid
+once, at compile time, regardless of which side of the trade-off is chosen:
+
+- **Materialized** — every reachable pair stored explicitly (e.g. as a hash set of `(ancestor,
+  descendant)` pairs): O(`n_closure`) space, O(1) membership per lookup.
+- **Compact** — only the `n_hier` declared edges stored, with reachability answered by graph
+  traversal at query time: O(`n_hier`) space, but each query then costs O(depth) for a tree-shaped
+  hierarchy or O(`n_hier`) worst case for an arbitrary DAG, not O(1).
+
+Either way, closure construction itself costs O(`V · n_hier`) worst case (`V` the number of
+hierarchy nodes) and is amortized across every evaluation of the compiled module, paid once at
+compile time, not per `Eval` call — only the per-lookup cost during evaluation differs between the
+two representations.
 
 **(c) Profile-operator cost is outside core bounds.** A `rl2:ProfileOperator` (`RL2_Compilation.md`
 §9.1) is required to be pure and total, but its cost is declared and accounted by the profile that
@@ -2199,8 +2362,10 @@ credential verification, connector execution, catalog/selection logic — is the
 
 **(e) Total, for reference.** Folding (a) into one expression: `O(n_clauses × (n_cond ×
 factLookup + n_ev × h + n_cells × n_cond) + n_dep + n_hier + k²)`, where the memoized status cost is
-already counted once per distinct Duty rather than per reference. Indexes may reduce lookup cost
-without changing meaning. Implementations may hash-index candidate norms by `(subject, action,
+already counted once per distinct Duty rather than per reference, and `h` is O(1) under a
+materialized closure (adding a one-time O(`n_closure`) compile-time space term, not folded into this
+per-evaluation total) or O(depth)/O(`n_hier`) under a compact representation (b). Indexes may reduce
+lookup cost without changing meaning. Implementations may hash-index candidate norms by `(subject, action,
 object)` for the fast bound-norm path; `rl2:anyAgent`/`rl2:anyAsset` sentinel-subject or
 sentinel-object norms cannot key into that index and form a separate, always-scanned bucket.
 

@@ -18,10 +18,11 @@ of the Policy: it never contributes an independently-matched obligation of its o
 `rl2:subject`/`rl2:object` sentinels are never themselves checked against `dutyStatus` or placed in
 an envelope — a template Duty has no standalone status (`RL2_Semantics.md` §Duty Template Binding).
 It fires only as a consequence of the Privilege granting, and only then is it turned into a
-concrete, sentinel-free occurrence: `bind()` replaces `rl2:anyAgent` with the requesting agent and
-`rl2:anyAsset` with the requested asset before the obligation is placed in the envelope. This is the
-F-01 fix in miniature — a Duty may carry sentinels, but no sentinel ever reaches an emitted envelope
-atom or a `dutyStatus` query. (Contrast `attestation-gating.md`, where a named, sentinel-free Duty
+concrete, sentinel-free occurrence: `occurrenceOf()` replaces `rl2:anyAgent` with the requesting
+agent and `rl2:anyAsset` with the requested asset, consumes the (here absent) applicability
+condition, and resolves the (here unbounded) window, before the obligation is placed in the
+envelope. This is the F-01 fix in miniature — a Duty may carry sentinels, but no sentinel ever
+reaches an emitted envelope atom or a `dutyStatus` query. (Contrast `attestation-gating.md`, where a named, sentinel-free Duty
 plays a *prerequisite* — gating — role instead of a consequent one.)
 
 ## Canonical policy
@@ -75,15 +76,16 @@ holds, so `accessResult(ex:homeLoanReadPrivilege, ex:homeLoanPolicy, Env) = True
 carries `permit(requestingAgent, ex:read, ex:LoanBook2026, ex:homeLoanPolicy)`; the decision is
 `Permit`. Because `accessResult` is `True` (not merely non-`False`), the Privilege's
 `rl2:consequentDuty` fires: the envelope also carries the bound obligate atom
-`obligate(bind(ex:homeLoanAccessLogDuty, requestingAgent, ex:LoanBook2026),
-ex:homeLoanPolicy)` — a concrete, sentinel-free Duty occurrence with the requesting agent as
-subject and `ex:LoanBook2026` as object in place of the template's `rl2:anyAgent`/`rl2:anyAsset`,
-attributed to `ex:homeLoanAccessLogDuty` as its source. This bound occurrence is recorded in the
-`EvaluationResult`; being a concrete Duty, a later evaluation of that same occurrence against a
-subsequent `WorldSnapshot` yields an ordinary `dutyStatus` (e.g. `Known(Fulfilled)` once admissible
-Evidence records the requesting agent performing `ex:logAccess` on `ex:LoanBook2026`) — the same
-well-defined audit path as any concrete Duty, even though the obligation did not exist as a named
-individual until it was bound.
+`obligate(occurrenceOf(ex:homeLoanAccessLogDuty, Env), ex:homeLoanPolicy)` — a concrete,
+sentinel-free Duty occurrence with the requesting agent as subject and `ex:LoanBook2026` as object
+in place of the template's `rl2:anyAgent`/`rl2:anyAsset`, attributed to `ex:homeLoanAccessLogDuty`
+as its source (`RL2_Semantics.md` §Duty Template Binding). Since this Request carries no `id`, the
+occurrence's identity is the PER-MEMBER fallback `(ex:homeLoanAccessLogDuty, requestingAgent,
+ex:LoanBook2026)`: a later evaluation for the same agent and asset re-identifies and coalesces onto
+this same occurrence rather than minting another one, and yields an ordinary `dutyStatus` (e.g.
+`Known(Fulfilled)` once admissible Evidence records the requesting agent performing `ex:logAccess`
+on `ex:LoanBook2026`) — the same well-defined audit path as any concrete Duty, even though the
+obligation did not exist as a named individual until it was bound.
 
 A request for an asset classified other than `ex:HomeLoan` makes the condition `False`: no atom for
 the Privilege is placed in the envelope at all, and the `consequentDuty` does not fire (firing

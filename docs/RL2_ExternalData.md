@@ -66,7 +66,7 @@ RequiredInput = (
 
 RequiredEvidence = (
     selector     : EvidenceSelector shape (actor/action-set/object/interval as declared by the clause),
-    trust        : the Admissibility record's evidenceSigners entry for this scope, if any
+    trust        : the Admissibility record's evidenceSigners entry for this Duty (keyed by the Duty's IRI; a bound occurrence inherits its template's entry), if any
 )
 
 RequiredInputs = (
