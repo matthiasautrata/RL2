@@ -6,8 +6,7 @@
 """
 RL2 SHACL validation harness.
 
-Validates RL2 policies against the core ontology and, while the SCOPE-2 corpus
-migration is in progress, the retained future-protocol ontology. Targets may be:
+Validates RL2 policies against the core ontology and SHACL shapes. Targets may be:
 
   - Turtle files (.ttl), validated directly, or
   - Markdown use cases (.md), whose ```turtle fenced blocks are extracted and
@@ -39,8 +38,6 @@ from rdflib import Graph
 ROOT = Path(__file__).resolve().parent.parent
 CORE_ONTOLOGY_FILES = ["spec/rl2.ttl"]
 CORE_SHAPES_FILES = ["spec/rl2-shacl.ttl"]
-FUTURE_PROTOCOL_ONTOLOGY_FILES = ["future/protocol/rl2p.ttl"]
-FUTURE_PROTOCOL_SHAPES_FILES = ["future/protocol/rl2p-shacl.ttl"]
 
 # Standard prefixes injected before markdown-extracted Turtle so illustrative
 # snippets that omit their own @prefix lines still resolve. A block's own @prefix
@@ -48,7 +45,6 @@ FUTURE_PROTOCOL_SHAPES_FILES = ["future/protocol/rl2p-shacl.ttl"]
 PREAMBLE = """\
 @prefix ex:   <https://example.org/> .
 @prefix rl2:  <https://rl2.example/ontology#> .
-@prefix rl2p: <https://rl2.example/protocol#> .
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
@@ -242,12 +238,6 @@ def main() -> int:
     ap.add_argument("targets", nargs="*", help="Markdown or Turtle files to validate")
     ap.add_argument("--shapes-only", action="store_true", help="Only load ontology + shapes")
     ap.add_argument(
-        "--core-only",
-        action="store_true",
-        help="Load only spec/rl2.ttl + spec/rl2-shacl.ttl. By default the retained "
-        "future protocol is also loaded while the 52-case corpus is being migrated.",
-    )
-    ap.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -269,9 +259,6 @@ def main() -> int:
 
     ontology_files = list(CORE_ONTOLOGY_FILES)
     shapes_files = list(CORE_SHAPES_FILES)
-    if not args.core_only:
-        ontology_files += FUTURE_PROTOCOL_ONTOLOGY_FILES
-        shapes_files += FUTURE_PROTOCOL_SHAPES_FILES
 
     print(f"Loading ontology: {', '.join(ontology_files)}")
     ont = load_graph(ontology_files)

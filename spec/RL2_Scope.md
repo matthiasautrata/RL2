@@ -1,19 +1,13 @@
 # RL2 Scope and Conformance Boundary
 
-## Status
-
-This document records the governing SCOPE-2 project decision. It supersedes SCOPE-1 where that
-decision included a runtime protocol, persistent Case model, or implementation-oriented IR in
-the core specification deliverable.
-
 ## Purpose
 
 RL2 is an AI-generatable, deterministically evaluable policy language that extends and clarifies
-ODRL 2.2. Its primary purpose is to remove semantic choices that allow reasonable independent
-ODRL evaluators to disagree about the meaning of the same policy.
+ODRL 2.2. It addresses semantic choices that can cause independent evaluators to assign different
+meanings to the same policy.
 
 For the same canonical policy universe, request, world snapshot, and evaluation configuration,
-conforming RL2 evaluators produce the same observable evaluation result.
+conforming RL2 evaluators produce the same evaluation result.
 
 ## Normative Evaluation Contract
 
@@ -28,84 +22,83 @@ Eval(
 ) -> EvaluationResult
 ```
 
-The normative specification defines:
+RL2 defines:
 
 - canonical policy syntax and RDF-to-AST projection;
-- policy, rule, norm, party, action, asset, and condition meaning;
-- request structure and request-to-rule matching;
-- the contents and interpretation of an immutable world snapshot;
+- Privilege, Prohibition, Duty, and Promise clauses;
+- policy, party, action, asset, and condition meaning;
+- request structure and request-to-norm matching;
+- immutable world snapshots and attributed evidence;
 - missing, invalid, conflicting, and indeterminate information;
-- duty applicability, attachment, fulfillment, violation, and indeterminacy;
+- Duty applicability, fulfillment, violation, and indeterminacy;
 - policy composition, priority, and conflict resolution;
-- Promise and Hohfeldian constructs included in the RL2 language;
-- the semantic Offer-to-Agreement transformation;
-- evaluation results and the evidence needed to explain them;
-- conformance parameters required for two evaluators to agree.
+- pure Offer-to-Agreement materialization;
+- evaluation results and their determining norms and diagnostics;
+- explicit ODRL 2.2 translation rules; and
+- conformance parameters required for independent evaluators to agree.
 
-The specification may use abstract state or evidence histories as semantic input. Such input is a
-mathematical value supplied to `Eval`; it does not prescribe a storage or messaging architecture.
+The evaluation contract may consume histories or externally derived values as finite snapshot
+data. It does not prescribe how those inputs are collected or stored.
 
-## Out of Core Scope
+## Normative Positions
 
-The following are not requirements on a conforming RL2 language evaluator:
+RL2 standardizes conduct norms with observable evaluator behavior:
 
-- persistent Case management;
-- event-sourced storage;
-- scheduling and re-evaluation triggers;
-- clocks as active event producers;
-- database layout, indexing, caching, or optimized IR design;
-- compare-and-swap, locking, retry, or transaction protocols;
-- replica consistency, consensus, or distributed commit;
+- a Privilege may contribute a permit;
+- a Prohibition may contribute a denial;
+- a Duty contributes an obligation and a derived status; and
+- a Promise records a proposed commitment in an Offer and may materialize into a Duty.
+
+A Duty's optional `counterparty` identifies the beneficiary or other party to whom the Duty is
+owed. RL2 does not require an additional Claim node to repeat that relationship.
+
+Assignment, delegation, amendment, revocation, termination, and the legal effectiveness of such
+acts require a separate normative-instrument transformation. RL2 does not standardize that
+transformation and therefore does not expose Power, Liability, or Immunity as core norm classes.
+
+## Out of Scope
+
+The following are not requirements on a conforming RL2 evaluator:
+
+- policy administration and discovery;
+- request transport and authentication protocols;
+- persistent workflow or case management;
+- event-log storage, scheduling, and re-evaluation triggers;
+- database layout, indexing, caching, or an optimized intermediate representation;
+- locking, retry, transaction, replica-consistency, consensus, or distributed-commit protocols;
 - audit-log storage and retention;
-- enforcement, provisioning, masking, throttling, or session management;
+- enforcement, provisioning, masking, throttling, or resource reservation;
+- assignment, delegation, amendment, revocation, or termination of normative positions; and
 - a required implementation language, proof assistant, or verification toolchain.
 
-These topics may appear in informative reference designs or future companion specifications, but
-they do not affect core language conformance.
+## Duties and Evidence
 
-## State and Duties
-
-Duty fulfillment is language meaning and therefore remains in scope. RL2 defines duty status as a
-function of the duty, its attachment and temporal semantics, and evidence contained in the world
-snapshot. Implementations may persist or reconstruct that evidence in any way that preserves the
-normative input and result.
-
-The core must not require evaluation cadence to determine duty status. Observing the same evidence
-later must not produce a different result merely because an implementation skipped an intermediate
-state-machine transition.
+Duty fulfillment and violation are language semantics. RL2 derives Duty status from canonical
+Duty content, evaluation time, attributed facts, and action evidence in the supplied world
+snapshot. It does not require a persistent Duty state machine or an evaluation cadence.
 
 ## External Data
 
-RL2 defines how a world snapshot binds values required by conditions and how provenance, missing
-values, invalid values, and conflicts affect evaluation. Fetching, refreshing, trusting, storing,
-and distributing source data are deployment concerns unless a future profile standardizes them.
+A world snapshot binds every external value used during evaluation. RL2 defines how provenance,
+missing values, invalid values, and conflicts affect evaluation. Fetching, refreshing, trusting,
+storing, and distributing source data are deployment or profile concerns.
 
 ## ODRL 2.2 Migration
 
-RL2 does not require arbitrary ODRL 2.2 RDF graphs to be native canonical RL2. A conforming importer
-translates supported ODRL structures into canonical RL2 or returns a specified diagnostic.
-
-Each ODRL construct is classified as `exact`, `normalized`, `clarified`, `profile-dependent`,
-`rejected`, or `metadata-only`. A `clarified` mapping makes its added interpretation explicit; no
-importer may silently choose among materially different meanings.
-
-## Implementation and Verification
-
-The language and semantics must be precise enough to implement and verify an evaluator. A reference
-implementation, optimized IR, mechanized proof, and distributed deployment architecture are
-follow-on work. Their absence does not weaken the requirement that the normative algorithms be
-total, deterministic, bounded under declared conformance parameters, and testable against the
-conformance suite.
+A conforming importer translates supported ODRL 2.2 structures into canonical RL2 or returns a
+specified diagnostic. Each mapping is classified as `exact`, `normalized`, `clarified`,
+`profile-dependent`, `rejected`, or `metadata-only`. A clarified mapping states its additional
+interpretation explicitly; an importer does not silently choose among materially different
+meanings.
 
 ## Deliverables
 
-The SCOPE-2 project deliverables are:
+The RL2 proposal consists of:
 
-1. RL2 information model, ontology, SHACL shapes, and profiles.
-2. Formal evaluation semantics.
-3. ODRL 2.2 compatibility and migration specification.
-4. Structural and semantic conformance suite.
+1. the information model, ontology, SHACL shapes, and profiles;
+2. formal evaluation semantics;
+3. ODRL 2.2 migration rules; and
+4. structural and semantic conformance material.
 
-The Primer, vocabulary reference, and architecture overview are informative explanations of those
-deliverables. Protocol and reference-implementation documents are retained separately as future
-work.
+The Primer, architecture overview, external-data guidance, vocabulary reference, and bibliography
+are informative.

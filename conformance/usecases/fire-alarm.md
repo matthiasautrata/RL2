@@ -1,75 +1,50 @@
-# Use Case 4: Fire Alarm Evacuation
-
-**Pattern:** Sein-sollen (state-triggered, event-based)
-**Identity Check:** None (anyone may trigger)
-**Category:** Safety systems
+# Fire-Alarm Evacuation
 
 ## Scenario
 
-When a fire alarm is triggered (by anyone), all building occupants gain permission to use emergency exits.
+When a fire alarm is active, a building occupant may use an emergency exit.
 
-## Policy Intent
+## Why it matters
 
-> "If the alarm IS TRIGGERED, everyone may evacuate."
+This is a global state condition whose effect is independent of the agent or device that reported
+the alarm.
 
-## Key Characteristics
-
-- One trigger enables many beneficiaries
-- Identity of trigger irrelevant (Sein-sollen)
-- Safety takes precedence
-- Broadcast permission grant
-
-## Profile-Declared Actions
-
-```turtle
-@prefix safety: <https://example.org/profile/safety#> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-safety:useEmergencyExit a rl2:Action ;
-    rdfs:label "Use Emergency Exit" ;
-    rdfs:comment "Use emergency exit doors for evacuation." .
-```
-
-## RL2 Model (Unified State Approach)
+## Canonical policy
 
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix safety: <https://example.org/profile/safety#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-ex:fireAlarmEvent a rl2:Event .
+ex:Occupant a rl2:Agent .
+ex:EmergencyExit a rl2:Asset .
+ex:useEmergencyExit a rl2:Action .
+ex:fireAlarmActive a rl2:LeftOperand ;
+    rdfs:range <http://www.w3.org/2001/XMLSchema#boolean> ;
+    rl2:resolutionPath "state.fireAlarmActive" .
 
-ex:emergencyEvacuationPrivilege a rl2:Privilege ;
-    rl2:subject ex:BuildingOccupant ;
-    rl2:action safety:useEmergencyExit ;
-    rl2:object ex:EmergencyDoors ;
+ex:evacuatePrivilege a rl2:Privilege ;
+    rl2:subject ex:Occupant ;
+    rl2:action ex:useEmergencyExit ;
+    rl2:object ex:EmergencyExit ;
     rl2:condition [
-        # Sein-sollen: Only check event occurred, not who triggered
-        a rl2:EventConstraint ;
-        rl2:expectsEvent ex:fireAlarmEvent
-        # NO identity check - anyone's trigger enables everyone
+        a rl2:AtomicConstraint ;
+        rl2:leftOperand ex:fireAlarmActive ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperand true
     ] .
+
+ex:safetyPolicy a rl2:Set ;
+    rl2:clause ex:evacuatePrivilege .
 ```
 
-## Evaluation
+## Request and snapshot
 
-| Scenario | Alarm Triggered By | Request By | Result |
-|----------|-------------------|------------|--------|
-| Sensor trigger | Smoke detector | Alice | PERMIT |
-| Manual trigger | Bob | Alice | PERMIT |
-| No alarm | - | Alice | DENY |
+Request: `(agent = Occupant, action = useEmergencyExit, asset = EmergencyExit)`.
 
-## Contrast with Break Glass
+World snapshot: `state.fireAlarmActive = true` from an admissible alarm source.
 
-| Aspect | Break Glass | Fire Alarm |
-|--------|-------------|------------|
-| Identity Check | `performer = currentAgent` | None |
-| Pattern | Tun-sollen | Sein-sollen |
-| Rationale | Personal liability | Collective safety |
-| Beneficiaries | Trigger only | Everyone |
+## Expected result
 
-## Comparison
-
-- **IoT Systems:** Often model as state change without access control
-- **RL2:** Treats safety triggers as first-class normative events with explicit identity semantics
+The request is `Permit`. A false alarm state makes the Privilege inactive; missing or invalid
+state produces an attributed `Indeterminate` result.

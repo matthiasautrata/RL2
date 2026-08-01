@@ -1,123 +1,69 @@
----
-title: "RL2 External Data"
-subtitle: "World Snapshot Input and Implementation Boundary"
-version: "0.2-draft"
-status: "Informative"
-date: 2026-07-31
----
-
 # RL2 External Data
 
-## 1. Purpose
+## Status
 
-RL2 policies may depend on facts not contained in the policy graph: organizational roles,
-credential status, asset classifications, measurements, counts, prior actions, or evaluation
-time. The normative evaluator receives those facts in an immutable `WorldSnapshot`.
+This document is informative. The normative snapshot model is in `../spec/RL2_Model.md`.
 
-This document explains that boundary. It does not standardize connectors or live data access.
+## 1. Rule
 
-## 2. Core Rule
-
-The evaluator performs no external I/O during `Eval`:
+Policy evaluation performs no external I/O:
 
 ```text
 Eval(PolicyUniverse, Request, WorldSnapshot, EvaluationConfiguration)
     -> EvaluationResult
 ```
 
-All values and evidence read by conditions must already be present in the snapshot. Missing,
-invalid, duplicate, and conflicting data is handled by the formal result/truth algebra rather than
-by hidden fallback behavior.
+Every fact and item of evidence read by a policy is already present in the immutable
+WorldSnapshot. Missing, invalid, and conflicting data is handled by the formal result algebra,
+not by implementation-specific fallback behavior.
 
-## 3. Snapshot Contents
+## 2. Snapshot Contents
 
-The information model separates:
+The snapshot contains:
 
-- `evaluationTime` — the time at which temporal expressions are interpreted;
-- `facts` — typed values bound to declared operands or canonical fact keys;
-- `evidence` — attributed observations or occurrences used by duties, Promises, and event-sensitive
-  conditions.
+- `evaluationTime`, the instant used by temporal expressions;
+- attributed facts, each with a canonical scoped key, typed value, and validity interval; and
+- attributed evidence of an action, with its occurrence time, actor, action, and object.
 
-An implementation may assemble these values from any suitable source before evaluation. The
-source system is not part of the policy semantics unless a profile makes source identity,
-provenance, or freshness a policy-relevant field.
+Facts are scoped to the requesting agent, requested asset, evaluation context, state, or a global
+namespace. Request identity fields are read directly from the Request. Performance evidence is
+selected by explicit actor, action, object, interval, and profile criteria.
 
-Normatively, each fact has a stable assertion identifier, canonical scoped path, typed value,
-half-open validity interval, and attribution. Each evidence item has a stable identifier, kind,
-occurrence time, optional actor/action/object, payload, and attribution. See
-`../spec/RL2_Model.md` §4.
+## 3. Profile-Declared Operands
 
-## 4. Profile-Declared Operands
+A profile defines an operand's identity, value type, cardinality, allowed operators, and canonical
+`rl2:resolutionPath`. It may also require explicit issuer, source, profile version, or freshness
+metadata.
 
-A profile may define:
+A resolution path is a key in the semantic snapshot. It is not a host-language property path and
+does not authorize a live lookup. Unknown operands and unsupported profile versions are errors.
 
-- operand identity and value type;
-- cardinality;
-- the canonical snapshot key or path;
-- allowed operators;
-- required provenance, issuer, or freshness information;
-- a finite attribution-admissibility predicate over explicit configuration parameters.
+For a single-valued fact key, equal eligible assertions agree and unequal values conflict. A
+multi-valued operand uses one canonical set value. Profiles cannot replace these rules with an
+implicit first, newest, or preferred-source choice.
 
-A resolution path describes how a value is addressed within the semantic snapshot. It does not
-authorize the evaluator to query an arbitrary live object graph or execute an unrestricted
-function.
+## 4. Assembly Boundary
 
-An unsupported profile or operand produces a specified diagnostic. Implementations must not
-silently ignore an unknown policy term.
+A deployment may assemble a snapshot using request attributes, database reads, verified
+credentials, signed assertions, APIs, caches, or event stores. Credentials, connection failures,
+timeouts, retries, and trust discovery are resolved before evaluation.
 
-Profiles do not choose arbitrary conflict algorithms. Equal single-valued assertions agree;
-distinct values conflict. A genuinely multi-valued operand uses one canonical set value.
+The assembler is responsible for producing a coherent snapshot. Snapshot validation rejects
+invalid intervals and reuse of one identifier for unequal normalized records. Evidence after the
+evaluation time is ineligible. Storage order and arrival order have no semantic effect.
 
-## 5. Snapshot Assembly
+## 5. Provenance and Trust
 
-Snapshot assembly is an implementation concern. A deployment might use:
+A required profile may declare a finite, pure fact-admissibility predicate. Evaluation
+configuration separately supplies one total evidence-admissibility rule, which may explicitly
+accept all Evidence. Cryptographic verification or source authentication happens before `Eval`;
+the evaluator consumes their attributed result.
 
-- request attributes or identity tokens;
-- database reads under a transaction or coherent read view;
-- credential verification;
-- an application event store;
-- signed assertions;
-- a cached source adapter.
+## 6. Re-evaluation
 
-These mechanisms may have their own timeout, retry, trust, and consistency requirements. They
-complete before `Eval` begins and are outside the core totality and complexity claims.
+An application may request missing inputs, refresh a snapshot, and evaluate again. Each call is a
+separate evaluation over one immutable input. RL2 does not standardize subscription, polling,
+retry, or event-delivery protocols.
 
-## 6. Coherence
-
-One evaluation must not combine values as though they represented one world state when the
-applicable profile declares them inconsistent or stale. Snapshot validation rejects conflicting
-reuse of one fact/evidence identifier and invalid time intervals. For one fact key, equal values
-collapse and unequal values produce `Conflict`.
-
-Fact scope is explicit: requesting-agent and requested-asset attributes are keyed by their
-identities; context, state, and global facts occupy separate scopes. Evidence selectors state
-their actor, action, object, payload, and interval constraints. Duty witnesses must include the
-Duty subject and object. Evidence arrival order, Case membership, and storage version have no
-semantic effect.
-
-Most-recent evidence means greatest occurrence time. If equally recent evidence projects unequal
-values, resolution returns `Conflict`; an identifier is never used as a semantic tie-breaker. If
-any equally recent selected item lacks the projected field or supplies the wrong type, resolution
-returns `Invalid`. `Missing` means that no eligible item exists.
-
-Profiles may require attribution fields and define admissibility over declared trust parameters.
-Credential verification and trust discovery occur before `Eval`; the predicate itself performs no
-I/O or opaque callback.
-
-## 7. Interaction Patterns
-
-Applications may offer single-shot, iterative, or preflight APIs, but those are API designs rather
-than policy semantics. For example, an API may report missing snapshot fields and accept a later
-retry. The eventual `Eval` call is still made with one complete semantic input, and the returned
-diagnostics must match the normative algebra.
-
-## 8. Testing
-
-Conformance vectors supply snapshots directly. The component vectors in
-`../conformance/vectors/snapshot-resolution.md` cover scope, validity, duplicate identity,
-conflicts, future evidence, attribution, and tied projections. They do not require live source
-adapters. A future reference evaluator may test adapters separately with mock sources, but adapter
-behavior cannot change the expected semantic result for a given snapshot.
-
-The former SourceBinding, ContextManifest, live-resolution, and interaction-mode design is retained
-at `../future/reference-implementation/RL2_ExternalData_Scope1.md`.
+Conformance vectors supply snapshots directly, making resolution behavior replayable without
+requiring any particular external system.

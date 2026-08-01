@@ -1,223 +1,62 @@
-# Use Case 17: Trial Period Expiration
-
-**Pattern:** State Transition on temporal boundary
-**Identity Check:** License holder
-**Category:** Software Licensing, Feature Gating
+# Trial Period
 
 ## Scenario
 
-Software works with full features for 14 days. On day 15, it automatically reverts to "Read Only" mode. The `Execute` privilege deactivates, leaving only the `Read` privilege active.
+A trial user may execute an application until a specified expiry instant and may read data throughout the trial and after expiry.
 
-## Policy Intent
+## Why it matters
 
-> "Full access for 14-day trial. After expiration, read-only access only."
+Temporal feature limits are ordinary conditions over the evaluation time. No policy state transition is needed to express the change in available actions.
 
-## Key Characteristics
-
-- **State Transition** based on time
-- Privilege degradation (full → limited)
-- Automatic enforcement (no human intervention)
-- Clear temporal boundary
-
-## Why RL2?
-
-Day 15 triggers a `StateTransition` that deactivates the `Execute` privilege, leaving only the `Read` privilege active.
-
-ODRL can express "valid until date X" but cannot model:
-- Partial capability degradation
-- The transition from one access level to another
-- Multiple privileges with different temporal bounds
-
-## Profile-Declared Operands
-
-```turtle
-@prefix licensing: <https://example.org/profile/licensing#> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-licensing:trialStartDateOperand a rl2:LeftOperand ;
-    rdfs:label "Trial Start Date" ;
-    rdfs:comment "Date when the trial period began." ;
-    rl2:resolutionPath "state.License.trialStartDate" ;
-    rdfs:range xsd:dateTime .
-
-licensing:trialDaysRemainingOperand a rl2:LeftOperand ;
-    rdfs:label "Trial Days Remaining" ;
-    rdfs:comment "Days remaining in trial period." ;
-    rl2:resolutionPath "state.License.trialDaysRemaining" ;
-    rdfs:range xsd:integer .
-
-licensing:licenseTypeOperand a rl2:LeftOperand ;
-    rdfs:label "License Type" ;
-    rdfs:comment "Current license type (trial, basic, pro)." ;
-    rl2:resolutionPath "state.License.type" ;
-    rdfs:range licensing:LicenseType .
-
-# License types
-licensing:Trial a licensing:LicenseType .
-licensing:Expired a licensing:LicenseType .
-licensing:Paid a licensing:LicenseType .
-
-# Actions
-licensing:execute a rl2:Action ;
-    rdfs:label "Execute" ;
-    rdfs:comment "Execute/run the application." .
-
-licensing:read a rl2:Action ;
-    rdfs:label "Read" ;
-    rdfs:comment "Read-only access to application data." .
-```
-
-## RL2 Model
+## Canonical policy
 
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix licensing: <https://example.org/profile/licensing#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-# Full access during active trial
-ex:trialFullAccess a rl2:Privilege ;
+ex:TrialUser a rl2:Agent .
+ex:Application a rl2:Asset .
+ex:execute a rl2:Action .
+ex:read a rl2:Action .
+
+ex:trialExecutePrivilege a rl2:Privilege ;
     rl2:subject ex:TrialUser ;
-    rl2:action licensing:execute ;
+    rl2:action ex:execute ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:gt ;
-        rl2:rightOperand 0
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:lt ;
+        rl2:rightOperand "2026-08-15T00:00:00Z"^^xsd:dateTimeStamp
     ] .
 
-# Read-only access always available (trial or expired)
-ex:readOnlyAccess a rl2:Privilege ;
-    rl2:subject ex:TrialUser ;
-    rl2:action licensing:read ;
-    rl2:object ex:Application .
-
-# Prohibition: No execute after trial expires
-# Note: No priority needed - conditions are mutually exclusive (daysRemaining > 0 vs ≤ 0)
 ex:expiredTrialProhibition a rl2:Prohibition ;
     rl2:subject ex:TrialUser ;
-    rl2:prohibitedAction licensing:execute ;
+    rl2:prohibitedAction ex:execute ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand 0
+        rl2:leftOperand rl2:currentDateTime ;
+        rl2:constraintOperator rl2:gte ;
+        rl2:rightOperand "2026-08-15T00:00:00Z"^^xsd:dateTimeStamp
     ] .
 
-# Paid users always have full access (no condition needed)
-ex:paidFullAccess a rl2:Privilege ;
-    rl2:subject ex:PaidUser ;
-    rl2:action licensing:execute ;
+ex:readPrivilege a rl2:Privilege ;
+    rl2:subject ex:TrialUser ;
+    rl2:action ex:read ;
     rl2:object ex:Application .
+
+ex:trialPolicy a rl2:Set ;
+    rl2:clause ex:trialExecutePrivilege, ex:expiredTrialProhibition, ex:readPrivilege .
 ```
 
-## State Transitions
+## Request and snapshot
 
-```
-License State Machine:
+Request: `(agent = TrialUser, action = execute, asset = Application)`.
 
-                     14 days elapse
-    ┌────────────┐ ─────────────────▶ ┌─────────────┐
-    │   TRIAL    │                    │   EXPIRED   │
-    │            │                    │             │
-    │ read: OK   │                    │ read: OK    │
-    │ execute: OK│                    │ execute: NO │
-    └────────────┘                    └──────┬──────┘
-                                             │
-                                             │ purchase
-                                             ▼
-                                      ┌─────────────┐
-                                      │    PAID     │
-                                      │             │
-                                      │ read: OK    │
-                                      │ execute: OK │
-                                      └─────────────┘
-```
+World snapshot: `evaluationTime` is before or at/after `2026-08-15T00:00:00Z`.
 
-## Evaluation
+## Expected result
 
-| Scenario | Days Remaining | Action | Result |
-|----------|----------------|--------|--------|
-| Day 1 | 13 | execute | PERMIT |
-| Day 14 | 0 | execute | PERMIT (last day) |
-| Day 15 | -1 | execute | DENY |
-| Day 15 | -1 | read | PERMIT |
-| After purchase | N/A (Paid) | execute | PERMIT |
-
-## Feature-Level Granularity
-
-For more granular feature gating:
-
-```turtle
-# Premium features: trial only for 7 days
-ex:premiumFeaturesTrial a rl2:Privilege ;
-    rl2:subject ex:TrialUser ;
-    rl2:action ex:usePremiumFeature ;
-    rl2:object ex:Application ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:gt ;
-        rl2:rightOperand 7  # Only first 7 days
-    ] .
-
-# Basic features: full 14 days
-ex:basicFeaturesTrial a rl2:Privilege ;
-    rl2:subject ex:TrialUser ;
-    rl2:action ex:useBasicFeature ;
-    rl2:object ex:Application ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:gt ;
-        rl2:rightOperand 0
-    ] .
-```
-
-## Upgrade Path with Duty
-
-```turtle
-# Duty: Prompt for upgrade when trial expires
-ex:upgradePromptDuty a rl2:Duty ;
-    rl2:subject ex:Application ;
-    rl2:action ex:showUpgradePrompt ;
-    rl2:object ex:TrialUser ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand licensing:trialDaysRemainingOperand ;
-        rl2:constraintOperator rl2:lte ;
-        rl2:rightOperand 0
-    ] .
-```
-
-## Comparison
-
-| Aspect | ODRL | RL2 |
-|--------|------|-----|
-| Time-limited permission | `odrl:dateTime` constraint | Temporal operand |
-| Feature degradation | Multiple separate policies | Condition-based privilege |
-| State representation | Not modeled | Explicit in Σ |
-| Upgrade path | Not expressible | Duty on condition |
-
-## PNF Considerations
-
-This use case is straightforward:
-- Temporal comparison (`daysRemaining > 0`)
-- Simple propositional logic
-- No transitive closure needed
-
-The complexity is in **state derivation** (calculating `daysRemaining` from `trialStartDate`), which happens before PNF evaluation, not within it.
-
-## Implementation Note
-
-The `trialDaysRemaining` operand abstracts the calculation:
-
-```
-trialDaysRemaining = 14 - (now - trialStartDate).days
-```
-
-This calculation is performed by the resolution function, not by the policy evaluator. PNF sees a simple integer comparison.
+Before expiry, execution is `Permit`. At and after expiry, execution is `Deny`; requests to `read` remain `Permit`.

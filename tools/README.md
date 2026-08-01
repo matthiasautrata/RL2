@@ -6,15 +6,13 @@ on first run; there is no virtualenv to manage.
 
 ## `validate.py` — SHACL validation harness
 
-Validates RL2 policies against the core ontology in `spec/` and, during the SCOPE-2
-corpus migration, the retained future-protocol vocabulary in `future/protocol/`.
+Validates RL2 policies against the ontology and SHACL shapes in `spec/`.
 
 ```bash
 uv run tools/validate.py                       # all conformance/usecases/*.md
 uv run tools/validate.py conformance/usecases/foo.md
 uv run tools/validate.py path/to/policy.ttl    # a raw Turtle file
 uv run tools/validate.py --shapes-only         # just parse ontology + shapes
-uv run tools/validate.py --core-only           # exclude future protocol ontology/shapes
 uv run tools/validate.py conformance/usecases/foo.md -v
 ```
 

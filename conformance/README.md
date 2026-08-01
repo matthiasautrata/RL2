@@ -1,16 +1,19 @@
-# RL2 Conformance
+# RL2 Conformance Material
 
-This directory contains policy scenarios, future semantic vectors, and ODRL migration fixtures.
+This directory provides reviewable examples of RL2 policy meaning and ODRL 2.2 migration.
 
-The 52 existing use cases are structurally valid against the current ontology and shapes. SHACL
-validity does not yet prove their evaluation result: SCOPE-2 migration will add an explicit request,
-world snapshot, expected result, and migration disposition to each normative case.
+- [`usecases/`](usecases/) contains compact policy scenarios with canonical RL2 graphs.
+- [`vectors/`](vectors/) states normative evaluator observations and diagnostics.
+- [`migration/`](migration/) contains ODRL source fixtures and their expected translation outcome.
 
-- [`usecases/`](usecases/) — existing numbered scenarios
-- [`usecase-disposition.md`](usecase-disposition.md) — migration classification and required changes
-
-Run the structural corpus with:
+Validate the use-case corpus with:
 
 ```bash
 uv run tools/validate.py
+```
+
+For documents containing independent examples, validate each Turtle fence separately:
+
+```bash
+uv run tools/validate.py --per-fence spec/RL2_Semantics.md
 ```

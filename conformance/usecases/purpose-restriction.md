@@ -1,142 +1,42 @@
-# Use Case 24: Purpose Restriction
-
-**Pattern:** Purpose whitelist  
-**Vocabulary Demonstrated:** `isAnyOf`  
-**Category:** Data Contracts, Privacy  
-**Status:** DRAFT
-
----
-
-## Business Context
-
-A data provider makes a dataset available but restricts its use to specific, approved purposes. This is fundamental to:
-
-- **GDPR Article 5(1)(b):** Purpose limitation principle
-- **Data marketplace terms:** Providers specify permitted uses
-- **Contractual data sharing:** Bilateral agreements scope usage
+# Purpose Restriction
 
 ## Scenario
 
-A financial institution provides customer analytics data to internal teams. The data may only be used for:
-- Risk assessment
-- Fraud detection
-- Regulatory reporting
+A research institution may process a health dataset for epidemiological research, but not for unrelated purposes.
 
-Use for marketing, product development, or sale to third parties is prohibited.
+## Why it matters
 
-## Policy Intent
+Purpose is a policy-visible input. Declaring its resolution path makes two evaluators test the same supplied request context.
 
-> "Data may be used ONLY IF the declared purpose is one of the approved purposes."
-
-## Key Characteristics
-
-| Aspect | Description |
-|--------|-------------|
-| Constraint type | Set membership (whitelist) |
-| Enforcement point | Request time |
-| Failure mode | Deny if purpose not in approved set |
-| Audit requirement | Log declared purpose with each access |
-
-## Real-World Examples
-
-### Bloomberg Data License
-
-From Bloomberg's terms: Data may be used for "internal commercial (non-consumer related) use only" — effectively a purpose whitelist excluding consumer-facing applications.
-
-### GDPR Consent
-
-Data collected for "newsletter delivery" cannot be repurposed for "profiling" without additional consent — each purpose is a discrete permission.
-
-### IDS Data Spaces
-
-The International Data Spaces Reference Architecture includes purpose constraints as a core policy pattern for data sovereignty.
-
-## Evaluation Logic
-
-```
-Given:
-  - Request declares purpose P
-  - Policy defines approved set {P1, P2, P3}
-  
-Evaluate:
-  IF P ∈ {P1, P2, P3} THEN Permit
-  ELSE Deny
-```
-
-## Comparison with Related Patterns
-
-| Pattern | Mechanism | RL2 Operator |
-|---------|-----------|--------------|
-| Purpose whitelist | P must be in set | `isAnyOf` |
-| Purpose blacklist | P must NOT be in set | `isNoneOf` |
-| Exact purpose match | P must equal specific value | `eq` |
-| Purpose hierarchy | P must be subtype of category | `isA` |
-
-## Profile Requirements
-
-This use case requires a profile that declares:
-
-1. **Purpose operand:** Resolves to the declared purpose from the request context
-2. **Purpose vocabulary:** Enumeration of valid purpose values
+## Canonical policy
 
 ```turtle
-@prefix datacontract: <https://example.org/profile/datacontract#> .
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-datacontract:purposeOperand a rl2:LeftOperand ;
-    rdfs:label "Declared Purpose" ;
-    rl2:resolutionPath "context.purpose" .
+ex:Provider a rl2:Agent .
+ex:Institution a rl2:Agent .
+ex:HealthDataset a rl2:Asset .
+ex:process a rl2:Action .
+ex:purpose a rl2:LeftOperand ; rdfs:range xsd:string ; rl2:resolutionPath "context.purpose" .
 
-datacontract:RiskAssessment a datacontract:Purpose .
-datacontract:FraudDetection a datacontract:Purpose .
-datacontract:RegulatoryReporting a datacontract:Purpose .
-datacontract:Marketing a datacontract:Purpose .
+ex:researchProcessing a rl2:Privilege ;
+    rl2:subject ex:Institution ; rl2:action ex:process ; rl2:object ex:HealthDataset ;
+    rl2:condition [ a rl2:AtomicConstraint ; rl2:leftOperand ex:purpose ;
+        rl2:constraintOperator rl2:eq ; rl2:rightOperand "epidemiological-research" ] .
+
+ex:researchAgreement a rl2:Agreement ;
+    rl2:grantor ex:Provider ; rl2:grantee ex:Institution ; rl2:clause ex:researchProcessing .
 ```
 
-## Edge Cases
+## Request and snapshot
 
-| Scenario | Expected Behavior |
-|----------|-------------------|
-| No purpose declared | Deny (fail-closed) |
-| Multiple purposes declared | All must be in whitelist |
-| Purpose hierarchy (sub-purpose) | Depends on profile semantics |
-| Unknown purpose value | Deny |
+Request: `(Institution, process, HealthDataset)`.
 
-## Relationship to Other Use Cases
+World snapshot: `context.purpose = "epidemiological-research"`, supplied by the requesting application.
 
-- **geo-restriction (25):** Same pattern, different operand (jurisdiction vs purpose)
-- **gdpr-erasure (9):** Purpose operand already shown but with `eq`, not `isAnyOf`
-- **no-ml-training (30):** Specific purpose prohibition (blacklist approach)
+## Expected result
 
----
-
-## RL2 Model
-
-```turtle
-datacontract:ApprovedPurposes a rl2:AssetCollection ;
-    rdfs:label "Approved Purposes" ;
-    rl2:member datacontract:RiskAssessment, datacontract:FraudDetection, datacontract:RegulatoryReporting .
-
-# Permit only if the declared purpose is one of the approved purposes.
-ex:approvedPurposeAccess a rl2:Privilege ;
-    rl2:subject ex:InternalTeam ;
-    rl2:action ex:access ;
-    rl2:object ex:CustomerAnalyticsData ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand datacontract:purposeOperand ;
-        rl2:constraintOperator rl2:isAnyOf ;
-        rl2:rightOperandRef datacontract:ApprovedPurposes
-    ] .
-
-ex:analyticsDataPolicy a rl2:Set ;
-    rl2:grantor ex:FinancialInstitution ;
-    rl2:clause ex:approvedPurposeAccess .
-```
-
----
-
-## References
-
-- GDPR Article 5(1)(b) — Purpose limitation
-- IDS Reference Architecture Model — Usage Control Policies
-- Bloomberg Data License Terms — Permitted Use Clauses
+Expected decision: `Permit`. A request with another declared purpose is `NotApplicable` unless another norm applies.

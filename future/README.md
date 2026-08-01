@@ -1,11 +1,42 @@
-# Future and Reference Work
+# Possible Follow-on Work
 
-Material under this directory is retained for possible companion specifications, implementation
-projects, and historical rationale. It is not part of RL2 core language conformance.
+RL2 is limited to the policy language, its pure evaluation semantics, ODRL 2.2 migration, and
+conformance. The following topics may justify separate specifications or implementation projects.
+They do not define RL2 behavior.
 
-- `protocol/` — Case, Requirement, event-sourcing, and workflow protocol work
-- `reference-implementation/` — IR and evaluator architecture ideas
-- `research/` — historical or exploratory design notes
+## Normative instruments
 
-Core definitions embedded in these documents are extracted into `../spec/` before the future
-documents are simplified. Do not cite a future document as normative authority.
+A companion language could define pure transformations of a policy universe:
+
+```text
+apply(PolicyUniverse, Instrument, Invocation, WorldSnapshot)
+    -> Applied(PolicyUniverse)
+     | Rejected(reason)
+     | Indeterminate(errors)
+```
+
+Candidate operations include assignment, delegation, amendment, revocation, termination, and
+second-order guarantees or suretyship.
+Such a specification would need to define the authorized actor, target, permitted scope,
+recipient, consent requirements, delegation depth, and transformation result. It could recover
+the useful distinction between prohibited conduct and an ineffective normative act: a termination
+may be forbidden yet effective, whereas an immunity makes the attempted termination ineffective.
+
+## Protocol and enforcement
+
+Implementations may standardize request transport, evidence submission, evaluation receipts,
+audit records, scheduling, retries, enforcement, and distributed coordination. These mechanisms
+must preserve the inputs and outputs of the pure RL2 evaluation contract.
+
+## Reference evaluator and verification
+
+A reference project could implement canonical RDF projection, validation, evaluation, explanation,
+and ODRL import. Mechanized proofs of termination, determinism, and selected semantic properties
+would be useful, but RL2 does not prescribe an implementation language, intermediate
+representation, or proof assistant.
+
+## Additional profiles
+
+Potential profiles include privacy and data protection, licensing, employment, organizational
+roles, quantitative usage control, and trusted evidence vocabularies. Profiles should add domain
+terms without introducing alternative encodings for core propositions.

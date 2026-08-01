@@ -1,64 +1,60 @@
-# RL2: Rights Language 2
+# RL2: A Deterministic Policy Language for ODRL
 
-RL2 is an AI-generatable, deterministically evaluable policy language for digital rights and
-data governance. It extends and clarifies ODRL 2.2 so that independent evaluators can agree about
-what a policy means.
+RL2 is a candidate language contribution for the evolution of ODRL. It retains the familiar
+policy concepts of permissions, prohibitions, duties, actions, assets, parties, constraints,
+profiles, offers, and agreements while defining the inputs and algorithms needed for independent
+evaluators to agree.
 
-RL2 focuses on four deliverables:
+The proposal addresses three recurring sources of ambiguity:
 
-- a canonical RDF/OWL policy model with SHACL validation;
-- formal evaluation semantics over a request and immutable world snapshot;
-- an explicit ODRL 2.2 migration specification;
-- structural and semantic conformance cases.
+- the meaning of a policy for a particular request;
+- the facts and evidence that constitute the state of the world; and
+- the fulfillment, violation, and applicability of duties.
 
-Hohfeldian normative positions and Promise Theory extend the ODRL policy model. Persistent Cases,
-event sourcing, workflow orchestration, distributed coordination, enforcement, and optimized
-evaluator implementations are not part of the normative language core.
+RL2 defines a pure evaluation contract:
 
-## Start Here
+```text
+Eval(PolicyUniverse, Request, WorldSnapshot, EvaluationConfiguration)
+    -> EvaluationResult
+```
 
-1. [Project scope](spec/RL2_Scope.md) — normative boundary and deliverables.
-2. [Information model](spec/RL2_Model.md) — pure evaluation inputs and outputs.
-3. [Primer](docs/RL2_Primer.md) — concepts and examples; currently being aligned to SCOPE-2.
-4. [Formal semantics](spec/RL2_Semantics.md) — authoritative evaluation meaning.
-5. [Use cases](conformance/usecases/) — 52 policy scenarios.
-6. [Reorganization plan](project/reorganization-plan.md) — active work and validation gates.
+It adds canonical RDF projection, SHACL validation, typed three-valued condition evaluation,
+declarative Duty status, explained conflict resolution, and a pure Offer-to-Agreement
+transformation.
 
-## Repository
+Canonical shapes and total semantics make RL2 suitable for generation by software and language
+models. Generated RDF is not trusted as prose: it must pass canonical projection, validation, and
+the same evaluator semantics as any other policy.
 
-| Area | Purpose |
+## Documents
+
+1. [Scope](spec/RL2_Scope.md)
+2. [Information model](spec/RL2_Model.md)
+3. [Formal semantics](spec/RL2_Semantics.md)
+4. [ODRL 2.2 migration](spec/RL2_ODRL_Mapping.md)
+5. [Ontology](spec/rl2.ttl) and [SHACL shapes](spec/rl2-shacl.ttl)
+6. [Primer](docs/RL2_Primer.md)
+7. [Use cases and conformance material](conformance/)
+
+## Repository Structure
+
+| Area | Contents |
 |---|---|
-| [`spec/`](spec/) | Normative language, ontology, SHACL, profiles, and ODRL mapping |
-| [`conformance/`](conformance/) | Use cases, semantic vectors, and migration fixtures |
-| [`docs/`](docs/) | Informative Primer, architecture, vocabulary, external-data guidance, and FAQ |
-| [`future/protocol/`](future/protocol/) | Retained protocol/workflow work outside core conformance |
-| [`future/reference-implementation/`](future/reference-implementation/) | IR and evaluator design ideas for follow-on implementation |
-| [`future/research/`](future/research/) | Historical and exploratory design work |
-| [`project/`](project/) | Active plan, issue tracker, and issue history |
+| [`spec/`](spec/) | Normative model, semantics, ontology, shapes, profiles, and migration rules |
+| [`conformance/`](conformance/) | Use cases, semantic vectors, and ODRL translation fixtures |
+| [`docs/`](docs/) | Informative Primer, architecture, external-data guidance, vocabulary, and bibliography |
+| [`future/`](future/) | One non-normative list of possible follow-on work |
 | [`tools/`](tools/) | Validation tooling |
 
-## Normative Sources
-
-When sources conflict, use this order:
-
-1. [`spec/rl2.ttl`](spec/rl2.ttl) and [`spec/rl2-shacl.ttl`](spec/rl2-shacl.ttl)
-2. [`spec/RL2_Model.md`](spec/RL2_Model.md)
-3. [`spec/RL2_Semantics.md`](spec/RL2_Semantics.md)
-4. [`spec/RL2_ODRL_Mapping.md`](spec/RL2_ODRL_Mapping.md)
-5. Accepted conformance vectors
-
-Documents under `docs/` are explanatory. Documents under `future/` are not part of RL2 core
-conformance.
-
-## Quick Example
+## Example
 
 ```turtle
 @prefix rl2: <https://rl2.example/ontology#> .
 @prefix ex:  <https://example.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ex:agreement a rl2:Agreement ;
-    rl2:grantor ex:DataOwner ;
-    rl2:grantee ex:Researcher ;
+ex:policy a rl2:Set ;
     rl2:clause ex:researchUse .
 
 ex:researchUse a rl2:Privilege ;
@@ -67,31 +63,32 @@ ex:researchUse a rl2:Privilege ;
     rl2:object ex:Dataset ;
     rl2:condition [
         a rl2:AtomicConstraint ;
-        rl2:leftOperand ex:declaredPurpose ;
+        rl2:leftOperand ex:purpose ;
         rl2:constraintOperator rl2:eq ;
         rl2:rightOperand "research"
     ] .
+
+ex:Researcher a rl2:Agent .
+ex:use a rl2:Action .
+ex:Dataset a rl2:Asset .
+ex:purpose a rl2:LeftOperand ;
+    rdfs:range xsd:string ;
+    rl2:resolutionPath "context.purpose" .
 ```
 
-The policy is evaluated against an explicit request and world snapshot. RL2 specifies the result;
-an implementation decides how the snapshot is collected and how a permitted action is enforced.
+For a matching request and a snapshot containing `context.purpose = "research"`, the Privilege
+contributes a permit. A missing purpose produces an attributed `Indeterminate` result rather than
+being silently interpreted as false.
 
 ## Validation
 
-The project uses `uv` for Python tooling:
+The tools use [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
 uv run tools/validate.py
 uv run tools/validate.py --per-fence spec/RL2_Semantics.md
 ```
 
-The current structural baseline is 52/52 use cases passing SHACL validation.
-
 ## Status
 
-Draft v0.6. SCOPE-2 reorganization is active; consult
-[`project/reorganization-plan.md`](project/reorganization-plan.md) for current status.
-
-## License
-
-TBD
+RL2 is a draft proposal for technical and academic review. The example namespace is provisional.

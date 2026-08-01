@@ -1,162 +1,60 @@
-# Use Case 44: Multi-Certification Required
-
-**Pattern:** All conditions from a set must hold  
-**Vocabulary Demonstrated:** `isAllOf`  
-**Category:** Vocabulary Completeness, Compliance  
-**Status:** DRAFT
-
----
-
-## Business Context
-
-Access to sensitive systems may require multiple certifications:
-
-- Security clearance AND ethics training AND role certification
-- All required certifications must be current
-- Missing any one disqualifies access
+# Multiple Required Certifications
 
 ## Scenario
 
-A defense contractor's classified project requires:
+A classified-data service permits a named contractor to access a dataset only when the contractor
+holds every required certification. Certification issuance, validity, and trust are represented by
+admissible snapshot data under the governing profile.
 
-> "Personnel must hold ALL of the following: (1) Active security clearance, (2) Project-specific access certification, (3) Current ethics training, (4) Need-to-know attestation."
+## Why it matters
 
-## Policy Intent
+`isAllOf` tests whether the right-hand set is a subset of the left-hand set.
 
-> "Access is PERMITTED only if the person holds ALL required certifications."
-
-## Key Characteristics
-
-| Aspect | Description |
-|--------|-------------|
-| Cardinality | All in set |
-| Check | Each must be valid |
-| Failure | Missing any one = deny |
-| Dynamic | Certifications may expire |
-
-## Comparison: isAnyOf vs isAllOf vs isNoneOf
-
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `isAnyOf` | Value in set (at least one) | "Purpose is one of approved purposes" |
-| `isAllOf` | All values in set | "Has all required certifications" |
-| `isNoneOf` | Value not in set | "Country not sanctioned" |
-
-## Normative Structure
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Privilege: Access Classified System                 │
-│  ─────────────────────────────────────────────────  │
-│  Subject: Contractor                                 │
-│  Action: access                                      │
-│  Object: Classified Project Data                     │
-│  Condition:                                          │
-│    agent.certifications isAllOf {                    │
-│      SecurityClearance,                              │
-│      ProjectAccess,                                  │
-│      EthicsTraining,                                 │
-│      NeedToKnow                                      │
-│    }                                                 │
-└─────────────────────────────────────────────────────┘
-```
-
-## Evaluation Logic
-
-```
-Given agent's certifications list L
-Required certifications set R = {A, B, C, D}
-
-isAllOf(L, R) evaluates to:
-  - TRUE if R ⊆ L (all required are held)
-  - FALSE if any element of R is not in L
-
-Request: Agent with certs {A, B, C, D, E}
-  - All of {A, B, C, D} present? YES
-  - isAllOf = TRUE → PERMIT
-
-Request: Agent with certs {A, B, D}
-  - C missing
-  - isAllOf = FALSE → DENY
-```
-
-## Certification Validity
-
-Each certification may have validity constraints:
+## Canonical policy
 
 ```turtle
+@prefix ex: <https://example.org/> .
 @prefix certification: <https://example.org/profile/certification#> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-ex:aliceSecurityClearance a ex:Certification ;
-    ex:type certification:SecurityClearance ;
-    ex:validUntil "2026-01-01"^^xsd:dateTime ;
-    ex:status ex:Active .
-```
+ex:Contractor a rl2:Agent .
+ex:ClassifiedDataset a rl2:Asset .
+ex:access a rl2:Action .
 
-The `isAllOf` check must also verify each is valid, not just present.
+certification:held a rl2:LeftOperand ;
+    rdfs:range rl2:ValueSet ;
+    rl2:resolutionPath "agent.certifications" .
 
-## Real-World Examples
+certification:Clearance a certification:Type .
+certification:ProjectAccess a certification:Type .
+certification:EthicsTraining a certification:Type .
 
-### Healthcare
-
-Access to patient records requires: HIPAA training, role authorization, active credentials.
-
-### Financial Services
-
-Trading system access requires: Series 7, firm registration, compliance attestation.
-
-### Government
-
-Classified access requires: background check, clearance level, need-to-know, briefing acknowledgment.
-
-## Profile Requirements
-
-```turtle
-@prefix certification: <https://example.org/profile/certification#> .
-
-certification:agentCertificationsOperand a rl2:LeftOperand ;
-    rdfs:label "Agent Certifications" ;
-    rl2:resolutionPath "agent.certifications.types" .
-
-certification:SecurityClearance a certification:CertificationType .
-certification:ProjectAccess a certification:CertificationType .
-certification:EthicsTraining a certification:CertificationType .
-certification:NeedToKnow a certification:CertificationType .
-```
-
----
-
-## RL2 Model
-
-The required certifications form an asset collection; `isAllOf` holds when the
-agent's certifications include every member.
-
-```turtle
-@prefix certification: <https://example.org/profile/certification#> .
-
-certification:RequiredCertifications a rl2:AssetCollection ;
-    rdfs:label "Required Certifications" ;
-    rl2:member certification:SecurityClearance,
-               certification:ProjectAccess,
-               certification:EthicsTraining,
-               certification:NeedToKnow .
-
-ex:classifiedAccess a rl2:Privilege ;
+ex:certifiedAccess a rl2:Privilege ;
     rl2:subject ex:Contractor ;
     rl2:action ex:access ;
-    rl2:object ex:ClassifiedProjectData ;
+    rl2:object ex:ClassifiedDataset ;
     rl2:condition [
         a rl2:AtomicConstraint ;
-        rl2:leftOperand certification:agentCertificationsOperand ;
+        rl2:leftOperand certification:held ;
         rl2:constraintOperator rl2:isAllOf ;
-        rl2:rightOperandRef certification:RequiredCertifications
+        rl2:rightOperandSet [
+            a rl2:ValueSet ;
+            rl2:valueMember certification:Clearance,
+                certification:ProjectAccess,
+                certification:EthicsTraining
+        ]
     ] .
+
+ex:policy a rl2:Set ; rl2:clause ex:certifiedAccess .
 ```
 
----
+## Request and snapshot
 
-## References
+Request: `(Contractor, access, ClassifiedDataset)`. The snapshot fact `agent.certifications` is
+the set `{Clearance, ProjectAccess, EthicsTraining}`.
 
-- NIST SP 800-53 — Personnel security
-- Defense contractor security requirements
-- Healthcare credentialing standards
+## Expected result
+
+The decision is `Permit`. Omitting any required member makes the rule inapplicable. A profile may
+derive the set from credentials, but credential processing is outside the evaluator.

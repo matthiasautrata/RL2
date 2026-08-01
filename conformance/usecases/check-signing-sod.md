@@ -1,121 +1,54 @@
-# Use Case 6: Check Signing (Dynamic SoD)
-
-**Pattern:** Dynamic Separation of Duty
-**Identity Check:** `dutyPerformer ≠ currentAgent`
-**Category:** Financial controls
+# Check-Signing Separation of Duty
 
 ## Scenario
 
-A check can only be signed by someone who did not prepare it. Unlike static SoD (role-based), this is instance-specific: the same person could prepare check A and sign check B.
+Bob may sign a particular check only if Alice prepared that check.
 
-## Policy Intent
+## Why it matters
 
-> "The signer of THIS check must not be the preparer of THIS check."
+The policy is instance-specific: the Duty subject, Privilege subject, and check are explicit. A
+generator may create analogous policies for other authorized pairs and checks.
 
-## Key Characteristics
-
-- Instance-level constraint (not role-level)
-- Same person can hold both roles on different instances
-- Runtime enforcement required
-- More flexible than static SoD
-
-## RL2 Core Operands
-
-This use case uses operands declared in RL2 Core for querying norm state. Unlike profile-declared operands (see break-glass.md), these are part of the RL2 ontology itself:
-
-```turtle
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-# Query the obligation state (Pending, Active, Fulfilled, Violated) of a target norm
-rl2:obligationStateOperand a rl2:LeftOperand ;
-    rdfs:label "Obligation State Operand" ;
-    rdfs:comment """Queries the ObligationState of the target norm from Σ.
-    Returns Pending, Active, Fulfilled, or Violated.
-    Requires rl2:targetNorm to specify which norm to query.""" .
-
-# Query the agent who fulfilled a target duty
-rl2:dutyPerformerOperand a rl2:LeftOperand ;
-    rdfs:label "Duty Performer Operand" ;
-    rdfs:comment """Queries the agent who fulfilled the target duty from Σ.
-    Returns an Agent IRI or ⊥ if not yet fulfilled.
-    Requires rl2:targetNorm to specify which duty to query.
-    Used with rl2:currentAgent to check identity binding (Tun-sollen vs Sein-sollen).""" .
-```
-
-## Profile-Declared Actions
-
-```turtle
-@prefix finance: <https://example.org/profile/finance#> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-finance:prepare a rl2:Action ;
-    rdfs:label "Prepare" ;
-    rdfs:comment "Prepare a check for signing." .
-
-finance:sign a rl2:Action ;
-    rdfs:label "Sign" ;
-    rdfs:comment "Sign a prepared check." .
-```
-
-## RL2 Model (Unified State Approach)
+## Canonical policy
 
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix finance: <https://example.org/profile/finance#> .
 
-ex:checkPreparation a rl2:Duty ;
-    rl2:subject ex:FinanceStaff ;
-    rl2:action finance:prepare ;
-    rl2:object ex:Check .
+ex:Alice a rl2:Agent .
+ex:Bob a rl2:Agent .
+ex:Check123 a rl2:Asset .
+ex:prepare a rl2:Action .
+ex:sign a rl2:Action .
 
-ex:signCheckPrivilege a rl2:Privilege ;
-    rl2:subject ex:FinanceStaff ;
-    rl2:action finance:sign ;
-    rl2:object ex:Check ;
+ex:preparationDuty a rl2:Duty ;
+    rl2:subject ex:Alice ;
+    rl2:action ex:prepare ;
+    rl2:object ex:Check123 .
+
+ex:signPrivilege a rl2:Privilege ;
+    rl2:subject ex:Bob ;
+    rl2:action ex:sign ;
+    rl2:object ex:Check123 ;
     rl2:condition [
-        a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:and ;
-        rl2:operand [
-            # Check 1: Is the preparation duty fulfilled?
-            a rl2:AtomicConstraint ;
-            rl2:targetNorm ex:checkPreparation ;
-            rl2:leftOperand rl2:obligationStateOperand ;
-            rl2:constraintOperator rl2:eq ;
-            rl2:rightOperandRef rl2:Fulfilled
-        ] ;
-        rl2:operand [
-            # Check 2: Was it fulfilled by someone ELSE (not me)?
-            a rl2:AtomicConstraint ;
-            rl2:targetNorm ex:checkPreparation ;
-            rl2:leftOperand rl2:dutyPerformerOperand ;
-            rl2:constraintOperator rl2:neq ;
-            rl2:rightOperandRef rl2:currentAgent
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:targetNorm ex:preparationDuty ;
+        rl2:leftOperand rl2:obligationStateOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef rl2:Fulfilled
     ] .
+
+ex:checkPolicy a rl2:Set ;
+    rl2:clause ex:preparationDuty, ex:signPrivilege .
 ```
 
-## Evaluation
+## Request and snapshot
 
-| Scenario | Check | Prepared By | Sign Request By | Result |
-|----------|-------|-------------|-----------------|--------|
-| Proper DSD | #123 | Alice | Bob | PERMIT |
-| Self-sign | #123 | Alice | Alice | DENY |
-| Cross-check | #124 | Bob | Alice | PERMIT |
+Request: `(agent = Bob, action = sign, asset = Check123)`.
 
-## Static vs. Dynamic SoD
+World snapshot: qualifying evidence records `Alice` performing `prepare` on `Check123`.
 
-| Aspect | Static SoD | Dynamic SoD |
-|--------|------------|-------------|
-| Constraint level | Role assignment | Instance execution |
-| Flexibility | Low (role-locked) | High (per-instance) |
-| Example | "No one can be both Preparer AND Approver" | "Cannot approve what you prepared" |
-| RL2 model | Role constraints | `dutyPerformer ≠ currentAgent` per-instance |
+## Expected result
 
-## Comparison
-
-- **RBAC Static SoD:** Mutually exclusive role assignment
-- **RBAC Dynamic SoD:** Complex history-based constraints
-- **RL2:** `DutyPerformer` tracking + `neq` constraint handles both naturally
+The request is `Permit`. Alice is not the subject of the signing Privilege, and Bob's preparation
+does not fulfill Alice's Duty.

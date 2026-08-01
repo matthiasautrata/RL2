@@ -1,17 +1,14 @@
 # RL2 Normative Specification
 
-This directory contains the SCOPE-2 normative language work.
-
 | Artifact | Role |
 |---|---|
-| `RL2_Scope.md` | Governing project and conformance boundary |
-| `RL2_Model.md` | Normative request, snapshot, configuration, and result model |
-| `rl2.ttl` | Core ontology |
-| `rl2-shacl.ttl` | Core validation shapes |
-| `RL2_Semantics.md` | Formal evaluation semantics; SCOPE-2 reduction in progress |
-| `RL2_ODRL_Mapping.md` | ODRL 2.2 comparison being converted into a migration specification |
-| `profiles/` | Profile-defined vocabulary and constraints |
+| `RL2_Scope.md` | Language and conformance boundary |
+| `RL2_Model.md` | Evaluation inputs, outputs, and policy transformations |
+| `rl2.ttl` | Core RDF vocabulary |
+| `rl2-shacl.ttl` | Canonical structural constraints |
+| `RL2_Semantics.md` | Formal evaluation semantics |
+| `RL2_ODRL_Mapping.md` | ODRL 2.2 translation and migration rules |
+| `profiles/` | Domain vocabulary with typed snapshot bindings |
 
-During reorganization, legacy operational sections may remain in `RL2_Semantics.md` until their
-core meaning has been extracted or rewritten. Their presence does not override the boundary in
-`RL2_Scope.md`.
+The ontology, shapes, model, and semantics jointly define the language. ODRL input is translated
+to canonical RL2 before evaluation.

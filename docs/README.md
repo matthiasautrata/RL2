@@ -1,7 +1,11 @@
-# RL2 Documentation
+# RL2 Reader Documentation
 
-Documents here are informative explanations of the normative artifacts in `../spec/`.
+| Document | Purpose |
+|---|---|
+| [Primer](RL2_Primer.md) | Introduction and principal policy patterns |
+| [Architecture](RL2_Architecture.md) | Pure evaluation boundary and implementation freedom |
+| [External Data](RL2_ExternalData.md) | WorldSnapshot integration guidance |
+| [Vocabulary](RL2_Vocabulary.md) | Compact reference for core RDF terms |
+| [References](RL2_References.md) | Bibliography and related work |
 
-The Primer, Architecture, External Data guide, and Vocabulary are being aligned to SCOPE-2. Until
-that pass is complete, any conflict is resolved using the source order in the repository README.
-Implementation and protocol material belongs under `../future/`, not here.
+These documents are informative. Normative definitions are in `../spec/`.

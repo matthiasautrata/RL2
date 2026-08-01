@@ -1,54 +1,49 @@
-# Use Case 52: SLA Credit Clause
+# SLA Credit Clause
 
-**Pattern:** Pure Offer acceptance with a promised state and a sibling remedial term
+## Scenario
 
-**Scope:** RL2 core transformation
+A provider offers a monthly uptime commitment. On acceptance, the promised state becomes a
+windowed Maintenance Duty. A sibling Duty to issue a service credit becomes applicable when that
+Duty is violated.
 
-**Status:** SCOPE-2 migrated
+## Why it matters
 
-## Business rule
-
-> A provider offers 99.9% uptime for a calendar month. After acceptance, the provider owes the
-> customer a maintenance Duty for that interval and a service-credit Duty if the uptime Duty is
-> violated.
-
-The catalog Offer is not an operative access policy. Its Promise may be inspected, but `Out`
-derives no atoms from the Offer. Acceptance materializes a separate Agreement with explicit,
-Agreement-local identifiers.
+Materialization is pure: it creates an Agreement value and reads no snapshot. Status-dependent
+terms are rewritten to target the generated Duty.
 
 ## Source Offer
 
 ```turtle
-@prefix ex:   <https://example.org/> .
-@prefix rl2:  <https://rl2.example/ontology#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ex:CloudProvider a rl2:Agent .
+ex:Provider a rl2:Agent .
 ex:Customer a rl2:Agent .
-ex:ProductionService a rl2:Asset .
+ex:Service a rl2:Asset .
+ex:issueCredit a rl2:Action .
 
-ex:issueServiceCredit a rl2:Action .
-ex:monthlyUptimeOperand a rl2:LeftOperand ;
+ex:monthlyUptime a rl2:LeftOperand ;
     rdfs:range xsd:decimal ;
     rl2:resolutionPath "asset.metadata.monthlyUptime" .
 
-ex:uptimeMeetsSLA a rl2:AtomicConstraint ;
-    rl2:leftOperand ex:monthlyUptimeOperand ;
+ex:uptimeMeetsTarget a rl2:AtomicConstraint ;
+    rl2:leftOperand ex:monthlyUptime ;
     rl2:constraintOperator rl2:gte ;
     rl2:rightOperand "99.9"^^xsd:decimal .
 
 ex:uptimePromise a rl2:Promise ;
-    rl2:promisor ex:CloudProvider ;
+    rl2:promisor ex:Provider ;
     rl2:promisee ex:Customer ;
-    rl2:promisedState ex:uptimeMeetsSLA ;
-    rl2:object ex:ProductionService .
+    rl2:promisedState ex:uptimeMeetsTarget ;
+    rl2:object ex:Service .
 
 ex:creditDuty a rl2:Duty ;
-    rl2:subject ex:CloudProvider ;
+    rl2:subject ex:Provider ;
     rl2:counterparty ex:Customer ;
-    rl2:action ex:issueServiceCredit ;
-    rl2:object ex:ProductionService ;
+    rl2:action ex:issueCredit ;
+    rl2:object ex:Service ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:uptimePromise ;
@@ -58,25 +53,24 @@ ex:creditDuty a rl2:Duty ;
     ] .
 
 ex:uptimeOffer a rl2:Offer ;
-    rl2:grantor ex:CloudProvider ;
+    rl2:grantor ex:Provider ;
     rl2:grantee ex:Customer ;
     rl2:clause ex:uptimePromise, ex:creditDuty .
 ```
 
-## Acceptance value
+## Acceptance
 
 ```text
 Acceptance(
   agreementId = ex:uptimeAgreement,
-  grantor      = ex:CloudProvider,
-  grantee      = ex:Customer,
-  primaryIds   = {
+  grantor = ex:Provider,
+  grantee = ex:Customer,
+  primaryIds = {
     ex:uptimePromise -> ex:uptimeDuty,
-    ex:creditDuty    -> ex:creditDuty_A1
+    ex:creditDuty -> ex:creditDuty_A1
   },
-  claimIds     = { ex:uptimePromise -> ex:uptimeClaim },
   objectBindings = {},
-  dutyWindows  = {
+  dutyWindows = {
     ex:uptimePromise -> [2026-07-01T00:00:00Z, 2026-08-01T00:00:00Z)
   }
 )
@@ -85,47 +79,42 @@ Acceptance(
 ## Materialized Agreement
 
 ```turtle
-@prefix ex:   <https://example.org/> .
-@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix ex: <https://example.org/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rl2: <https://rl2.example/ontology#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ex:CloudProvider a rl2:Agent .
+ex:Provider a rl2:Agent .
 ex:Customer a rl2:Agent .
-ex:ProductionService a rl2:Asset .
-ex:issueServiceCredit a rl2:Action .
+ex:Service a rl2:Asset .
+ex:issueCredit a rl2:Action .
 
-ex:monthlyUptimeOperand a rl2:LeftOperand ;
+ex:monthlyUptime a rl2:LeftOperand ;
     rdfs:range xsd:decimal ;
     rl2:resolutionPath "asset.metadata.monthlyUptime" .
 
-ex:uptimeMeetsSLA a rl2:AtomicConstraint ;
-    rl2:leftOperand ex:monthlyUptimeOperand ;
+ex:uptimeMeetsTarget a rl2:AtomicConstraint ;
+    rl2:leftOperand ex:monthlyUptime ;
     rl2:constraintOperator rl2:gte ;
     rl2:rightOperand "99.9"^^xsd:decimal .
 
 ex:uptimeDuty a rl2:Duty ;
-    rl2:subject ex:CloudProvider ;
+    rl2:subject ex:Provider ;
     rl2:counterparty ex:Customer ;
-    rl2:object ex:ProductionService ;
-    rl2:invariant ex:uptimeMeetsSLA ;
+    rl2:object ex:Service ;
+    rl2:invariant ex:uptimeMeetsTarget ;
     rl2:dutyWindow [
         a rl2:DutyWindow ;
         rl2:startInclusive "2026-07-01T00:00:00Z"^^xsd:dateTimeStamp ;
         rl2:endExclusive "2026-08-01T00:00:00Z"^^xsd:dateTimeStamp
     ] .
 
-ex:uptimeClaim a rl2:Claim ;
-    rl2:subject ex:Customer ;
-    rl2:counterparty ex:CloudProvider ;
-    rl2:correlativeTo ex:uptimeDuty .
-
 ex:creditDuty_A1 a rl2:Duty ;
-    rl2:subject ex:CloudProvider ;
+    rl2:subject ex:Provider ;
     rl2:counterparty ex:Customer ;
-    rl2:action ex:issueServiceCredit ;
-    rl2:object ex:ProductionService ;
+    rl2:action ex:issueCredit ;
+    rl2:object ex:Service ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:uptimeDuty ;
@@ -135,28 +124,19 @@ ex:creditDuty_A1 a rl2:Duty ;
     ] .
 
 ex:uptimeAgreement a rl2:Agreement ;
-    rl2:grantor ex:CloudProvider ;
+    rl2:grantor ex:Provider ;
     rl2:grantee ex:Customer ;
-    rl2:clause ex:uptimeDuty, ex:uptimeClaim, ex:creditDuty_A1 ;
+    rl2:clause ex:uptimeDuty, ex:creditDuty_A1 ;
     prov:wasDerivedFrom ex:uptimeOffer .
 ```
 
-The transformation changes both parts of the Promise-status query: `targetNorm` now identifies
-the crystallized Duty and `promiseStateOperand` becomes `obligationStateOperand`. It copies the
-sibling Duty under a new identifier and preserves the Promise's state condition as the
-Maintenance Duty's `invariant`; it does not invent a `maintainUptime` action.
+## Request and snapshot
 
-## Expected transformation result
+Request: `(Provider, issueCredit, Service)`. The snapshot establishes that `uptimeDuty` is
+`Violated` and contains no qualifying credit evidence.
 
-| Observation | Expected value |
-|---|---|
-| Source Offer passed directly to `Out` | Empty envelope |
-| Transformation result | `Materialized(ex:uptimeAgreement, sourceMap)` |
-| Source-map entry for `ex:uptimePromise` | `ex:uptimeDuty` |
-| Source-map entry for `ex:creditDuty` | `ex:creditDuty_A1` |
-| Promise clauses in Agreement | None |
-| Snapshot or runtime effects read/emitted | None |
+## Expected result
 
-General `promisedDuty` suretyship, a missing promised-state object, conflicting parties, duplicate
-output identifiers, or a Promise-targeted `promisorOperand` query yields `Rejected(errors)` and no
-partial Agreement.
+The Agreement contains the two materialized Duties. Evaluation derives an obligation atom for
+`creditDuty_A1`, whose status is `Active`; the access decision is `NotApplicable` because Duties
+do not grant or prohibit access.

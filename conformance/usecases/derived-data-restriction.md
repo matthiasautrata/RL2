@@ -1,226 +1,44 @@
-# Use Case 20: Derived Data Restriction
-
-**Pattern:** Complex prohibition with reverse-engineering test  
-**Vocabulary Demonstrated:** `Prohibition`, conditional evaluation  
-**Category:** External Data Licenses  
-**Status:** DRAFT
-
----
-
-## Business Context
-
-Data vendors protect their investment through restrictions on derived works. The key principle:
-
-> "You may create derived data, but only if it cannot be reverse-engineered back to the source data."
-
-This is more nuanced than a simple prohibition. Derived data is permitted — even encouraged — but the source data's commercial value must remain protected.
+# Derived Data Restriction
 
 ## Scenario
 
-A bank licenses market data from a vendor. The bank wants to:
-1. Use raw data for internal trading (permitted)
-2. Create risk analytics for internal use (permitted)
-3. Sell aggregated market indicators to clients (depends)
+A bank may distribute a market indicator derived from licensed data only where the indicator cannot reconstruct or substitute for the source data.
 
-Whether #3 is permitted depends on whether the indicators can be reverse-engineered to reconstruct the source data.
+## Why it matters
 
-## Policy Intent
+Whether a derivative is externally distributable is often determined by a documented assessment. RL2 makes that assessment an attributed snapshot fact rather than embedding an undefined test in policy prose.
 
-> "Derived works may be distributed externally ONLY IF they cannot be reverse-engineered to the underlying data."
-
-## Key Characteristics
-
-| Aspect | Description |
-|--------|-------------|
-| Not a blanket prohibition | Derived data is allowed |
-| Conditional restriction | Depends on reversibility |
-| Subjective test | "Can it be reverse-engineered?" |
-| Vendor discretion | Vendor may make determination |
-
-## Real-World Terms
-
-### CME Group
-
-> "Licensee shall have no right to use the Data... in the creation of derivative works as may be determined in CME's sole discretion."
-
-### Turquoise (LSEG)
-
-> "No Data Charges are payable for the internal or external distribution of such Original Works provided they cannot be reverse engineered in any way back to the underlying Data, and/or effectively substituted for that Data. In the event that an Original Work can be reverse engineered, or used as a substitute, Data Charges... will apply."
-
-### ICE Data
-
-> "Licensee shall have no right to use the Data for purposes of... the creation, issuance, distribution, marketing and/or maintenance of any index products... without entering into a separate Data and Trademark License Agreement."
-
-## Normative Structure
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Prohibition: Distribute Reversible Derivatives      │
-│  ─────────────────────────────────────────────────  │
-│  Subject: Licensee                                   │
-│  Prohibited Action: distribute                       │
-│  Object: Derived Data                                │
-│  Condition: derivative.isReversible = true           │
-└─────────────────────────────────────────────────────┘
-            │
-            │ Alternatively (permissive framing)
-            ▼
-┌─────────────────────────────────────────────────────┐
-│  Privilege: Distribute Non-Reversible Derivatives    │
-│  ─────────────────────────────────────────────────  │
-│  Subject: Licensee                                   │
-│  Action: distribute                                  │
-│  Object: Derived Data                                │
-│  Condition: derivative.isReversible = false          │
-└─────────────────────────────────────────────────────┘
-```
-
-## Evaluation Logic
-
-```
-Request: Licensee wants to distribute Derived Work W
-
-1. Is W derived from licensed data? YES/NO
-   - If NO → not covered by this restriction
-2. Can W be reverse-engineered to source data?
-   - Assessment criteria (see below)
-3. If reversible → DENY or require additional license
-   If not reversible → PERMIT
-```
-
-## Reversibility Assessment
-
-The "reverse-engineering test" is inherently subjective. Common criteria:
-
-| Factor | Low Risk | High Risk |
-|--------|----------|-----------|
-| Aggregation level | Summary across 1000+ records | Single record values |
-| Time delay | T+30 days | Real-time |
-| Transformation | Complex algorithm | Simple filtering |
-| Granularity | Daily averages | Tick-by-tick |
-| Identifiability | Anonymous | Specific instruments |
-
-## Examples
-
-### Permitted (Non-Reversible)
-
-- Monthly sector performance indices
-- Volatility indicators aggregated across markets
-- Anonymized trading pattern analysis
-
-### Prohibited (Reversible)
-
-- Real-time price feeds relabeled
-- End-of-day values with minimal aggregation
-- Instrument-specific analytics that reveal source prices
-
-### Gray Area (Requires Approval)
-
-- Industry benchmark indices
-- Risk factors derived from pricing
-- Composite indicators using licensed data
-
-## Contractual Resolution
-
-Because reversibility is subjective, contracts often specify:
-
-1. **Pre-approval:** Licensee must get vendor approval before distributing
-2. **Self-assessment:** Licensee certifies non-reversibility
-3. **Vendor discretion:** Vendor can determine reversibility
-4. **Safe harbors:** Specific transformation thresholds
-
-## Comparison with Related Use Cases
-
-| Use Case | Focus |
-|----------|-------|
-| **derived-data-restriction** | Conditional based on reversibility |
-| no-redistribution (19) | Blanket prohibition |
-| pass-through-terms (23) | Obligations on downstream |
-
-## Profile Requirements
+## Canonical policy
 
 ```turtle
-@prefix license: <https://example.org/profile/license#> .
+@prefix ex: <https://example.org/> .
+@prefix rl2: <https://rl2.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-license:isReversibleOperand a rl2:LeftOperand ;
-    rdfs:label "Is Reversible" ;
-    rl2:resolutionPath "asset.derivationMetadata.reversible" ;
+ex:Vendor a rl2:Agent .
+ex:Bank a rl2:Agent .
+ex:MarketIndicator a rl2:Asset .
+ex:distribute a rl2:Action .
+ex:nonReconstructing a rl2:LeftOperand ;
     rdfs:range xsd:boolean ;
-    rdfs:comment "Whether the derived data can be reverse-engineered to source." .
+    rl2:resolutionPath "asset.assessment.nonReconstructing" .
 
-license:derivationDepthOperand a rl2:LeftOperand ;
-    rdfs:label "Derivation Depth" ;
-    rl2:resolutionPath "asset.derivationMetadata.transformationCount" ;
-    rdfs:comment "Number of transformation steps from source." .
+ex:distributeSafeDerivative a rl2:Privilege ;
+    rl2:subject ex:Bank ; rl2:action ex:distribute ; rl2:object ex:MarketIndicator ;
+    rl2:condition [ a rl2:AtomicConstraint ; rl2:leftOperand ex:nonReconstructing ;
+        rl2:constraintOperator rl2:eq ; rl2:rightOperand true ] .
 
-license:aggregationLevelOperand a rl2:LeftOperand ;
-    rdfs:label "Aggregation Level" ;
-    rl2:resolutionPath "asset.derivationMetadata.recordCount" ;
-    rdfs:comment "Number of source records aggregated." .
+ex:derivativeAgreement a rl2:Agreement ;
+    rl2:grantor ex:Vendor ; rl2:grantee ex:Bank ; rl2:clause ex:distributeSafeDerivative .
 ```
 
-## Tiered Approach
+## Request and snapshot
 
-Some licenses define tiers based on derivation characteristics:
+Request: `(Bank, distribute, MarketIndicator)`.
 
-| Tier | Criteria | Permission |
-|------|----------|------------|
-| Tier 1 | >100 records, >7 day delay | No fee, no approval |
-| Tier 2 | 10-100 records, 1-7 day delay | Approval required |
-| Tier 3 | <10 records, <1 day delay | Additional license fee |
+World snapshot: `asset.assessment.nonReconstructing = true`, attributed to the vendor-approved assessment process.
 
-## Audit Requirements
+## Expected result
 
-For derived data distribution:
-- Source data identification
-- Transformation description
-- Reversibility self-assessment
-- Vendor approval (if required)
-- Distribution recipients
-
----
-
-## RL2 Model
-
-```turtle
-# Prohibited when the derivative can be reverse-engineered to the source data.
-ex:reversibleDerivativeProhibition a rl2:Prohibition ;
-    rl2:subject ex:Licensee ;
-    rl2:prohibitedAction ex:distributeExternally ;
-    rl2:object ex:DerivedData ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand license:isReversibleOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand "true"^^xsd:boolean
-    ] .
-
-# Permitted when it cannot be reverse-engineered (the same test, negated).
-ex:nonReversibleDerivativePrivilege a rl2:Privilege ;
-    rl2:subject ex:Licensee ;
-    rl2:action ex:distributeExternally ;
-    rl2:object ex:DerivedData ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand license:isReversibleOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperand "false"^^xsd:boolean
-    ] .
-
-ex:distributeExternally a rl2:Action ;
-    rdfs:label "Distribute Externally" .
-
-ex:derivedDataLicense a rl2:Agreement ;
-    rl2:grantor ex:DataVendor ;
-    rl2:grantee ex:Licensee ;
-    rl2:clause ex:reversibleDerivativeProhibition, ex:nonReversibleDerivativePrivilege .
-```
-
----
-
-## References
-
-- CME Derived Data License Agreement
-- ICE Derived Data License Agreement
-- Turquoise Market Data Policy
-- LSEG Data Terms — Derived Data provisions
+Expected decision: `Permit`. A false, missing, invalid, or conflicting assessment does not establish this privilege; the latter three yield an attributed indeterminate result where applicable.

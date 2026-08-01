@@ -1,76 +1,53 @@
-# Use Case 2: Team License
-
-**Pattern:** Sein-sollen (Ought-to-be)
-**Identity Check:** None (anyone may fulfill)
-**Category:** Organizational licensing
+# Team Licence
 
 ## Scenario
 
-An administrator pays for a team license. All team members gain access regardless of who paid.
+An administrator must pay for a team licence before a named team member may access the service.
 
-## Policy Intent
+## Why it matters
 
-> "If the fee IS PAID, members may access."
+The access condition depends on fulfilment of an organizational obligation, not on the identity of the payer.
 
-## Key Characteristics
-
-- Impersonal/state obligation
-- Payment by one enables access for many
-- Decoupled actor from beneficiary
-- Common in SaaS B2B licensing
-
-## Profile-Declared Actions
-
-```turtle
-@prefix licensing: <https://example.org/profile/licensing#> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-licensing:pay a rl2:Action ;
-    rdfs:label "Pay" ;
-    rdfs:comment "Make payment for a license." .
-
-licensing:access a rl2:Action ;
-    rdfs:label "Access" ;
-    rdfs:comment "Access premium features." .
-```
-
-## RL2 Model (Unified State Approach)
+## Canonical policy
 
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix licensing: <https://example.org/profile/licensing#> .
+
+ex:TeamAdministrator a rl2:Agent .
+ex:Alice a rl2:Agent .
+ex:TeamLicence a rl2:Asset .
+ex:PremiumService a rl2:Asset .
+ex:pay a rl2:Action .
+ex:access a rl2:Action .
 
 ex:teamPaymentDuty a rl2:Duty ;
-    rl2:subject ex:TeamAdmin ;
-    rl2:action licensing:pay ;
-    rl2:object ex:TeamLicense .
+    rl2:subject ex:TeamAdministrator ;
+    rl2:action ex:pay ;
+    rl2:object ex:TeamLicence .
 
-ex:teamAccessPrivilege a rl2:Privilege ;
-    rl2:subject ex:TeamMember ;
-    rl2:action licensing:access ;
-    rl2:object ex:PremiumFeatures ;
+ex:memberAccessPrivilege a rl2:Privilege ;
+    rl2:subject ex:Alice ;
+    rl2:action ex:access ;
+    rl2:object ex:PremiumService ;
     rl2:condition [
-        # Sein-sollen: Only check state, not who fulfilled
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:teamPaymentDuty ;
         rl2:leftOperand rl2:obligationStateOperand ;
         rl2:constraintOperator rl2:eq ;
         rl2:rightOperandRef rl2:Fulfilled
     ] .
+
+ex:teamPolicy a rl2:Set ;
+    rl2:clause ex:teamPaymentDuty, ex:memberAccessPrivilege .
 ```
 
-## Evaluation
+## Request and snapshot
 
-| Scenario | Payment By | Request By | Result |
-|----------|------------|------------|--------|
-| Admin accesses | Alice (admin) | Alice | PERMIT |
-| Member accesses | Alice (admin) | Bob (member) | PERMIT |
-| Non-member | Alice (admin) | Eve (external) | DENY (subject mismatch) |
+Request: `(agent = Alice, action = access, asset = PremiumService)`.
 
-## Comparison
+World snapshot: qualifying evidence records the TeamAdministrator performing `pay` on `TeamLicence`.
 
-- **ODRL:** Cannot express directly; requires separate policy per member
-- **XACML:** Check `team.license-status == paid` attribute
-- **RL2:** Sein-sollen (no `dutyPerformerOperand` check) cleanly decouples payer from accessor
+## Expected result
+
+`teamPaymentDuty` is `Fulfilled`; Alice’s request is `Permit`. The same payment does not itself grant access to an agent not named by a matching privilege.

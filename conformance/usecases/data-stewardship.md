@@ -1,28 +1,17 @@
-# Use Case 8: Data Stewardship Promise
+# Data Stewardship Commitment
 
-**Pattern:** Offer-local Promise dependency rewritten on acceptance
+## Scenario
 
-**Scope:** RL2 core transformation and evaluation
+A data owner offers access to a researcher who promises to perform a stewardship action. After acceptance, access applies only once the resulting Duty is fulfilled.
 
-**Status:** SCOPE-2 migrated
+## Why it matters
 
-## Business rule
+The example demonstrates the core Offer-to-Agreement transformation without prescribing a workflow or a persistent case model.
 
-> A data owner offers access to a researcher who undertakes to perform a stewardship action.
-> Access applies only after the accepted stewardship Duty has been fulfilled.
-
-The Promise and dependent Privilege are siblings in one Offer. The Offer is non-operative: its
-Privilege cannot grant access. Acceptance crystallizes the Promise into an Achievement Duty and
-rewrites the Privilege's Promise-status query into a Duty-status query.
-
-The researcher identity is structural rather than a second condition: the Promise names the
-researcher as `promisor`, and the Privilege names the same agent as `subject`. Materialization
-allows the Promise parties only in the accepted grantor/grantee pair.
-
-## Source Offer
+## Canonical policy
 
 ```turtle
-@prefix ex:  <https://example.org/> .
+@prefix ex: <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
 
 ex:DataOwner a rl2:Agent .
@@ -37,7 +26,7 @@ ex:stewardshipPromise a rl2:Promise ;
     rl2:promisedAction ex:steward ;
     rl2:object ex:SensitiveData .
 
-ex:dataAccessPrivilege a rl2:Privilege ;
+ex:offeredAccess a rl2:Privilege ;
     rl2:subject ex:Researcher ;
     rl2:action ex:access ;
     rl2:object ex:SensitiveData ;
@@ -52,38 +41,7 @@ ex:dataAccessPrivilege a rl2:Privilege ;
 ex:stewardshipOffer a rl2:Offer ;
     rl2:grantor ex:DataOwner ;
     rl2:grantee ex:Researcher ;
-    rl2:clause ex:stewardshipPromise, ex:dataAccessPrivilege .
-```
-
-## Acceptance value
-
-```text
-Acceptance(
-  agreementId = ex:stewardshipAgreement,
-  grantor      = ex:DataOwner,
-  grantee      = ex:Researcher,
-  primaryIds   = {
-    ex:stewardshipPromise -> ex:stewardshipDuty,
-    ex:dataAccessPrivilege -> ex:dataAccessPrivilege_A1
-  },
-  claimIds       = { ex:stewardshipPromise -> ex:stewardshipClaim },
-  objectBindings = {},
-  dutyWindows    = {}
-)
-```
-
-## Materialized Agreement
-
-```turtle
-@prefix ex:   <https://example.org/> .
-@prefix rl2:  <https://rl2.example/ontology#> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-
-ex:DataOwner a rl2:Agent .
-ex:Researcher a rl2:Agent .
-ex:SensitiveData a rl2:Asset .
-ex:steward a rl2:Action .
-ex:access a rl2:Action .
+    rl2:clause ex:stewardshipPromise, ex:offeredAccess .
 
 ex:stewardshipDuty a rl2:Duty ;
     rl2:subject ex:Researcher ;
@@ -91,12 +49,7 @@ ex:stewardshipDuty a rl2:Duty ;
     rl2:action ex:steward ;
     rl2:object ex:SensitiveData .
 
-ex:stewardshipClaim a rl2:Claim ;
-    rl2:subject ex:DataOwner ;
-    rl2:counterparty ex:Researcher ;
-    rl2:correlativeTo ex:stewardshipDuty .
-
-ex:dataAccessPrivilege_A1 a rl2:Privilege ;
+ex:acceptedAccess a rl2:Privilege ;
     rl2:subject ex:Researcher ;
     rl2:action ex:access ;
     rl2:object ex:SensitiveData ;
@@ -111,26 +64,15 @@ ex:dataAccessPrivilege_A1 a rl2:Privilege ;
 ex:stewardshipAgreement a rl2:Agreement ;
     rl2:grantor ex:DataOwner ;
     rl2:grantee ex:Researcher ;
-    rl2:clause ex:stewardshipDuty, ex:stewardshipClaim,
-               ex:dataAccessPrivilege_A1 ;
-    prov:wasDerivedFrom ex:stewardshipOffer .
+    rl2:clause ex:stewardshipDuty, ex:acceptedAccess .
 ```
 
-## Expected evaluation
+## Request and snapshot
 
-For request `(Researcher, access, SensitiveData)`:
+Request: `(agent = Researcher, action = access, asset = SensitiveData)` against `stewardshipAgreement`.
 
-| Snapshot evidence | Duty status | Decision |
-|---|---|---|
-| A qualifying `steward` action by Researcher on SensitiveData | `Fulfilled` | `Permit` |
-| No qualifying stewardship evidence | `Active` | `NotApplicable` |
-| The same evidence, but a request by another agent | `Fulfilled` | `NotApplicable` |
+World snapshot: qualifying evidence records the Researcher performing `steward` on `SensitiveData`.
 
-Passing the source Offer directly to `Out` always contributes no atom. `NotApplicable` is not a
-global denial: another operative policy may independently permit the request.
+## Expected result
 
-## Migration note
-
-The earlier encoding used profile operands over mutable `state.Promises` fields and asserted
-`rl2:promiseState`. Those forms are removed. Promise status is derived from evidence, and the
-accepted Agreement queries the crystallized Duty.
+The materialized `stewardshipDuty` is `Fulfilled` and the request is `Permit`. Before that evidence exists, the access privilege is inactive.

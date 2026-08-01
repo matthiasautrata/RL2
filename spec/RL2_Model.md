@@ -2,9 +2,8 @@
 
 ## Status
 
-This document is the SCOPE-2 normative information-model scaffold. Detailed denotations and
-algorithms are defined in `RL2_Semantics.md`. Sections marked **Open** identify semantic decisions
-that must be closed before publication; they are not delegated to implementations.
+This document defines the normative inputs and outputs of RL2 evaluation. Detailed denotations
+and algorithms are defined in `RL2_Semantics.md`.
 
 ## 1. Purpose
 
@@ -26,6 +25,10 @@ A `PolicyUniverse` is a finite collection of validated RL2 policies evaluated to
 universe supplied to one evaluation is immutable. Policy discovery, administration, publication,
 version selection, and distribution are outside `Eval`; the caller supplies the universe to be
 interpreted.
+
+Canonical projection also computes the finite action-inclusion, collection-membership, and
+`rdf:type`/`rdfs:subClassOf` indexes referenced by those policies and their required profiles.
+Those indexes are part of PolicyUniverse identity; an evaluator does not consult an ambient graph.
 
 Canonical RDF ingestion maps the universe to the normalized abstract syntax defined by the
 Semantics. Canonical projection, including defaults and supported ODRL translations, is part of
@@ -98,20 +101,17 @@ AttributedFact = (
 
 Evidence = (
     id          : IRI,
-    kind        : EventKind,
     occurredAt  : Time,
-    actor       : Agent?,
-    action      : Action?,
-    object      : Resource?,
-    payload     : finite map of canonical field name -> Value,
+    actor       : Agent,
+    action      : Action,
+    object      : Resource,
     attribution : Attribution
 )
 ```
 
 An `AttributedFact` binds one canonical path, in one explicit scope, to a typed value. `Evidence`
-records an occurrence or observation used by event conditions and, through the status functions,
-by Duties and Promises. `id` identifies an assertion or evidence item, not the real-world entity
-described by it.
+records an observed action used by Duty and Promise status functions. `id` identifies an
+assertion or evidence item, not the real-world entity described by it.
 
 The snapshot is a coherent mathematical value. RL2 does not require that it be stored as one
 record, produced by event sourcing, or shared across evaluations. Implementations may assemble it
@@ -137,8 +137,10 @@ Before policy derivation, `validateSnapshot` performs the following normalizatio
    structurally invalid.
 5. Evidence later than `evaluationTime` is not eligible for a query. It is not deleted from the
    value, because the same supplied collection may be normalized for another evaluation time.
+6. Every Evidence actor, action, and object is present and has the declared type. A malformed
+   record makes the snapshot structurally invalid.
 
-Arrival order, RDF statement order, Case membership, database version, and storage sequence are
+Arrival order, RDF statement order, database version, and storage sequence are
 not semantic identity or tie-breaking fields.
 
 `validateSnapshot(W,C)` returns the finite set of canonical `Invalid(SnapshotSite(field))`
@@ -158,9 +160,9 @@ The path root determines the fact scope; the root itself remains part of the can
 | `global` | `GlobalScope` |
 | `request` | read directly from `Request`, not from `facts` |
 
-`state.Clock` denotes `evaluationTime`, and `state.Events...` denotes an evidence query; neither
-is an `AttributedFact`. A profile may define other `state`, `context`, or `global` paths, but every
-such path still resolves through the fact algorithm below.
+`state.Clock` denotes `evaluationTime` and is not an `AttributedFact`. A profile may define other
+`state`, `context`, or `global` paths, but every such path resolves through the fact algorithm
+below.
 
 The only core `request.*` paths are `request.requestingAgent`, `request.requestedAction`, and
 `request.requestedAsset`. They resolve directly from Request. Other request metadata uses a
@@ -176,7 +178,7 @@ resolveFact(k, τ, p, W, C) =
         f.key = k and contains(f.validDuring, W.evaluationTime)
     }
     in if candidates = empty then Err(Missing(k))
-       else if any f in candidates is not admissible(p, f.attribution, C)
+       else if any f in candidates is not admissibleFact(p, f.attribution, C)
             then Err(Invalid(k))
        else if any f.value is not of type τ
             then Err(Invalid(k))
@@ -200,22 +202,16 @@ Evidence is selected by an explicit selector:
 
 ```text
 EvidenceSelector = (
-    kinds       : finite non-empty set of EventKind,
-    actor       : Agent?,
-    action      : Action?,
-    object      : Resource?,
-    during      : Interval?,
-    payloadTest : finite map of field name -> ValuePattern,
-    profile     : Profile?
+    actor       : Agent,
+    actions     : finite non-empty set of Action,
+    object      : Resource,
+    during      : Interval?
 )
 ```
 
-Selector construction expands each requested kind to the finite set of included kinds using the
-canonical PolicyUniverse. An evidence item matches when its kind belongs to that expanded set,
-every present actor/action/object field equals the selector field, its occurrence is no later than
-`evaluationTime` and within `during` when supplied, its payload passes every declared pattern,
-and its attribution is admissible. Selector fields are conjunctive. There is no ambient Case
-scope.
+An evidence item matches when its actor and object equal the selector values, its action belongs
+to `actions`, and its occurrence is no later than `evaluationTime` and within `during` when
+supplied. There is no ambient request scope.
 
 The query functions make the error boundary explicit:
 
@@ -223,59 +219,35 @@ The query functions make the error boundary explicit:
 selectEvidence(selector, W, C) =
     let raw = {
         e in W.evidence |
-        kindScopeTimeAndPayloadMatch(e, selector, W.evaluationTime)
+        actorActionObjectTimeMatch(e, selector, W.evaluationTime)
     }
-    in if any e in raw is not admissible(selector.profile, e.attribution, C)
+    in if any e in raw is not admissibleEvidence(e, C)
        then Err(Invalid(selector))
        else Ok(raw)
-
-existsEvidence(selector, W, C) =
-    case selectEvidence(selector, W, C) of
-        Err(e)  -> Err(e)
-        Ok(es)  -> Ok(es != empty)
-
-projectLatestEvidence(selector, field, expectedType, W, C) =
-    case selectEvidence(selector, W, C) of
-        Err(e) -> Err(e)
-        Ok(empty) -> Err(Missing(selector))
-        Ok(es) ->
-            let latest = { e in es | e.occurredAt = maxOccurredAt(es) }
-            in if any e in latest lacks field or field has the wrong type
-               then Err(Invalid(selector))
-               else let values = distinct projected semantic values from latest
-                    in if |values| = 1 then Ok(the element of values)
-                       else Err(Conflict(selector))
 ```
 
-Duty evidence selectors must include the Duty subject and object, and include its action when the
-Duty has one. S2-C2 defines their temporal interval. Other constructs that require request or
-asset isolation must put those bindings into the selector; an omitted field is intentionally
-unconstrained, not implicitly copied from the current Request.
-
-Existential event conditions use `existsEvidence` and are true when at least one matching item
-exists. A path that projects a field from the most recent matching evidence uses the maximum
-`occurredAt`. When several matching items share that time, equal projected values collapse to one
-value; unequal projected values produce `Conflict`. Evidence identifiers never break a semantic
-tie.
-
-Missing a matching evidence item makes an existential event condition `False`. Missing a required
-projected field, inadmissible attribution, or an ill-typed projected value yields `Invalid`; a tied
-unequal projection yields `Conflict`. Each error becomes `Unknown` when a condition depends on it.
+Core Duty and Promise selectors use the subject, the required action plus its finite set of
+included actions, the object, and the applicable temporal interval. These values come from the
+clause; they are not implicitly copied from the current Request. `admissibleEvidence` is the total
+finite rule supplied by the evaluation configuration; it may inspect the selected Evidence and
+its attribution. No matching evidence is `Ok(empty)`, meaning performance has not been established.
 
 ### 4.4 Profile provenance and trust
 
 Core RL2 does not declare an issuer trustworthy merely because an assertion is present. A profile
-may define a total `admissible(profile, attribution, configuration)` predicate and may require
+may define a total `admissibleFact(profile, attribution, configuration)` predicate and may require
 issuer, source, profile version, observation time, or other finite attribution fields. The
 configuration supplies any permitted trust anchors or finite interpretation parameters.
 
-For an operand or evidence selector with no profile attribution requirement,
-`admissible(None, attribution, configuration) = true`. A referenced profile must define its
-predicate and be supported by the configuration; otherwise snapshot use fails with `Invalid`.
+For an operand with no profile attribution requirement,
+`admissibleFact(None, attribution, configuration) = true`. A referenced profile must define its
+fact predicate and be supported by the configuration; otherwise snapshot use fails with `Invalid`.
+The configuration likewise supplies one explicit `admissibleEvidence(Evidence, configuration)`
+rule; `AllowAllEvidence` is a valid declared rule, not an implicit default.
 
-`admissible` is evaluated only over the supplied snapshot, profile declarations, and evaluation
-configuration. It performs no network access, credential refresh, or opaque callback. Missing or
-unaccepted required attribution on a relevant fact or evidence item is `Invalid`; the evaluator
+The admissibility rules are evaluated only over the supplied snapshot, profile declarations, and
+evaluation configuration. They perform no network access, credential refresh, or opaque callback.
+Missing or unaccepted required attribution on a relevant fact or evidence item is `Invalid`; the evaluator
 must not silently fall back to another candidate. Credential verification and construction of the
 attribution fields occur before `Eval`.
 
@@ -283,9 +255,9 @@ attribution fields occur before `Eval`.
 
 The snapshot is complete only for the facts and evidence the caller chose to supply. Absence does
 not assert the logical negation of a fact. Fact absence is `Missing` and becomes `Unknown` when a
-condition depends on it. Event existence is the deliberate exception: within the finite supplied
-evidence set and selector interval, no matching event means `False`. This is a scoped evaluation
-rule, not an RDF closed-world entailment regime.
+condition depends on it. Absence of qualifying performance evidence means that a Duty or Promise
+has not been shown fulfilled; the status rules determine whether it remains Pending or Active, or
+becomes Violated.
 
 ## 5. Evaluation Configuration
 
@@ -294,8 +266,9 @@ deployments and therefore must be explicit inputs, including:
 
 - the conflict-resolution strategy;
 - the supported profile identifiers and versions;
+- one total finite evidence-admissibility rule, which may explicitly be `AllowAllEvidence`;
 - declared conformance bounds, including maximum policy-universe size, condition/path depth,
-  collection size, fact count, evidence count, and evidence-payload size;
+  collection size, fact count, and evidence count;
 - profile-defined interpretation parameters, where the profile permits them.
 
 A policy must not silently select an evaluator-wide conflict strategy. Unsupported or conflicting
@@ -304,14 +277,14 @@ configuration produces a specified diagnostic.
 ```text
 Strategy ::= ProhibitOverrides
            | PermitOverrides
-           | SpecificOverridesGeneral
            | Invalid
 
 validateConfiguration(U, C) : finite set of EvalError =
     { Invalid(ConfigurationSite(field)) |
         field contains an unsupported Strategy,
         a profile/version required by a policy in U but unsupported by C,
-        a profile required by U without a total admissibility predicate,
+        a profile required by U without a total fact-admissibility predicate,
+        an absent or non-total evidence-admissibility rule,
         a self-reference or cycle in the finite targetNorm status-dependency graph,
         or an absent/non-positive conformance bound }
 ```
@@ -379,22 +352,22 @@ promiseStatus(PolicyUniverse, Promise, WorldSnapshot, EvaluationConfiguration)
 ```
 
 `IndeterminateStatus` is not a fifth Duty or Promise state and has no corresponding ontology
-individual. It records that the semantic input does not determine one state. An implementation
-may serialize or cache a `Known` status, provided the observable result remains equal to the
-derived value; an asserted `rl2:obligationState` or `rl2:promiseState` is never authoritative input
-to core `Eval`.
+individual. It records that the semantic input does not determine one state. Policy RDF does not
+assert status; an implementation may cache a derived result only when doing so preserves the
+observable result for the complete evaluation input.
 
 ### 7.1 Canonical Duty forms
 
 A Duty node denotes one obligation occurrence and has exactly one of two content forms:
 
 ```text
-AchievementDuty(subject, action, object, condition?, postCondition?, dutyWindow?)
-MaintenanceDuty(subject, invariant, object, condition?, dutyWindow?)
+AchievementDuty(subject, counterparty?, action, object, condition?, postCondition?, dutyWindow?)
+MaintenanceDuty(subject, counterparty?, invariant, object, condition?, dutyWindow?)
 ```
 
 `condition` is always an applicability guard. It is never reused as satisfaction content or as a
-deadline. An Achievement Duty is satisfied by qualifying evidence that its `action` occurred;
+deadline. Before the guard is true, the Duty is `Pending`; unknown guard data makes its status
+indeterminate. An Achievement Duty is satisfied by qualifying evidence that its `action` occurred;
 when `postCondition` is present, that condition must also hold at the witness occurrence time. A
 Maintenance Duty has no action: its `invariant` must hold throughout the elapsed part of its
 window. Without a window it is an ongoing requirement assessed at the current snapshot. The
@@ -406,8 +379,8 @@ A `DutyWindow` is one finite half-open interval:
 DutyWindow = [startInclusive, endExclusive)
 ```
 
-At the start instant the Duty is active. Evidence at the end instant is outside the window, and
-at that instant the window is closed. A Duty with no window is unbounded: an Achievement Duty can
+At the start instant the Duty becomes eligible for assessment when its applicability guard holds.
+Evidence at the end instant is outside the window, and at that instant the window is closed. A Duty with no window is unbounded: an Achievement Duty can
 be fulfilled but does not become violated merely because time passes; a Maintenance Duty is an
 ongoing snapshot requirement that can be active or violated but cannot be declared fulfilled.
 
@@ -423,7 +396,8 @@ A Duty has one of two structural roles:
 - **independent** — it is a Policy clause and is not the object of `rl2:prerequisiteDuty`.
 
 Multiple prerequisites on one Privilege are conjunctive. For each prerequisite, a false
-applicability `condition` means that the Duty is not required for this evaluation. When applicable,
+applicability `condition` means that the Duty is `Pending` and not required for this evaluation.
+When applicable,
 only `Known(Fulfilled)` satisfies the prerequisite. `Known(Pending)`, `Known(Active)`, and
 `Known(Violated)` prevent that Privilege from contributing a permit; an outcome-sensitive
 `IndeterminateStatus` makes the Privilege indeterminate. These effects are local to the owning
@@ -437,12 +411,13 @@ their content is otherwise equal.
 
 An independent Duty contributes normative and status information but never changes an access
 decision. Core has no concurrent or post-use attachment mode and no `PermitWithObligations`
-decision. A companion protocol may turn `Permit` plus selected Duty results into requirements,
-scheduling, or an enforcement-specific response without changing core semantics.
+decision. Applications may use the returned decision and Duty information for enforcement or
+scheduling without changing core semantics.
 
 ### 7.3 Status meaning
 
-- Before a declared window starts, either Duty form is `Pending`.
+- Before a declared window starts, or while its applicability condition is false, either Duty
+  form is `Pending`.
 - An Achievement Duty is `Fulfilled` when at least one qualifying action witness occurs within
   its window and satisfies its optional postcondition. If no such witness exists, it is
   `Violated` when a finite window closes and otherwise `Active`.
@@ -450,17 +425,17 @@ scheduling, or an enforcement-specific response without changing core semantics.
   elapsed window. It is `Fulfilled` only after a finite window closes and the snapshot provides
   complete coverage establishing that the invariant held throughout. Without a window, it is
   `Active` when the invariant is true at the current snapshot and `Violated` when false.
-- A missing, invalid, inadmissible, ill-typed, or conflicting value that can change the status
+- An unknown applicability condition yields `IndeterminateStatus`. A missing, invalid,
+  inadmissible, ill-typed, or conflicting value that can change the content status
   yields `IndeterminateStatus` with its causal errors. Missing qualifying action evidence alone
   means “not yet fulfilled,” not an error.
 
 Promise status follows its content. A promised action is fulfilled by qualifying action evidence
 and otherwise remains pending because a Promise has no `dutyWindow`. A promised state is assessed
-from its condition at the evaluation snapshot; a promised Duty projects the referenced Duty's
-status, mapping `Pending` and `Active` to Promise `Pending`. Acceptance may crystallize a Promise
-into a bounded Duty; that pure transformation is specified separately by S2-C4. Promise status
-is re-derived for every snapshot and is not a persistent terminal state. Only a crystallized
-Maintenance Duty with a finite window can represent a completed maintenance period.
+from its condition at the evaluation snapshot. Acceptance may crystallize a Promise into a bounded
+Duty; that pure transformation is specified in the next section. Promise status is re-derived for
+every snapshot and is not a persistent terminal state. Only a crystallized Maintenance Duty with
+a finite window can represent a completed maintenance period.
 
 ## 8. Policy Transformation
 
@@ -483,11 +458,9 @@ operation. `MaterializationResult` is either one complete Agreement plus its sou
 a non-empty canonical set of attributed errors; no partial Agreement is returned.
 
 Promises of actions crystallize into Achievement Duties. Promises of states crystallize into
-Maintenance Duties. Each generated Duty names the promisor as subject and promisee as
-counterparty and receives one canonical correlative Claim in the opposite orientation. A general
-`promisedDuty` suretyship cannot be represented by the current Duty algebra without inventing an
-action or changing Maintenance semantics, so core materialization rejects it with
-`UnsupportedPromiseContent`; the Promise itself retains snapshot-derived status semantics.
+Maintenance Duties. Each generated Duty names the promisor as subject and the promisee as
+counterparty. The counterparty identifies the beneficiary of the Duty; no separate Claim node is
+generated.
 
 All policy-local Norms receive Agreement-local identifiers while retaining top-level or attached
 placement. Policy-local Norms are exactly top-level Norm clauses plus prerequisite Duties attached
@@ -522,5 +495,5 @@ Core conformance requires:
 4. Correct diagnostics for invalid, unsupported, ambiguous, or indeterminate input.
 5. Correct ODRL translation for every claimed migration class.
 
-Wire formats, storage models, evaluator architecture, enforcement, and future Case workflows are
-separate conformance claims.
+Wire formats, storage models, evaluator architecture, and enforcement are outside core
+conformance.

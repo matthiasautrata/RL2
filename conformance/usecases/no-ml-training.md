@@ -1,175 +1,39 @@
-# Use Case 30: No ML Training
-
-**Pattern:** Specific use prohibition  
-**Vocabulary Demonstrated:** `Prohibition` with action constraint  
-**Category:** Data Contracts, AI Governance  
-**Status:** DRAFT
-
----
-
-## Business Context
-
-As AI/ML adoption grows, data providers increasingly restrict training use:
-
-- **Competitive protection:** Don't train competitors' models
-- **IP concerns:** Training may constitute derivative work
-- **Consent scope:** Original consent didn't cover ML training
-- **Quality control:** Provider wants control over model outputs
+# No Machine-learning Training
 
 ## Scenario
 
-A content platform licenses images to a marketing agency. The license explicitly states:
+A publisher licenses a text corpus for search and display but forbids using it to train a machine-learning model.
 
-> "Licensed content may not be used to train, develop, or improve any machine learning model, artificial intelligence system, or similar technology."
+## Why it matters
 
-## Policy Intent
+AI training is a distinct action with distinct commercial and governance consequences. A dedicated prohibition avoids treating it as an unspecified form of “use.”
 
-> "Use for ML/AI training is PROHIBITED regardless of other permissions."
-
-## Key Characteristics
-
-| Aspect | Description |
-|--------|-------------|
-| Scope | All ML/AI training activities |
-| Applies to | Models, fine-tuning, embeddings, etc. |
-| Exception | None (or requires separate license) |
-| Enforcement | Often contractual + technical |
-
-## Real-World Terms
-
-### Getty Images
-
-Explicit prohibition on using licensed images for AI training.
-
-### News Organizations
-
-AP, Reuters, NYT have all added AI training restrictions to their terms.
-
-### Stock Photography
-
-Most major stock photo services now prohibit ML training use.
-
-### Adobe Stock
-
-Separate licensing tier for "AI training" use cases.
-
-## Normative Structure
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Privilege: Use Content (general)                   │
-│  ─────────────────────────────────────────────────  │
-│  Subject: Licensee                                   │
-│  Action: use                                         │
-│  Object: Licensed Content                            │
-│  Condition: [standard license terms]                 │
-└─────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────┐
-│  Prohibition: ML Training Use                        │
-│  ─────────────────────────────────────────────────  │
-│  Subject: Licensee                                   │
-│  Prohibited Action: trainModel                       │
-│  Object: Licensed Content                            │
-│  Scope: Any ML/AI system                             │
-│  Priority: Higher than general use privilege         │
-└─────────────────────────────────────────────────────┘
-```
-
-## What Constitutes "Training"?
-
-| Activity | Typically Prohibited? |
-|----------|----------------------|
-| Training from scratch | Yes |
-| Fine-tuning existing model | Yes |
-| Creating embeddings | Often yes |
-| RAG retrieval (no training) | Usually no |
-| Inference only | No |
-| Human review/labeling | Depends |
-
-## Conflict Resolution
-
-The prohibition takes priority over general use permissions:
-
-```
-General Privilege: "You may use the content"
-Specific Prohibition: "You may not train models"
-
-Result: Use permitted EXCEPT for training
-```
-
-This requires `rl2:priority` or specificity-based conflict resolution.
-
-## Profile Requirements
-
-```turtle
-@prefix ai: <https://example.org/profile/ai#> .
-
-ai:trainModel a rl2:Action ;
-    rdfs:label "Train Model" ;
-    rdfs:comment "Use data to train, fine-tune, or improve ML/AI systems." .
-
-ai:createEmbeddings a rl2:Action ;
-    rdfs:label "Create Embeddings" ;
-    rl2:includedIn ai:trainModel .
-
-ai:fineTune a rl2:Action ;
-    rdfs:label "Fine-tune" ;
-    rl2:includedIn ai:trainModel .
-
-ai:modelTypeOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "context.targetSystem.type" .
-```
-
-## Technical Enforcement
-
-Beyond policy, technical measures may include:
-
-- Watermarking content
-- Monitoring for model outputs resembling licensed content
-- API terms prohibiting training use
-- Contractual audit rights
-
----
-
-## RL2 Model
-
-This model demonstrates a general-use Privilege alongside a specific
-Prohibition on ML training that takes priority over it; fine-tuning
-and embedding-creation are declared narrower actions `includedIn`
-the prohibited training action.
+## Canonical policy
 
 ```turtle
 @prefix ex: <https://example.org/> .
-@prefix ai: <https://example.org/profile/ai#> .
 @prefix rl2: <https://rl2.example/ontology#> .
 
-# ── General use Privilege ─────────────────────────────────────────
-ex:useContentPrivilege a rl2:Privilege ;
-    rl2:subject ex:Licensee ;
-    rl2:action ex:use ;
-    rl2:object ex:LicensedContent .
+ex:Publisher a rl2:Agent .
+ex:Licensee a rl2:Agent .
+ex:TextCorpus a rl2:Asset .
+ex:search a rl2:Action .
+ex:trainModel a rl2:Action .
 
-ex:use a rl2:Action ;
-    rdfs:label "Use" .
+ex:searchCorpus a rl2:Privilege ;
+    rl2:subject ex:Licensee ; rl2:action ex:search ; rl2:object ex:TextCorpus .
+ex:noTraining a rl2:Prohibition ;
+    rl2:subject ex:Licensee ; rl2:prohibitedAction ex:trainModel ; rl2:object ex:TextCorpus .
 
-# ── Specific Prohibition: ML/AI training, regardless of the above ──
-ex:noTrainingProhibition a rl2:Prohibition ;
-    rl2:subject ex:Licensee ;
-    rl2:prohibitedAction ai:trainModel ;
-    rl2:object ex:LicensedContent .
-
-ex:contentLicense a rl2:Agreement ;
-    rl2:grantor ex:ContentPlatform ;
-    rl2:grantee ex:Licensee ;
-    rl2:clause ex:useContentPrivilege, ex:noTrainingProhibition .
+ex:corpusLicence a rl2:Agreement ;
+    rl2:grantor ex:Publisher ; rl2:grantee ex:Licensee ;
+    rl2:clause ex:searchCorpus, ex:noTraining .
 ```
 
----
+## Request and snapshot
 
-## References
+Request: `(Licensee, trainModel, TextCorpus)`; world snapshot: no additional facts are required.
 
-- Getty Images Terms of Service — AI restrictions
-- AP News Terms — ML training prohibition
-- Creative Commons discussion on AI training
-- EU AI Act — Training data requirements
+## Expected result
+
+Expected decision: `Deny`. A request to search the corpus is `Permit`.

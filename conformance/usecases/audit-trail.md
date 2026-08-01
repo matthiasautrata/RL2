@@ -1,109 +1,52 @@
-# Use Case 10: Audit Trail Requirement
-
-**Pattern:** Compliance prerequisite (Sein-sollen)
-**Identity Check:** None (anyone may fulfill)
-**Category:** Compliance, SOX, audit
+# Audit Trail Prerequisite
 
 ## Scenario
 
-Access to financial records is only permitted if an audit trail has been established. It doesn't matter who established it—the compliance state must exist.
+A trader may execute an order only after an audit record for that order has been created.
 
-## Policy Intent
+## Why it matters
 
-> "If audit logging IS ENABLED, access is permitted."
+The policy treats audit evidence as a prerequisite Duty and exposes the distinction between a required record and an external logging implementation.
 
-## Key Characteristics
-
-- System state prerequisite
-- Identity-independent (Sein-sollen)
-- Compliance-driven
-- Enables defense-in-depth
-
-## Profile-Declared Actions
-
-```turtle
-@prefix compliance: <https://example.org/profile/compliance#> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-compliance:enableAuditLogging a rl2:Action ;
-    rdfs:label "Enable Audit Logging" ;
-    rdfs:comment "Enable audit logging on a system." .
-
-compliance:access a rl2:Action ;
-    rdfs:label "Access" ;
-    rdfs:comment "Access to financial records." .
-```
-
-## RL2 Model (Unified State Approach)
+## Canonical policy
 
 ```turtle
 @prefix ex: <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix compliance: <https://example.org/profile/compliance#> .
 
-ex:auditTrailSetup a rl2:Duty ;
-    rl2:subject ex:SystemAdmin ;
-    rl2:action compliance:enableAuditLogging ;
-    rl2:object ex:FinancialSystem .
+ex:Trader a rl2:Agent .
+ex:Order a rl2:Asset .
+ex:AuditRecord a rl2:Asset .
+ex:record a rl2:Action .
+ex:execute a rl2:Action .
 
-ex:financialRecordAccess a rl2:Privilege ;
-    rl2:subject ex:Auditor ;
-    rl2:action compliance:access ;
-    rl2:object ex:FinancialRecords ;
+ex:recordOrderDuty a rl2:Duty ;
+    rl2:subject ex:Trader ;
+    rl2:action ex:record ;
+    rl2:object ex:AuditRecord .
+
+ex:executeOrderPrivilege a rl2:Privilege ;
+    rl2:subject ex:Trader ;
+    rl2:action ex:execute ;
+    rl2:object ex:Order ;
     rl2:condition [
-        # Sein-sollen: Only check state, not who fulfilled
         a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:auditTrailSetup ;
+        rl2:targetNorm ex:recordOrderDuty ;
         rl2:leftOperand rl2:obligationStateOperand ;
         rl2:constraintOperator rl2:eq ;
         rl2:rightOperandRef rl2:Fulfilled
     ] .
+
+ex:tradingPolicy a rl2:Set ;
+    rl2:clause ex:recordOrderDuty, ex:executeOrderPrivilege .
 ```
 
-## Evaluation
+## Request and snapshot
 
-| Scenario | Audit Enabled By | Access Request By | Result |
-|----------|------------------|-------------------|--------|
-| Admin setup | Alice (admin) | Bob (auditor) | PERMIT |
-| Auto-setup | System | Bob (auditor) | PERMIT |
-| Not enabled | - | Bob (auditor) | DENY |
+Request: `(agent = Trader, action = execute, asset = Order)`.
 
-## SOX Compliance Mapping
+World snapshot: qualifying evidence records the Trader performing `record` on `AuditRecord` for this order.
 
-| SOX Requirement | RL2 Mechanism |
-|-----------------|---------------|
-| Section 302: Internal controls | Policy conditions |
-| Section 404: Audit requirements | `obligationStateOperand` precondition |
-| Audit trail | Sein-sollen (state-based, identity-independent) |
+## Expected result
 
-## Defense in Depth
-
-The Sein-sollen pattern enables layered security:
-
-1. **Layer 1:** Role-based access (Auditor role required)
-2. **Layer 2:** System state (Audit logging enabled)
-3. **Layer 3:** Temporal (Within audit period)
-
-```turtle
-rl2:condition [
-    a rl2:LogicalConstraint ;
-    rl2:constraintOperator rl2:and ;
-    rl2:operand [ ... role check ... ] ;
-    rl2:operand [
-        # Sein-sollen: duty must be fulfilled (by anyone)
-        a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:auditTrailSetup ;
-        rl2:leftOperand rl2:obligationStateOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:Fulfilled
-    ] ;
-    rl2:operand [ ... temporal constraint ... ]
-] .
-```
-
-## Comparison
-
-- **Traditional RBAC:** Role check only
-- **XACML:** System attribute check
-- **RL2:** Duty state as queryable property via `obligationStateOperand`
+When the record Duty is `Fulfilled`, the request is `Permit`; otherwise the execution privilege is inactive.

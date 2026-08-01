@@ -1,427 +1,162 @@
 @base <https://rl2.example/profile/privacy#> .
 @prefix privacy: <https://rl2.example/profile/privacy#> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 
 <https://rl2.example/profile/privacy>
-    a owl:Ontology ;
+    a owl:Ontology, rl2:Profile ;
     rdfs:label "RL2 Privacy Profile" ;
-    dc:description """A profile for privacy and data protection policies.
-    Provides left operands for GDPR compliance, consent management,
-    and data subject rights enforcement.
-
-    This profile demonstrates the architectural pattern of declaring
-    all contextual data access through typed LeftOperand instances
-    with explicit resolution paths.""" ;
-    owl:versionInfo "0.1" ;
+    dc:description "Illustrative operands, value classes, and actions for privacy policies." ;
+    rl2:profileVersion "0.1.0" ;
+    owl:versionInfo "0.1.0" ;
     owl:imports <https://rl2.example/ontology> .
 
 ############################################################
-# 1. Data Subject Operands
+# Operands
 ############################################################
-#
-# These operands enable identity binding for data subject rights.
-# They resolve attributes of the asset (personal data) being accessed.
 
 privacy:dataOwnerOperand a rl2:LeftOperand ;
-    rdfs:label "Data Owner" ;
-    rdfs:comment """Resolves to the agent who is the data subject (owner) of the
-    personal data asset. Used for GDPR rights enforcement.
-
-    Resolution: deref("asset.dataOwner", Env) -> Agent IRI
-
-    Use cases:
-    - Art. 15: Right of access
-    - Art. 16: Right to rectification
-    - Art. 17: Right to erasure
-    - Art. 20: Right to data portability""" ;
+    rdfs:label "Data subject" ;
+    rdfs:comment "Agent to whom the requested personal-data asset relates." ;
     rl2:resolutionPath "asset.dataOwner" ;
     rdfs:range rl2:Agent .
 
 privacy:dataControllerOperand a rl2:LeftOperand ;
-    rdfs:label "Data Controller" ;
-    rdfs:comment """Resolves to the agent who is the data controller for this asset.
-
-    Resolution: deref("asset.controller", Env) -> Agent IRI""" ;
+    rdfs:label "Data controller" ;
+    rdfs:comment "Controller responsible for the requested asset." ;
     rl2:resolutionPath "asset.controller" ;
     rdfs:range rl2:Agent .
 
 privacy:dataProcessorOperand a rl2:LeftOperand ;
-    rdfs:label "Data Processor" ;
-    rdfs:comment """Resolves to the agent acting as data processor.
-
-    Resolution: deref("context.processor", Env) -> Agent IRI""" ;
+    rdfs:label "Data processor" ;
+    rdfs:comment "Processor identified for the evaluation context." ;
     rl2:resolutionPath "context.processor" ;
     rdfs:range rl2:Agent .
 
-############################################################
-# 2. Purpose Operands
-############################################################
-#
-# These operands replace ODRL's built-in odrl:purpose with
-# declared, resolvable operands.
-
 privacy:purposeOperand a rl2:LeftOperand ;
-    rdfs:label "Purpose" ;
-    rdfs:comment """Resolves to the declared purpose of the data processing request.
-    Equivalent to ODRL's odrl:purpose but as a declared, resolvable operand.
-
-    Resolution: deref("context.purpose", Env) -> Purpose individual
-
-    This demonstrates how ODRL "magic" vocabulary becomes just another
-    profile-declared operand in RL2.""" ;
+    rdfs:label "Requested purpose" ;
     rl2:resolutionPath "context.purpose" ;
     rdfs:range privacy:Purpose .
 
 privacy:originalPurposeOperand a rl2:LeftOperand ;
-    rdfs:label "Original Purpose" ;
-    rdfs:comment """Resolves to the purpose for which the data was originally collected.
-    Used for purpose limitation checks (GDPR Art. 5(1)(b)).
-
-    Resolution: deref("asset.collectionPurpose", Env) -> Purpose individual""" ;
+    rdfs:label "Collection purpose" ;
     rl2:resolutionPath "asset.collectionPurpose" ;
     rdfs:range privacy:Purpose .
 
-# Purpose taxonomy
-privacy:Purpose a owl:Class ;
-    rdfs:label "Purpose" ;
-    rdfs:comment "Purposes for which personal data may be processed." .
-
-privacy:Research a privacy:Purpose ;
-    rdfs:label "Research" ;
-    rdfs:comment "Scientific or historical research purposes." .
-
-privacy:Marketing a privacy:Purpose ;
-    rdfs:label "Marketing" ;
-    rdfs:comment "Direct marketing purposes." .
-
-privacy:ServiceProvision a privacy:Purpose ;
-    rdfs:label "Service Provision" ;
-    rdfs:comment "Provision of contracted services." .
-
-privacy:LegalObligation a privacy:Purpose ;
-    rdfs:label "Legal Obligation" ;
-    rdfs:comment "Compliance with legal obligations." .
-
-privacy:VitalInterest a privacy:Purpose ;
-    rdfs:label "Vital Interest" ;
-    rdfs:comment "Protection of vital interests." .
-
-privacy:PublicInterest a privacy:Purpose ;
-    rdfs:label "Public Interest" ;
-    rdfs:comment "Tasks carried out in the public interest." .
-
-privacy:LegitimateInterest a privacy:Purpose ;
-    rdfs:label "Legitimate Interest" ;
-    rdfs:comment "Legitimate interests of controller or third party." .
-
-############################################################
-# 3. Consent Operands
-############################################################
-#
-# These operands enable consent-based access control.
-
 privacy:consentStatusOperand a rl2:LeftOperand ;
-    rdfs:label "Consent Status" ;
-    rdfs:comment """Resolves to the current consent status for processing.
-
-    Resolution: deref("asset.consentRecord.status", Env) -> ConsentStatus""" ;
+    rdfs:label "Consent status" ;
     rl2:resolutionPath "asset.consentRecord.status" ;
     rdfs:range privacy:ConsentStatus .
 
 privacy:consentPurposeOperand a rl2:LeftOperand ;
-    rdfs:label "Consent Purpose" ;
-    rdfs:comment """Resolves to the purpose(s) for which consent was granted.
-
-    Resolution: deref("asset.consentRecord.purpose", Env) -> Purpose""" ;
+    rdfs:label "Consent purpose" ;
     rl2:resolutionPath "asset.consentRecord.purpose" ;
     rdfs:range privacy:Purpose .
 
 privacy:consentExpiryOperand a rl2:LeftOperand ;
-    rdfs:label "Consent Expiry" ;
-    rdfs:comment """Resolves to the expiration date of the consent.
-
-    Resolution: deref("asset.consentRecord.expiryDate", Env) -> dateTime""" ;
+    rdfs:label "Consent expiry" ;
     rl2:resolutionPath "asset.consentRecord.expiryDate" ;
-    rdfs:range xsd:dateTime .
-
-# Consent status enumeration
-privacy:ConsentStatus a owl:Class ;
-    rdfs:label "Consent Status" ;
-    rdfs:comment "Status of data subject consent." ;
-    owl:oneOf (privacy:ConsentGranted privacy:ConsentWithdrawn privacy:ConsentExpired privacy:ConsentNotRequired) .
-
-privacy:ConsentGranted a privacy:ConsentStatus ;
-    rdfs:label "Consent Granted" .
-
-privacy:ConsentWithdrawn a privacy:ConsentStatus ;
-    rdfs:label "Consent Withdrawn" .
-
-privacy:ConsentExpired a privacy:ConsentStatus ;
-    rdfs:label "Consent Expired" .
-
-privacy:ConsentNotRequired a privacy:ConsentStatus ;
-    rdfs:label "Consent Not Required" ;
-    rdfs:comment "Processing does not require consent (other lawful basis)." .
-
-############################################################
-# 4. Data Classification Operands
-############################################################
-#
-# These operands enable data classification-based access control.
+    rdfs:range xsd:dateTimeStamp .
 
 privacy:dataClassificationOperand a rl2:LeftOperand ;
-    rdfs:label "Data Classification" ;
-    rdfs:comment """Resolves to the classification level of the personal data.
-
-    Resolution: deref("asset.classification", Env) -> DataClassification""" ;
+    rdfs:label "Data classification" ;
     rl2:resolutionPath "asset.classification" ;
     rdfs:range privacy:DataClassification .
 
 privacy:specialCategoryOperand a rl2:LeftOperand ;
-    rdfs:label "Special Category" ;
-    rdfs:comment """Resolves to whether the data is special category (GDPR Art. 9).
-
-    Resolution: deref("asset.isSpecialCategory", Env) -> boolean""" ;
+    rdfs:label "Special-category data" ;
     rl2:resolutionPath "asset.isSpecialCategory" ;
     rdfs:range xsd:boolean .
 
-# Data classification taxonomy
-privacy:DataClassification a owl:Class ;
-    rdfs:label "Data Classification" ;
-    rdfs:comment "Classification levels for personal data." .
-
-privacy:Public a privacy:DataClassification ;
-    rdfs:label "Public" .
-
-privacy:Internal a privacy:DataClassification ;
-    rdfs:label "Internal" .
-
-privacy:Confidential a privacy:DataClassification ;
-    rdfs:label "Confidential" .
-
-privacy:Sensitive a privacy:DataClassification ;
-    rdfs:label "Sensitive" ;
-    rdfs:comment "Corresponds to GDPR special categories (Art. 9)." .
-
-############################################################
-# 5. Jurisdiction Operands
-############################################################
-#
-# These operands enable jurisdiction-based access control.
-
 privacy:dataLocationOperand a rl2:LeftOperand ;
-    rdfs:label "Data Location" ;
-    rdfs:comment """Resolves to the geographic location where data is stored.
-
-    Resolution: deref("asset.storageLocation", Env) -> Jurisdiction""" ;
+    rdfs:label "Storage jurisdiction" ;
     rl2:resolutionPath "asset.storageLocation" ;
     rdfs:range privacy:Jurisdiction .
 
 privacy:processingLocationOperand a rl2:LeftOperand ;
-    rdfs:label "Processing Location" ;
-    rdfs:comment """Resolves to the geographic location where processing occurs.
-
-    Resolution: deref("context.processingLocation", Env) -> Jurisdiction""" ;
+    rdfs:label "Processing jurisdiction" ;
     rl2:resolutionPath "context.processingLocation" ;
     rdfs:range privacy:Jurisdiction .
 
 privacy:dataSubjectLocationOperand a rl2:LeftOperand ;
-    rdfs:label "Data Subject Location" ;
-    rdfs:comment """Resolves to the geographic location of the data subject.
-
-    Resolution: deref("asset.dataSubjectLocation", Env) -> Jurisdiction""" ;
+    rdfs:label "Data-subject jurisdiction" ;
     rl2:resolutionPath "asset.dataSubjectLocation" ;
     rdfs:range privacy:Jurisdiction .
 
-# Jurisdiction taxonomy (non-exhaustive)
-privacy:Jurisdiction a owl:Class ;
-    rdfs:label "Jurisdiction" ;
-    rdfs:comment "Geographic or legal jurisdiction." .
-
-privacy:EU a privacy:Jurisdiction ;
-    rdfs:label "European Union" .
-
-privacy:EEA a privacy:Jurisdiction ;
-    rdfs:label "European Economic Area" .
-
-privacy:Adequacy a privacy:Jurisdiction ;
-    rdfs:label "Adequacy Decision Country" ;
-    rdfs:comment "Country with EU adequacy decision." .
-
-privacy:ThirdCountry a privacy:Jurisdiction ;
-    rdfs:label "Third Country" ;
-    rdfs:comment "Country without EU adequacy decision." .
-
-############################################################
-# 6. Retention Operands
-############################################################
-#
-# These operands enable retention-based access control.
-
 privacy:retentionExpiryOperand a rl2:LeftOperand ;
-    rdfs:label "Retention Expiry" ;
-    rdfs:comment """Resolves to the date when data retention period expires.
-
-    Resolution: deref("asset.retentionExpiry", Env) -> dateTime""" ;
+    rdfs:label "Retention expiry" ;
     rl2:resolutionPath "asset.retentionExpiry" ;
-    rdfs:range xsd:dateTime .
+    rdfs:range xsd:dateTimeStamp .
 
 privacy:collectionDateOperand a rl2:LeftOperand ;
-    rdfs:label "Collection Date" ;
-    rdfs:comment """Resolves to when the personal data was collected.
-
-    Resolution: deref("asset.collectionDate", Env) -> dateTime""" ;
+    rdfs:label "Collection date" ;
     rl2:resolutionPath "asset.collectionDate" ;
-    rdfs:range xsd:dateTime .
-
-############################################################
-# 7. Lawful Basis Operands
-############################################################
-#
-# These operands enable lawful basis verification.
+    rdfs:range xsd:dateTimeStamp .
 
 privacy:lawfulBasisOperand a rl2:LeftOperand ;
-    rdfs:label "Lawful Basis" ;
-    rdfs:comment """Resolves to the lawful basis for processing.
-
-    Resolution: deref("context.lawfulBasis", Env) -> LawfulBasis""" ;
+    rdfs:label "Declared lawful basis" ;
     rl2:resolutionPath "context.lawfulBasis" ;
     rdfs:range privacy:LawfulBasis .
 
-# GDPR Article 6 lawful bases
-privacy:LawfulBasis a owl:Class ;
-    rdfs:label "Lawful Basis" ;
-    rdfs:comment "GDPR Article 6 lawful bases for processing." ;
-    owl:oneOf (privacy:Consent privacy:Contract privacy:LegalObligationBasis
-               privacy:VitalInterestBasis privacy:PublicInterestBasis
-               privacy:LegitimateInterestBasis) .
+############################################################
+# Value vocabularies
+############################################################
 
-privacy:Consent a privacy:LawfulBasis ;
-    rdfs:label "Consent (Art. 6(1)(a))" .
+privacy:Purpose a owl:Class ; rdfs:label "Purpose" .
+privacy:Research a privacy:Purpose ; rdfs:label "Research" .
+privacy:Marketing a privacy:Purpose ; rdfs:label "Marketing" .
+privacy:ServiceProvision a privacy:Purpose ; rdfs:label "Service provision" .
+privacy:LegalObligation a privacy:Purpose ; rdfs:label "Legal obligation" .
+privacy:VitalInterest a privacy:Purpose ; rdfs:label "Vital interest" .
+privacy:PublicInterest a privacy:Purpose ; rdfs:label "Public interest" .
+privacy:LegitimateInterest a privacy:Purpose ; rdfs:label "Legitimate interest" .
 
-privacy:Contract a privacy:LawfulBasis ;
-    rdfs:label "Contract (Art. 6(1)(b))" .
+privacy:ConsentStatus a owl:Class ; rdfs:label "Consent status" .
+privacy:ConsentGranted a privacy:ConsentStatus ; rdfs:label "Granted" .
+privacy:ConsentWithdrawn a privacy:ConsentStatus ; rdfs:label "Withdrawn" .
+privacy:ConsentExpired a privacy:ConsentStatus ; rdfs:label "Expired" .
+privacy:ConsentNotRequired a privacy:ConsentStatus ; rdfs:label "Not required" .
 
-privacy:LegalObligationBasis a privacy:LawfulBasis ;
-    rdfs:label "Legal Obligation (Art. 6(1)(c))" .
+privacy:DataClassification a owl:Class ; rdfs:label "Data classification" .
+privacy:Public a privacy:DataClassification ; rdfs:label "Public" .
+privacy:Internal a privacy:DataClassification ; rdfs:label "Internal" .
+privacy:Confidential a privacy:DataClassification ; rdfs:label "Confidential" .
+privacy:Sensitive a privacy:DataClassification ; rdfs:label "Sensitive" .
 
-privacy:VitalInterestBasis a privacy:LawfulBasis ;
-    rdfs:label "Vital Interest (Art. 6(1)(d))" .
+privacy:Jurisdiction a owl:Class ; rdfs:label "Jurisdiction category" .
+privacy:EU a privacy:Jurisdiction ; rdfs:label "European Union" .
+privacy:EEA a privacy:Jurisdiction ; rdfs:label "European Economic Area" .
+privacy:Adequacy a privacy:Jurisdiction ; rdfs:label "Adequate jurisdiction" .
+privacy:ThirdCountry a privacy:Jurisdiction ; rdfs:label "Third country" .
 
-privacy:PublicInterestBasis a privacy:LawfulBasis ;
-    rdfs:label "Public Interest (Art. 6(1)(e))" .
-
-privacy:LegitimateInterestBasis a privacy:LawfulBasis ;
-    rdfs:label "Legitimate Interest (Art. 6(1)(f))" .
+privacy:LawfulBasis a owl:Class ; rdfs:label "Lawful basis category" .
+privacy:Consent a privacy:LawfulBasis ; rdfs:label "Consent" .
+privacy:Contract a privacy:LawfulBasis ; rdfs:label "Contract" .
+privacy:LegalObligationBasis a privacy:LawfulBasis ; rdfs:label "Legal obligation" .
+privacy:VitalInterestBasis a privacy:LawfulBasis ; rdfs:label "Vital interest" .
+privacy:PublicInterestBasis a privacy:LawfulBasis ; rdfs:label "Public interest" .
+privacy:LegitimateInterestBasis a privacy:LawfulBasis ; rdfs:label "Legitimate interest" .
 
 ############################################################
-# 8. Actions
+# Actions
 ############################################################
-#
-# Privacy-specific actions for use in norms.
 
-privacy:collect a rl2:Action ;
-    rdfs:label "Collect" ;
-    rdfs:comment "Collect personal data from data subject." .
-
-privacy:process a rl2:Action ;
-    rdfs:label "Process" ;
-    rdfs:comment "Process personal data (generic processing operation)." .
-
-privacy:store a rl2:Action ;
-    rdfs:label "Store" ;
-    rdfs:comment "Store personal data." .
-
-privacy:transfer a rl2:Action ;
-    rdfs:label "Transfer" ;
-    rdfs:comment "Transfer personal data to third party." .
-
+privacy:collect a rl2:Action ; rdfs:label "Collect" .
+privacy:process a rl2:Action ; rdfs:label "Process" .
+privacy:store a rl2:Action ; rdfs:label "Store" .
+privacy:transfer a rl2:Action ; rdfs:label "Transfer" .
 privacy:transferInternational a rl2:Action ;
     rl2:includedIn privacy:transfer ;
-    rdfs:label "International Transfer" ;
-    rdfs:comment "Transfer personal data across borders." .
+    rdfs:label "International transfer" .
+privacy:delete a rl2:Action ; rdfs:label "Delete" .
+privacy:rectify a rl2:Action ; rdfs:label "Rectify" .
+privacy:access a rl2:Action ; rdfs:label "Access" .
+privacy:export a rl2:Action ; rdfs:label "Export" .
+privacy:anonymize a rl2:Action ; rdfs:label "Anonymize" .
+privacy:pseudonymize a rl2:Action ; rdfs:label "Pseudonymize" .
 
-privacy:delete a rl2:Action ;
-    rdfs:label "Delete" ;
-    rdfs:comment "Delete personal data (erasure)." .
-
-privacy:rectify a rl2:Action ;
-    rdfs:label "Rectify" ;
-    rdfs:comment "Rectify inaccurate personal data." .
-
-privacy:access a rl2:Action ;
-    rdfs:label "Access" ;
-    rdfs:comment "Access personal data." .
-
-privacy:export a rl2:Action ;
-    rdfs:label "Export" ;
-    rdfs:comment "Export personal data (portability)." .
-
-privacy:anonymize a rl2:Action ;
-    rdfs:label "Anonymize" ;
-    rdfs:comment "Anonymize personal data." .
-
-privacy:pseudonymize a rl2:Action ;
-    rdfs:label "Pseudonymize" ;
-    rdfs:comment "Pseudonymize personal data." .
-
-############################################################
-# 9. Example: GDPR Article 17 Right to Erasure
-############################################################
-#
-# Demonstrates profile operand usage in a complete policy.
-
-privacy:ErasureRightPrivilege a rl2:Privilege ;
-    rdfs:label "GDPR Art. 17 Right to Erasure" ;
-    rdfs:comment """Data subject may request erasure of their personal data.
-
-    This privilege uses profile-declared operands for identity binding:
-    - privacy:dataOwnerOperand checks that requester owns the data
-    - rl2:currentAgent provides the requesting agent
-
-    Resolution is via the canonical deref() mechanism.""" ;
-    rl2:subject privacy:DataSubject ;
-    rl2:action privacy:delete ;
-    rl2:object privacy:PersonalData ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand privacy:dataOwnerOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:currentAgent
-    ] .
-
-privacy:ErasureDuty a rl2:Duty ;
-    rdfs:label "GDPR Art. 17 Erasure Obligation" ;
-    rdfs:comment "Controller must erase data when data subject requests." ;
-    rl2:subject privacy:DataController ;
-    rl2:action privacy:delete ;
-    rl2:object privacy:PersonalData ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:leftOperand privacy:dataOwnerOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:currentAgent
-    ] .
-
-# Placeholder classes for the example
-privacy:DataSubject a owl:Class ;
-    rdfs:subClassOf rl2:Agent .
-
-privacy:DataController a owl:Class ;
-    rdfs:subClassOf rl2:Agent .
-
-privacy:PersonalData a owl:Class ;
-    rdfs:subClassOf rl2:Asset .
-
-############################################################
-# 10. Profile Metadata
-############################################################
-
-privacy:profileVersion "0.1" .
-privacy:profileStatus "Draft" .
-privacy:profileMaintainer "RL2 Working Group" .
+# This vocabulary supplies policy terms, not a claim of legal compliance. A profile user must
+# define the authoritative facts, evidence, and jurisdiction-specific rules used by each policy.
