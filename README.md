@@ -45,6 +45,7 @@ the same evaluator semantics as any other policy.
 | [`conformance/`](conformance/) | Use cases, semantic vectors, and ODRL translation fixtures |
 | [`docs/`](docs/) | Informative Primer, architecture, external-data guidance, vocabulary, and bibliography |
 | [`future/`](future/) | One non-normative list of possible follow-on work |
+| [`backlog.md`](backlog.md) | Working backlog: remaining execution items, deferred decisions with reopen triggers |
 | [`tools/`](tools/) | Validation tooling |
 
 ## Example
