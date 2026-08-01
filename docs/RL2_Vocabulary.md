@@ -101,10 +101,15 @@ from a Duty:
 | `rl2:object` | Required | Optional — may be left for Acceptance to bind on materialization. |
 
 An action commitment (`rl2:action`) materializes as an Achievement Duty; a state commitment
-(`rl2:invariant`) materializes as a Maintenance Duty. A Promise has exactly one of the two. Its
-`rl2:condition` and `rl2:dutyWindow`, if present, are carried unevaluated to the materialized Duty
-and are not consulted before acceptance. Its derived states are `Pending`, `Fulfilled`, and
-`Violated`; Promises do not use `Active`. Policy RDF does not assert Promise status.
+(`rl2:invariant`) materializes as a Maintenance Duty. A Promise has exactly one of the two. An
+action-form Promise (one carrying `rl2:action`) may additionally carry at most one
+`rl2:postCondition`, the proposed post-state check for the resulting Achievement Duty; a
+state-form Promise (one carrying `rl2:invariant`) must not carry one, mirroring the exclusion on a
+Maintenance Duty. Its `rl2:condition`, `rl2:dutyWindow`, and (action-form only) `rl2:postCondition`,
+if present, are carried unevaluated to the materialized Duty and are not consulted before
+acceptance — `rl2:postCondition` is consulted only by the materialized Achievement Duty's own
+status derivation. Its derived states are `Pending`, `Fulfilled`, and `Violated`; Promises do not
+use `Active`. Policy RDF does not assert Promise status.
 
 ## 6. Agents, Actions, and Assets
 

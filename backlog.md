@@ -30,6 +30,9 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
   unaffected by a consequent Duty's condition value (only the Privilege's own `accessResult.truth
   = True` gates firing); `UnboundStatusTarget` negative compile vector — an
   `rl2:obligationStateOperand` targeting a Duty whose `rl2:subject`/`rl2:object` is a sentinel.
+- F-05 materialization vectors — action Promise with postCondition crystallizes into an
+  Achievement Duty carrying it (positive); state Promise with postCondition rejected by
+  `PromiseShape` (negative).
 - Translation runner comparing normalized ODRL fixtures to expected modules.
 - Reference harness (`tools/evaluate.py` or similar); two independent evaluators before any
   interoperability claim.

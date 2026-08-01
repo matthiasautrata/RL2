@@ -256,11 +256,15 @@ rl2:PromiseShape a sh:NodeShape ;
     sh:xone (
         [
             sh:property [ sh:path rl2:action ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ;
-            sh:property [ sh:path rl2:invariant ; sh:maxCount 0 ]
+            sh:property [ sh:path rl2:invariant ; sh:maxCount 0 ] ;
+            sh:property [ sh:path rl2:postCondition ; sh:maxCount 1 ; sh:class rl2:Condition ;
+                sh:message "An action-form Promise may carry at most one proposed post-state check." ]
         ]
         [
             sh:property [ sh:path rl2:invariant ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Condition ] ;
-            sh:property [ sh:path rl2:action ; sh:maxCount 0 ]
+            sh:property [ sh:path rl2:action ; sh:maxCount 0 ] ;
+            sh:property [ sh:path rl2:postCondition ; sh:maxCount 0 ;
+                sh:message "A state-form Promise cannot carry a postCondition." ]
         ]
     ) ;
     sh:message "A Promise carries subject (promisor), counterparty (promisee), and exactly one of action or invariant." .

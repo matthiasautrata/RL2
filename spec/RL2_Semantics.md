@@ -120,7 +120,12 @@ A Promise is structurally a proposed Duty: `promisor(p) ≡ p.proposed.subject` 
 `promisee(p) ≡ p.proposed.counterparty`. Unlike on a Duty, a Promise's `counterparty` is
 required — a Promise always names its promisee. A Promise's `object` may be absent, left for
 Acceptance to bind when the Offer is materialized; its `condition` and `dutyWindow`, if present,
-are carried unevaluated to the materialized Duty (see Materialization below).
+are carried unevaluated to the materialized Duty (see Materialization below). Because `proposed`
+is a full `Duty`, an action-form Promise (`body = Achieve(action, postCondition?)`) may likewise
+carry the optional `postCondition` of that `Achieve` slot; a state-form Promise (`body =
+Maintain(invariant)`) has no such slot and so cannot. Like `condition` and `dutyWindow`, a present
+`postCondition` is carried unevaluated to the materialized Duty and is consulted only by
+`dutyStatus` there, never by `promiseStatus` pre-acceptance.
 
 #### Conditions
 
@@ -994,7 +999,9 @@ evidence but does not become Violated solely through elapsed time. Acceptance ca
 into a bounded Duty. `promiseStatus` never yields `Active` — that status distinguishes Duties in
 force from Promises, which are not yet operative. The proposed Duty's own `condition` and
 `dutyWindow`, if present, are carried unevaluated to the materialized Duty and are not consulted by
-`promiseStatus` prior to acceptance.
+`promiseStatus` prior to acceptance; on an action-form Promise the same is true of `postCondition`
+(matched and discarded above as `Achieve(x, _)`) — it is consulted only by `dutyStatus` after
+crystallization.
 
 Status dependencies induced by `targetNorm` must be acyclic. Canonical projection rejects a
 self-reference or cycle with `Invalid(ConfigurationSite("statusDependency"))`; memoized structural
@@ -1379,7 +1386,11 @@ crystallize(p,A) =
 The Duty identifier is `A.primaryIds[ref(p)]`. The proposed Duty's `counterparty` (the Promise's
 promisee) is retained on the materialized Duty; no additional norm is generated. The proposed
 Duty's `condition` and `dutyWindow`, authored on the Promise and not evaluated pre-acceptance, are
-carried through unchanged unless `A.dutyWindows` supplies a window binding.
+carried through unchanged unless `A.dutyWindows` supplies a window binding. `body = d.body` copies
+the whole `DutyBody` verbatim, so on an action-form Promise this includes its optional
+`postCondition` (`Achieve(action, postCondition?)`): the created Achievement Duty's body is
+`Achieve(p.action, p.postCondition?)`, carried unevaluated exactly like `condition` and
+`dutyWindow` — it is consulted only by `dutyStatus` on the materialized Duty, never here.
 
 An `Achieve` body without an accepted window creates an unbounded Achievement Duty, which can
 remain Pending. A `Maintain` body without a window creates an ongoing Maintenance Duty, which can

@@ -306,12 +306,14 @@ rl2:consequentDuty a owl:ObjectProperty ;
     Privilege of a Policy.""" .
 
 rl2:postCondition a owl:ObjectProperty ;
-    rdfs:domain rl2:Duty ;
+    rdfs:domain [ owl:unionOf (rl2:Duty rl2:Promise) ] ;
     rdfs:range rl2:Condition ;
     rdfs:label "Postcondition" ;
     rdfs:comment """Optional condition that must hold at the qualifying action witness
     for an Achievement Duty to be fulfilled. It is not an applicability condition and
-    is not permitted on a Maintenance Duty.""" .
+    is not permitted on a Maintenance Duty. On an action-form Promise it is the proposed
+    post-state check, copied unevaluated into the crystallized Achievement Duty at
+    materialization; a state-form Promise may not carry one.""" .
 
 rl2:invariant a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Duty rl2:Promise) ] ;

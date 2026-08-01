@@ -523,11 +523,13 @@ scheduling without changing core semantics.
 
 Promise status follows the proposed Duty's body. A promised action is fulfilled by qualifying
 action evidence and otherwise remains pending, since a Promise's own `dutyWindow` (if authored) is
-carried to the materialized Duty and is not consulted pre-acceptance. A promised state is assessed
-from its condition at the evaluation snapshot. Acceptance may crystallize a Promise into a bounded
-Duty; that pure transformation is specified in the next section. Promise status is re-derived for
-every snapshot, never yields `Active`, and is not a persistent terminal state. Only a crystallized
-Maintenance Duty with a finite window can represent a completed maintenance period.
+carried to the materialized Duty and is not consulted pre-acceptance; an action-form Promise's
+optional `postCondition` is likewise not consulted pre-acceptance, for the same reason. A promised
+state is assessed from its condition at the evaluation snapshot. Acceptance may crystallize a
+Promise into a bounded Duty; that pure transformation is specified in the next section. Promise
+status is re-derived for every snapshot, never yields `Active`, and is not a persistent terminal
+state. Only a crystallized Maintenance Duty with a finite window can represent a completed
+maintenance period.
 
 ## 8. Policy Transformation
 
@@ -552,7 +554,11 @@ a non-empty canonical set of attributed errors; no partial Agreement is returned
 A Promise is structurally a proposed Duty, so crystallization is an unwrap-and-rebind: the
 generated Duty reuses the proposed Duty's subject, condition, and body directly, with the Promise's
 required counterparty (the promisee) retained as the Duty's counterparty and the object bound from
-the Promise's authored value or, when absent, from the Acceptance's object binding. No separate
+the Promise's authored value or, when absent, from the Acceptance's object binding. Because the
+body is reused directly, an action-form Promise's optional `postCondition` (the `Achieve` body's
+optional slot) is carried into the crystallized Achievement Duty's body unevaluated, exactly like
+`condition` and `dutyWindow`, and is assessed thereafter only by that Duty's status derivation; a
+state-form Promise has no such slot and crystallizes to a Maintenance Duty without one. No separate
 Claim node is generated.
 
 All policy-local Norms receive Agreement-local identifiers while retaining top-level or attached
