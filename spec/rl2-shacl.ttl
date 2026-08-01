@@ -4,7 +4,7 @@
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
 ############################################################
-# RL2 SHACL Shapes
+# RL2 0.7 SHACL Shapes
 # Syntax validation for RL2 policies
 ############################################################
 # The shapes are non-closed so profiles may add domain terms. Core properties nevertheless have

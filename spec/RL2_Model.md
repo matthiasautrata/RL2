@@ -1,5 +1,7 @@
 # RL2 Information Model
 
+**Version:** 0.7
+
 ## Status
 
 This document defines the normative inputs and outputs of RL2 evaluation. Detailed denotations

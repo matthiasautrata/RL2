@@ -1,5 +1,7 @@
 # RL2 Vocabulary
 
+**Version:** 0.7
+
 ## Status
 
 This document is an informative index. The authoritative vocabulary and structural constraints

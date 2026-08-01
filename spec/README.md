@@ -1,5 +1,7 @@
 # RL2 Normative Specification
 
+These artifacts jointly define the RL2 0.7 draft.
+
 | Artifact | Role |
 |---|---|
 | `RL2_Scope.md` | Language and conformance boundary |

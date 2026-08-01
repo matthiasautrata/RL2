@@ -2,7 +2,8 @@
 
 RL2 is a deterministic policy language that extends and clarifies ODRL 2.2. Its core proposal is
 the language, pure evaluation semantics, ODRL migration contract, and conformance corpus. It is
-designed for reliable machine generation while remaining readable as RDF.
+designed for reliable machine generation while remaining readable as RDF. The current proposal
+version is 0.7.
 
 ## Working principles
 

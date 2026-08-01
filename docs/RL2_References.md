@@ -1,5 +1,7 @@
 # References
 
+Bibliography for RL2 0.7.
+
 ## ODRL and Web Standards
 
 1. W3C. *ODRL Information Model 2.2*. W3C Recommendation, 15 February 2018.

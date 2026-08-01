@@ -1,6 +1,6 @@
 # Possible Follow-on Work
 
-RL2 is limited to the policy language, its pure evaluation semantics, ODRL 2.2 migration, and
+RL2 0.7 is limited to the policy language, its pure evaluation semantics, ODRL 2.2 migration, and
 conformance. The following topics may justify separate specifications or implementation projects.
 They do not define RL2 behavior.
 

@@ -1,5 +1,7 @@
 # RL2 Scope and Conformance Boundary
 
+**Version:** 0.7
+
 ## Purpose
 
 RL2 is an AI-generatable, deterministically evaluable policy language that extends and clarifies

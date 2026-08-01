@@ -1,5 +1,7 @@
 # RL2 Architecture
 
+**Version:** 0.7
+
 ## Status
 
 This document is informative. The normative definitions are in `../spec/`.

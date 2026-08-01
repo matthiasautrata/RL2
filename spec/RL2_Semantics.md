@@ -1,9 +1,9 @@
 ---
 title: "RL2 Formal Semantics"
 subtitle: "Deterministic Policy Meaning over Requests and World Snapshots"
-version: "0.6"
+version: "0.7"
 status: "Draft"
-date: 2026-07-31
+date: 2026-08-01
 abstract: |
   RL2 is a policy language that extends and clarifies ODRL 2.2. It combines conduct norms, promises, and constraint algebra in deterministic evaluation semantics over a canonical policy universe, request, and immutable world snapshot.
 ---

@@ -1,6 +1,6 @@
 # RL2 Tools
 
-Python tooling for RL2. Scripts are self-contained via [PEP 723](https://peps.python.org/pep-0723/)
+Python tooling for the RL2 0.7 draft. Scripts are self-contained via [PEP 723](https://peps.python.org/pep-0723/)
 inline dependencies — [`uv`](https://docs.astral.sh/uv/) installs what they need
 on first run; there is no virtualenv to manage.
 

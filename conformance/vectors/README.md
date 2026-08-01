@@ -1,4 +1,4 @@
-# RL2 Semantic Conformance Vectors
+# RL2 0.7 Semantic Conformance Vectors
 
 These vectors state evaluator-independent observations of the normative evaluation contract. They
 are not traces from a particular implementation.

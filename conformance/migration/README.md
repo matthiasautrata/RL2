@@ -1,4 +1,4 @@
-# ODRL 2.2 Migration Fixtures
+# ODRL 2.2 to RL2 0.7 Migration Fixtures
 
 Each fixture pairs a small ODRL 2.2 source graph with its canonical RL2 result or an importer
 diagnostic. The mapping rules are normative in [RL2_ODRL_Mapping.md](../../spec/RL2_ODRL_Mapping.md).

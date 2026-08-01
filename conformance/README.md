@@ -1,6 +1,6 @@
 # RL2 Conformance Material
 
-This directory provides reviewable examples of RL2 policy meaning and ODRL 2.2 migration.
+This directory provides reviewable examples of RL2 0.7 policy meaning and ODRL 2.2 migration.
 
 - [`usecases/`](usecases/) contains compact policy scenarios with canonical RL2 graphs.
 - [`vectors/`](vectors/) states normative evaluator observations and diagnostics.

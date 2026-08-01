@@ -12,7 +12,7 @@
     dc:description "Illustrative operands, value classes, and actions for privacy policies." ;
     rl2:profileVersion "0.1.0" ;
     owl:versionInfo "0.1.0" ;
-    owl:imports <https://rl2.example/ontology> .
+    owl:imports <https://rl2.example/ontology/0.7> .
 
 ############################################################
 # Operands

@@ -1,5 +1,7 @@
 # RL2 Primer
 
+**Version:** 0.7
+
 ## 1. Why RL2
 
 ODRL 2.2 provides a widely used RDF vocabulary for permissions, prohibitions, duties, parties,

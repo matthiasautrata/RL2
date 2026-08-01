@@ -1,4 +1,4 @@
-# RL2 Use Cases
+# RL2 0.7 Use Cases
 
 The 46 use cases are concise, self-contained policy scenarios. They demonstrate constructs whose
 meaning is defined by the canonical projection, pure evaluation contract, and ODRL migration

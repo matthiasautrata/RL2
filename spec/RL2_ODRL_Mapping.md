@@ -1,5 +1,7 @@
 # ODRL 2.2 Migration to RL2
 
+**RL2 version:** 0.7
+
 ## 1. Purpose
 
 This document defines deterministic translation from supported ODRL 2.2 policy expressions to

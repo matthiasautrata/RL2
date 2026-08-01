@@ -6,8 +6,9 @@
 
 ## Objective
 
-Produce a self-contained candidate contribution for ODRL 3 review. The result presents the RL2
-language, precise evaluation semantics, ODRL 2.2 migration rules, and evidence through use cases.
+Produce a self-contained candidate contribution for ODRL 3 review. The result presents the
+RL2 0.7 language, precise evaluation semantics, ODRL 2.2 migration rules, and evidence through
+use cases.
 It excludes implementation drafts, protocol grammars, issue history, and superseded alternatives.
 
 ## Accepted Boundary
@@ -79,3 +80,4 @@ requirements are represented in `future/README.md`.
 | 2026-07-31 | Baseline before publication reduction: 52 use cases passed |
 | 2026-07-31 | Reduced core after event-condition removal: 45 retained use cases passed without warnings; Primer fences passed |
 | 2026-07-31 | Publication candidate: 46 retained use cases passed without warnings; every Turtle fence passed independently; all local Markdown links resolved |
+| 2026-08-01 | Version 0.7 publication set: 46 retained use cases passed without warnings; every Turtle fence passed independently |

@@ -1,5 +1,7 @@
 # RL2 External Data
 
+**Version:** 0.7
+
 ## Status
 
 This document is informative. The normative snapshot model is in `../spec/RL2_Model.md`.

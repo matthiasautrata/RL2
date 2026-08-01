@@ -3,6 +3,9 @@
 Profiles define domain actions, assets, value classes, evidence interpretations, and typed operands without
 changing core evaluation semantics.
 
+Profile versions are independent of the RL2 language version. The illustrative Privacy Profile is
+version 0.1.0 and imports the RL2 0.7 ontology.
+
 A profile-defined operand used by `Eval` declares:
 
 - one semantic value type with `rdfs:range`; and

@@ -91,4 +91,5 @@ uv run tools/validate.py --per-fence spec/RL2_Semantics.md
 
 ## Status
 
-RL2 is a draft proposal for technical and academic review. The example namespace is provisional.
+RL2 0.7 is a draft proposal for technical and academic review. The example namespace is
+provisional.
