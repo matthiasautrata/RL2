@@ -39,6 +39,8 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
 - `tools/validate.py` hardening: remove the `...`-means-placeholder fence skip; make the
   injected prefix `PREAMBLE` opt-in (or add a strict second parse pass); parse the SHACL report
   graph rather than counting rendered severity strings; validate the shapes graph itself.
+- F-10 regime fixtures — imports ignored, named graphs ignored, relative-IRI rejection,
+  warning-does-not-reject, canonical report-projection comparison across two SHACL engines.
 
 ## 2. ODRL migration profile ("ODRL ±" execution)
 
@@ -144,3 +146,11 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   (`spec/RL2_Compilation.md` §8, §10) excludes profile operators entirely; a request-independent
   profile judgment should be precomputed as a `WorldSnapshot` fact rather than declared as an
   operator.
+- F-10 (validation regime pinned, `spec/RL2_Compilation.md` §10.1): single merged default graph as
+  phase (1)/projection input, named graphs ignored, `owl:imports` not followed, no network/file
+  fetching beyond supplied inputs; base IRI is an explicit caller-supplied `compile` input, a
+  remaining relative IRI rejects; NO RDFS/OWL entailment before or during validation; SHACL Core +
+  SHACL-SPARQL only, Advanced Features (rules, functions) inactive; `sh:Violation` rejects,
+  `sh:Warning` never rejects but must be reported; canonical report projection is
+  `(source shape IRI, focus node, result path, severity)`, deduplicated and sorted, messages
+  excluded.

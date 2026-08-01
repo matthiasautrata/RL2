@@ -91,6 +91,9 @@ uv run tools/validate.py
 uv run tools/validate.py --per-fence spec/RL2_Semantics.md
 ```
 
+This tool is structural smoke testing — it confirms Turtle fences parse and SHACL shapes hold; it
+is not evaluator, compiler, or semantic-vector conformance evidence.
+
 ## Status
 
 RL2 0.7 is a draft proposal for technical and academic review. The namespace is

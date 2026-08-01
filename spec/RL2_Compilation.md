@@ -482,8 +482,9 @@ This declaration alone is not conforming; the privacy profile's own normative te
 
 A conforming compiler:
 
-1. accepts exactly the RDF datasets a conforming SHACL processor accepts against `rl2-shacl.ttl`
-   and rejects every other dataset with a SHACL validation report, never a `CompileDiagnostic`;
+1. accepts exactly the RDF datasets a conforming SHACL processor operating under the validation
+   regime below accepts against `rl2-shacl.ttl`, and rejects every other dataset with a SHACL
+   validation report, never a `CompileDiagnostic`;
 2. for a dataset that passes phase (1), either returns a `CompiledPolicyModule` satisfying §5, or
    returns the `CompileDiagnostics` set required by §6 — never a partial or best-effort module;
 3. produces byte-identical canonical JSON (§5.1) to any other conforming compiler given the same
@@ -508,3 +509,36 @@ full core conformance, including STRICT conformance, without implementing any `r
 operator P declares, per P's own normative denotation (§9.1), and passing P's conformance vector
 suite in full. Core conformance and profile conformance are independently checkable and neither
 implies the other.
+
+### 10.1 Validation regime
+
+Clause 1 above ("a conforming SHACL processor operating under the validation regime below") is
+fixed by this regime; a conforming compiler's phase (1) and its canonical projection (§3) MUST
+operate under it, not against an implementation-specific dataset interpretation.
+
+1. **Dataset scope.** The input to phase (1) and to canonical projection is the supplied RDF
+   document or documents, parsed and merged into a single graph — the default graph. Named-graph
+   semantics MUST NOT be consulted; a supplied dataset's non-default graphs MUST be ignored.
+   `owl:imports` MUST NOT be followed. The compiler MUST perform no network or file fetching beyond
+   the explicitly supplied inputs.
+2. **Base IRI.** The base IRI, when an input uses relative IRIs, is an explicit caller-supplied
+   input to `compile`, recorded alongside `RDFDataset`. Any relative IRI remaining after parsing
+   MUST be rejected — canonical projection (§3) requires absolute IRIs.
+3. **Entailment: none.** Phase (1) validation and phase (2) projection MUST operate on the asserted
+   graph only; no RDFS or OWL entailment regime may be applied before or during validation. RL2's
+   closed-world property rule (§4) and its SHACL shapes are the enforcement layer; entailment
+   silently adding triples would bypass both.
+4. **SHACL feature set.** SHACL Core plus SHACL-SPARQL (`sh:sparql` constraints), exactly — the
+   shapes graph `spec/rl2-shacl.ttl` uses both. SHACL Advanced Features (rules, functions) are not
+   used and MUST NOT be active during phase (1).
+5. **Severity.** A validation result with severity `sh:Violation` MUST cause phase (1) rejection. A
+   result with severity `sh:Warning` MUST NOT cause rejection but MUST be reported to the caller
+   (RL2 deliberately ships `sh:Warning`-severity IRI-recommendation shapes, §2.1). The **canonical
+   validation-report projection** is the set of tuples `(source shape IRI, focus node, result path
+   if any, severity)`, deduplicated and sorted by that tuple order; two conforming implementations
+   agree when they produce the same projected set for the same input. Message strings are
+   informative only and are not part of the projection.
+
+Positive and negative dataset fixtures exercising this regime — imports ignored, named graphs
+ignored, relative-IRI rejection, warning-does-not-reject — ship with the conformance-vector suite
+(`backlog.md` §1).
