@@ -127,10 +127,13 @@ one of `rl2:promisedAction` (a commitment to *do* something), `rl2:promisedState
 commitment to fulfill someone else's Duty).
 
 Promises are necessary because:
-- They can be triggered by events
-- They can succeed, fail, or remain pending
-- They can generate violations
-- They can span time
+
+- Their Pending, Fulfilled, Violated, or indeterminate status can be derived from supplied evidence
+- They preserve the distinction between voluntary commitments and imposed Duties
+- Supported action/state Promises can crystallize into Duties plus Claims on pure Offer acceptance
+
+General `promisedDuty` suretyship has defined Promise status but is not materialized by core;
+an explicit profile is required for guarantee or indemnity semantics.
 
 This turns policy obligations into trackable runtime objects.
 

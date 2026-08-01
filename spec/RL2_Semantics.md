@@ -62,9 +62,9 @@ We define RL2 expressions as:
 Norm ::=
     Privilege(Agent, Action, Asset, Condition,
               prerequisiteDuties: finite set of Duty)
-  | AchievementDuty(Agent, Action, Asset, Condition,
+  | AchievementDuty(Agent subject, Agent? counterparty, Action, Asset, Condition,
                     postCondition: Condition?, dutyWindow: DutyWindow?)
-  | MaintenanceDuty(Agent, Asset, Condition,
+  | MaintenanceDuty(Agent subject, Agent? counterparty, Asset, Condition,
                     invariant: Condition, dutyWindow: DutyWindow?)
   | Prohibition(Agent, Action, Asset, Condition)
   | Claim(Agent subject, Agent counterparty, Duty correlativeTo)
@@ -108,7 +108,7 @@ Promise ::= Promise(Agent promisor, Agent promisee, Asset? object, PromiseConten
 PromiseContent ::=
     PromisedAction(Action)          -- Tun-sollen; object is Promise.object
   | PromisedState(Condition)        -- Sein-sollen; from rl2:promisedState
-  | PromisedDuty(Duty)              -- suretyship;  from rl2:promisedDuty
+  | PromisedDuty(Duty)              -- suretyship status; core acceptance rejects this form
 ```
 
 `PromiseContent` is a metalanguage tagged union mapping 1:1 to the three disjoint
@@ -226,15 +226,15 @@ Privilege:
 Duty:
 
 ```
-Γ ⊢ a : Agent     Γ ⊢ x : Action     Γ ⊢ s : Asset
+Γ ⊢ a : Agent     Γ ⊢ b : Agent?      Γ ⊢ x : Action     Γ ⊢ s : Asset
 Γ ⊢ c : Condition Γ ⊢ pc : Condition? Γ ⊢ w : DutyWindow?
--------------------------------------------------------------------------
-        Γ ⊢ AchievementDuty(a, x, s, c, pc, w) : Norm
+--------------------------------------------------------------------------------
+        Γ ⊢ AchievementDuty(a, b, x, s, c, pc, w) : Norm
 
-Γ ⊢ a : Agent     Γ ⊢ s : Asset      Γ ⊢ c : Condition
+Γ ⊢ a : Agent     Γ ⊢ b : Agent?      Γ ⊢ s : Asset      Γ ⊢ c : Condition
 Γ ⊢ i : Condition Γ ⊢ w : DutyWindow?
--------------------------------------------------------
-        Γ ⊢ MaintenanceDuty(a, s, c, i, w) : Norm
+--------------------------------------------------------------------------
+        Γ ⊢ MaintenanceDuty(a, b, s, c, i, w) : Norm
 ```
 
 Prohibition:
@@ -1051,7 +1051,7 @@ subjectMatches(a, requested, Env) =
 objectMatches(s, requested, U) =
     s = requested ∨ requested ∈ members(s,U)
 
-actionMatches(AchievementDuty(_,x,_,_,_,_), requested, U) =
+actionMatches(AchievementDuty(_,_,x,_,_,_,_), requested, U) =
     x = requested ∨ includedInAction(requested,x,U)
 actionMatches(Privilege(_,x,_,_,_), requested, U) =
     x = requested ∨ includedInAction(requested,x,U)
@@ -1167,7 +1167,7 @@ prohibition, the correlative claim is held by the policy grantor.
 
 ```
 ∀ Prohibition(s, x, o, c) :
-    ∃ Claim(h, s, AchievementDuty(s, refrainFrom(x), o, c, None, None)) where
+    ∃ Claim(h, s, AchievementDuty(s, Some(h), refrainFrom(x), o, c, None, None)) where
     h = counterparty(Prohibition) if present, else grantor(policyOf(Prohibition))
 ```
 
@@ -1363,95 +1363,219 @@ definitions. They read immutable evidence and fact intervals, return `StatusResu
 consume an event nor update a stored state. Scheduling a later evaluation with a different
 snapshot is outside core `Eval`.
 
-### Crystallization (Offer → Agreement)
+### Pure Offer Acceptance (Offer → Agreement)
 
-An **Offer** is a bundle of voluntary Promises (made or demanded) together with any
-restated externally-imposed Duties — e.g. a data provider offers "complete, timely
-data" (a Promise) *and* restates the statutory GDPR erasure obligation (a Duty that
-holds regardless of the contract). Nothing in an Offer is yet enforceable *as a
-contract*: a Promise binds its promisor in the Promise-Theory sense but creates no
-correlative Claim, and there is no accepted counterparty who can demand performance.
+An **Offer** may contain voluntary Promises together with Norms that are restated as terms of the
+proposed Agreement. A Promise binds its promisor as a voluntary commitment but has no correlative
+Claim before acceptance. Acceptance is a pure, one-time policy transformation; it is not an
+event consumed by `Eval`, a state transition, or an instruction to persist anything.
 
-**Acceptance** transforms the Offer into an **Agreement**. Each Promise
-*crystallizes* into a Duty plus its correlative Claim — acceptance is precisely what
-supplies the claim-holder the bare Promise lacked. Restated external Duties carry
-through unchanged. The result is enforceable on both sides, and **no Promise
-survives in the Agreement**: a residual Promise creates no correlative and is
-therefore inert — a construct the totality proof would have to carry with no
-evaluation semantics — so it is rejected by SHACL (`AgreementShape`). Non-binding
-recitals, if wanted, belong in an `rl2:Assertion`, not a clause.
+The transformation operates on the validated normalized Offer and explicit acceptance
+parameters:
 
-This is distinct from the **Remedial Generation Rule** below: crystallization is
-*acceptance-triggered*, total, and structural (every Promise yields a Duty at
-contract formation); remedial generation is *violation-triggered* and produces a
-restorative Duty only when a live Promise's invariant is breached.
+```text
+SourceRef  = stable canonical identity of one Promise clause or policy-local Norm
+PromiseRef = SourceRef restricted to Promise clauses
 
-The canonical Duty form produced by crystallization is structural, not selected by an authored
-mode field. A `PromisedAction(x)` can produce an Achievement Duty with `action=x`; a
-`PromisedState(i)` can produce a Maintenance Duty with `invariant=i`. If acceptance supplies a
-finite performance period, it becomes the new Duty's `dutyWindow`. A promised action without an
-accepted period produces an unbounded Achievement Duty; an accepted promised state requires a
-finite window if the resulting Duty is ever to become Fulfilled.
+Acceptance = (
+    agreementId   : IRI,
+    grantor        : Agent,
+    grantee        : Agent,
+    primaryIds     : total map SourceRef  → IRI,
+    claimIds       : total map PromiseRef → IRI,
+    objectBindings : partial map PromiseRef → Asset,
+    dutyWindows    : partial map PromiseRef → DutyWindow
+)
 
-The complete transformation — including how acceptance supplies the object and optional window,
-and the canonical representation of `PromisedDuty` suretyship — is intentionally left to S2-C4.
-This section does not define a partial `crystallize` function or manufacture an action for a
-second-order promise. The status algebra above is complete for every Duty that the S2-C4
-transformation validly produces.
+MaterializationResult =
+      Materialized(agreement : Agreement, sourceMap : map SourceRef → IRI)
+    | Rejected(errors : non-empty finite set of MaterializationError)
 
-### Materialization (Offer → Agreement, document level)
+MaterializationError ::=
+      InvalidOffer(site, reason : InvalidOfferReason)
+    | PartyMismatch(promiseRef)
+    | InvalidIdentityAllocation(id)
+    | MissingPromiseObject(promiseRef)
+    | InvalidDutyWindow(promiseRef)
+    | UnsupportedPromiseContent(promiseRef, PromisedDuty)
+    | UnsupportedPromiseReference(site, promiseRef, operand)
+    | DanglingInternalReference(site, targetId)
 
-Crystallization above defines *what a Promise becomes*; it does not by itself say how an
-Agreement's clauses come to reference the crystallized Duty instead of the vanished Promise, or
-how a restated Norm clause avoids colliding across multiple Agreements formed from the same
-Offer. **Materialization** is the one-time, document-level step that acceptance performs to
-produce a self-contained Agreement:
-
-```
-materialize(Offer, Acceptance) = Agreement
-    where Agreement = fresh IRI
+InvalidOfferReason ::=
+      WrongPolicyKind | EmptyClauseSet | ConflictingObjectBinding
+    | InvalidAcceptanceDomain | NonLocalPromiseTarget
+    | InvalidOutputShape | StatusDependencyCycle
 ```
 
-An Offer is catalog-like: it is authored once, published, and may be accepted many times (e.g.
-an SLA offered to many customers). Because `Σ`'s state maps are keyed by bare IRI with no
-Case/Agreement dimension —
+`primaryIds` assigns the output Norm identifier for every materialized source: the crystallized
+Duty for a Promise and the copied Norm for a policy-local Norm. For S2-C4, locality is structural
+and deliberately narrow:
 
+```text
+localNorms(O) =
+    { n : Norm | n ∈ O.clauses }
+    ∪ { d : Duty | ∃ n : Privilege ∈ O.clauses : d ∈ n.prerequisiteDuties }
 ```
-ObligationState : Duty → {Pending, Active, Fulfilled, Violated}
-DutyPerformer   : Duty → Agent ∪ {⊥}
+
+The second set contains the non-clause Duties owned through `prerequisiteDuty`; their attachment
+placement is preserved rather than promoted to Agreement clauses. `correlativeTo`, `affectsNorm`,
+`exposedTo`, `immuneFrom`, and `targetNorm` are references, not ownership relations. Their targets
+are rewritten only when independently present in `localNorms(O)` or among the Promise clauses of
+`O`; otherwise they remain external and are not copied. S2-C5 must preserve this distinction in
+the canonical RDF projection.
+
+`claimIds` assigns the additional Claim identifier for every Promise. Define `sourceIris(O)` as
+every IRI occurring as an RDF term in the canonical projection of `O`; blank nodes contribute no
+IRI. `agreementId`, all `primaryIds` values, and all `claimIds` values MUST be pairwise distinct,
+and the resulting set of allocated IRIs MUST be disjoint from `sourceIris(O)`. Identifier allocation is therefore
+explicit input, not a nondeterministic `fresh IRI` operation. How a caller allocates globally
+unique IRIs is outside the transformation; canonical RDF projection of these supplied identifiers
+belongs to S2-C5. `ref(x)` denotes the `SourceRef` assigned to source Promise or local Norm `x` by
+that normalized projection; S2-C4 depends only on its stable identity and equality, not on its
+concrete encoding.
+
+`objectBindings` may supply an object for either an action or state Promise when the Offer leaves
+the catalogue target open. A conflicting authored and supplied object is `InvalidOffer`; an
+identical binding is accepted but has no effect. `dutyWindows` supplies an optional finite
+performance interval for the Duty created from a Promise. It does not alter a copied Norm clause.
+
+An Offer-level `condition` denotes the applicability guard proposed for the resulting Agreement;
+it does not determine whether or when an Acceptance may be issued. Offer validity, withdrawal,
+and acceptance authorization are outside this pure transformation. Materialization therefore
+rewrites and copies `O.condition` as the Agreement-level applicability guard.
+
+#### Validation
+
+`materialize(O,A)` collects all applicable errors and returns `Rejected(errors)` without a partial
+Agreement when any error exists. A value is **structurally conforming** when it inhabits the typed
+abstract syntax in this document and its RDF projection satisfies the applicable core SHACL
+shapes. The input is valid only when:
+
+1. `O` is a structurally conforming `Offer` with a non-empty finite clause set;
+2. any `grantor` or `grantee` authored on `O` equals the corresponding value in `A`;
+3. each Promise's `(promisor,promisee)` is either `(A.grantor,A.grantee)` or
+   `(A.grantee,A.grantor)`—orientation may differ, but acceptance cannot bind an absent third
+   party;
+4. `primaryIds` has domain `PromiseClauses(O) ∪ localNorms(O)`, `claimIds` has domain
+   `PromiseClauses(O)`, the optional maps have no other keys, and the identity maps satisfy the
+   freshness and injectivity rule;
+5. every promised action or state has exactly one object after applying `objectBindings`;
+6. every `dutyWindows[p]` satisfies
+   `dutyWindows[p].startInclusive < dutyWindows[p].endExclusive`;
+7. every Promise-valued `targetNorm` occurring in the Offer's policy condition, clause conditions,
+   Promise content, or attached prerequisite Duties targets a Promise clause of that same Offer;
+8. every reference to a clause of `O` has a corresponding `primaryIds` entry; and
+9. rewriting produces an acyclic, structurally conforming Agreement.
+
+A failure of item 6 yields `InvalidDutyWindow(ref(p))`; a failure of item 7 yields
+`InvalidOffer(site, NonLocalPromiseTarget)`. `StatusDependencyCycle` reports a cycle already
+present in the Offer's status-dependency graph: injective renaming and the typed Promise-to-Duty
+operand rewrite cannot create one.
+
+Materialization-error identity is the constructor plus its typed fields; explanatory prose is not
+part of identity. Errors are enumerated by constructor, site, and referenced identifier, so
+validation order cannot change the result. A primary error on a Promise (unsupported content,
+missing object, invalid Duty window, or party mismatch) suppresses derivative output-shape and
+rewrite errors caused solely by the absence of that Promise's generated Duty; independent errors
+are still collected.
+
+#### Crystallization
+
+For a Promise `p = Promise(promisor, promisee, object?, content)`, let `s` be its authored object
+or accepted object binding, and let `w` be its accepted Duty window if one exists:
+
+```text
+crystallize(p,A) =
+    case p.content of
+        PromisedAction(x) →
+            AchievementDuty(subject = p.promisor,
+                            counterparty = Some(p.promisee),
+                            action = x,
+                            object = s,
+                            condition = True,
+                            postCondition = None,
+                            dutyWindow = w)
+
+        PromisedState(i) →
+            MaintenanceDuty(subject = p.promisor,
+                            counterparty = Some(p.promisee),
+                            object = s,
+                            condition = True,
+                            invariant = i,
+                            dutyWindow = w)
+
+        PromisedDuty(_) →
+            UnsupportedPromiseContent(ref(p), PromisedDuty)
 ```
 
-(§Σ, above) — two Agreements that shared a clause IRI would share one entry in these maps, and
-one customer's fulfillment would silently become another's. `materialize` therefore mints a
-**fresh IRI for every clause it places in the Agreement**, crystallized or not:
+The Duty identifier is `A.primaryIds[ref(p)]`. Its correlative Claim has identifier
+`A.claimIds[ref(p)]`, `subject = p.promisee`, `counterparty = p.promisor`, and
+`correlativeTo = A.primaryIds[ref(p)]`. Claim content is derived from that Duty as specified in
+§Claim Denotation and Content Derivation; it is not copied onto the Claim.
 
-1. Mint a fresh IRI for the Agreement itself.
-2. For each Promise clause in the Offer, `crystallize` it (as above) into a **freshly-minted**
-   Duty `D` and correlative Claim `C` — scoped to this Agreement, not shared with any other
-   acceptance of the same Offer.
-3. For each restated Norm clause in the Offer, copy it into the Agreement under a **freshly-minted**
-   IRI — for the same Σ-collision reason as step 2, not merely for symmetry.
-4. Let `map` be the resulting Promise/Norm ⟶ crystallized-or-copied-clause correspondence built by
-   steps 2–3. Rewrite every `rl2:targetNorm` reference inside the Agreement's clauses through
-   `map`, so a condition that targeted an Offer-stage Promise now targets its crystallized Duty.
-   After this rewrite, `targetNorm` is always Norm-valued inside an executed Agreement — no
-   Promise survives materialization (PROM-1) and none is ever queried by IRI after acceptance.
-5. Record provenance: `Agreement prov:wasDerivedFrom Offer` (`http://www.w3.org/ns/prov#`,
-   borrowed by term as `rl2.ttl` already borrows `dc:` — no `owl:imports` of PROV-O itself).
-   This is the first use of an external vocabulary term on RL2 individuals rather than on the
-   ontology document header; it is deliberate, not an invitation to import further vocabularies
-   without the same discussion.
+`PromisedDuty` remains meaningful for snapshot-derived Promise status, but general suretyship
+cannot be crystallized into either current Duty form without inventing an action or misusing a
+Maintenance invariant. Core therefore rejects that content at acceptance. A profile may define a
+separate, explicitly typed suretyship transformation; core never guesses one.
 
-`materialize` is **not** an IR effect. It runs once, before compilation, over the fixed Offer
-document and the Acceptance event — analogous to the ODRL-inheritance flattening pass in
-`RL2_ODRL_Comparison.md`. `evalIR`/`applyEffects` (RL2_IR.md §7) operate on an already-compiled,
-immutable `CompiledPolicy` and only ever mutate Σ; they have no mechanism for rewriting a
-policy's own AST, which is exactly what step 4 requires. `CrystallizePromise` (RL2_IR.md's
-`Effect` datatype) remains unchanged: it is the *runtime* bookkeeping Σ-effect fired each time a
-`PromiseEntry` is evaluated within an already-materialized Agreement, distinct from this one-time
-document construction.
+A `PromisedAction` without an accepted window creates an unbounded Achievement Duty, which can
+remain Pending. A `PromisedState` without a window creates an ongoing Maintenance Duty, which can
+be Active or Violated but cannot become Fulfilled. A finite accepted window gives the resulting
+Duty the status boundaries defined in §Declarative Duty and Promise status.
 
-### Promise→Duty Generation (Remedial Generation Rule)
+#### Clause copying and reference rewriting
+
+Let `sourceMap(x) = A.primaryIds[ref(x)]`. Each policy-local Norm is structurally copied under
+`sourceMap(n)`. Immutable value expressions may be shared; Norm identity is never shared across
+the Offer and Agreement. Only mapped top-level Norms become Agreement clauses; copied attached
+Duties remain attached. All Norm-valued references inside the copied policy condition and
+clauses are traversed recursively:
+
+```text
+rewriteRef(r) =
+    if r is a Promise clause or policy-local Norm of O then sourceMap(r) else r
+
+rewriteAtomic(a) =
+    if a.targetNorm = PromiseTarget(p) then
+        if a.leftOperand = promiseStateOperand then
+            a[targetNorm  ↦ NormTarget(sourceMap(p)),
+              leftOperand ↦ obligationStateOperand]
+        else UnsupportedPromiseReference(site(a),ref(p),a.leftOperand)
+    else a[targetNorm ↦ rewriteRef(a.targetNorm)]
+```
+
+`rewriteRef` applies to `prerequisiteDuty`, `correlativeTo`, `affectsNorm`, `exposedTo`,
+`immuneFrom`, and Norm-valued `targetNorm`. A Promise-valued `targetNorm` has only the core rewrite
+shown above. In particular, `promisorOperand` and profile-defined Promise operands are rejected:
+the Agreement contains no Promise for them to query, and silently assigning them Duty semantics
+would be unsound. Conditions without `targetNorm` are copied structurally.
+
+The result is:
+
+```text
+materialize(O,A) =
+    if validateMaterialization(O,A) = errors ≠ ∅ then Rejected(errors)
+    else Materialized(
+        Agreement(id        = A.agreementId,
+                  grantor   = A.grantor,
+                  grantee   = A.grantee,
+                  condition = rewrite(O.condition),
+                  clauses   = copiedTopLevelNorms(O,A)
+                              ∪ crystallizedDuties(O,A)
+                              ∪ correlativeClaims(O,A),
+                  metadata  = copyMetadata(O)
+                              ∪ { prov:wasDerivedFrom ↦ O.id }),
+        sourceMap)
+```
+
+No Promise survives in the Agreement. `materialize` neither reads a `WorldSnapshot` nor emits an
+effect; identical Offer and Acceptance values produce the same result. With indexed maps it is
+linear in the size of the normalized Offer, including its condition trees and references.
+`copyMetadata` preserves non-structural annotations and profile/version requirements; it excludes
+the source identifier, policy kind, parties, condition, clauses, and any prior materialization
+provenance because those fields are constructed explicitly above.
+
+### Remedial Generation Boundary
 
 **Conceptual Foundation (Sein-Sollen vs Tun-Sollen)**:
 
@@ -1631,22 +1755,30 @@ Out(U, Env) =
     ⋃ { deriveNorms(P, Env) | P ∈ U }
 
 deriveNorms(P, Env) =
-    { permit(n, P)   | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
-    { forbid(n, P)   | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
-    { obligate(d, P) | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
-    { obligate(d, P) | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = True } ∪
-    { indeterminate(n, P, accessResult(P,n,Env).causes)
-                     | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
-    { indeterminate(n, P, accessResult(P,n,Env).causes)
-                     | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
-    { indeterminate(d, P, ⟦effectiveCondition(P,d)⟧(Env).causes)
-                     | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown } ∪
-    { indeterminate(d, P, attachedDutyResult(P,d,Env).causes)
-                     | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = Unknown }
+    if P : Offer then ∅
+    else
+        { permit(n, P)   | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
+        { forbid(n, P)   | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
+        { obligate(d, P) | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
+        { obligate(d, P) | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = True } ∪
+        { indeterminate(n, P, accessResult(P,n,Env).causes)
+                         | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
+        { indeterminate(n, P, accessResult(P,n,Env).causes)
+                         | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
+        { indeterminate(d, P, ⟦effectiveCondition(P,d)⟧(Env).causes)
+                         | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown } ∪
+        { indeterminate(d, P, attachedDutyResult(P,d,Env).causes)
+                         | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = Unknown }
 ```
 
 `deriveNorms` reads the Request, snapshot, and configuration only through `Env`; there is no free
 mutable state or external-context argument.
+
+An Offer is transformation input, not an operative access policy. Its clauses contribute no
+normative atoms before acceptance, so proposed Privileges cannot grant access and proposed Duties
+cannot affect an access decision. `derivePromiseStatuses` and `deriveDutyStatuses` may still
+report the snapshot-derived status of clauses reachable from an Offer for inspection and
+diagnostics. Normative effect begins only in the materialized Agreement.
 
 `violated(d, P)` is **not** an `Out`/`deriveNorms` atom. Duty status is a separate derived value.
 It is read while deriving a Privilege with prerequisites and is also returned for every Duty
@@ -2102,20 +2234,16 @@ variables*.
 
 | OOP | RL2 | Holds |
 |-----|-----|-------|
-| **class** (template) | **Offer** — immutable, authored once, accepted many times | class variables: state **shared** across all its acceptances |
-| **instance** (object) | **Agreement** — one per acceptance | instance variables: state **isolated** per acceptance |
-| `new` / constructor | **`materialize(Offer, Acceptance)`** (§Materialization) | mints the instance and its fresh instance-variable cells |
+| **class** (template) | **Offer** — immutable, authored once, accepted many times | no operative atoms before acceptance |
+| **instance** (object) | **Agreement** — one immutable result per acceptance | Agreement-local clause identity |
+| `new` / constructor | **`materialize(Offer, Acceptance)`** (§Pure Offer Acceptance) | uses the identifiers supplied by Acceptance |
 
-- **Immutable policy identity vs materialized identity.** An **Offer** is a stateless catalog
-  document: it holds no runtime state and is never mutated by evaluation. An **Agreement** is the
-  stateful instance. The two are linked by `Agreement prov:wasDerivedFrom Offer` (recorded by
-  `materialize`, §Materialization). A directly-authored `Set` policy that is never materialized is
-  its own single instance (class and instance coincide).
-- **Instance variables (the default, ~all cases).** `materialize` already mints a **fresh IRI for
-  every clause** it places in an Agreement, so each Agreement's `ObligationState`, counters, and
-  duty state are keyed by IRIs unique to that Agreement. Σ stays keyed by bare IRI; isolation
-  between acceptances is automatic and needs **no new machinery**. This is how the entire existing
-  corpus already behaves.
+- **Immutable policy identity vs materialized identity.** An **Offer** and the resulting
+  **Agreement** are both immutable policy values. They are linked by
+  `Agreement prov:wasDerivedFrom Offer`; neither stores runtime state.
+- **Agreement-local identity.** Acceptance supplies a distinct identifier for every resulting
+  clause. This prevents two acceptances from denoting the same Duty or Claim without prescribing
+  a persistence layout or mutable state map.
 - **Class variables (the rare, explicit exception).** Some limits are enforced *across* all live
   Agreements of one Offer — a pool of *N* concurrent seats, a shared quota. That state belongs to
   the **Offer tier** and is read through the `global.*` root (above) / `rl2p:GlobalLeftOperand`.

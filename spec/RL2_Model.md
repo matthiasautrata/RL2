@@ -346,9 +346,12 @@ Decision ::= Permit
 `normativeEnvelope` is the complete policy- and clause-attributed input to resolution, including
 definite and indeterminate atoms. It is intentionally not claimed to be a minimal proof set.
 The two status maps expose the declarative results for Duties and Promises in the supplied policy
-universe. A Duty status participates in access derivation only through an owning Privilege's
-`prerequisiteDuty` relation; independent Duties never change the access decision. `diagnostics` uses the causal
-error algebra defined by the Semantics. Explanatory labels, localized
+universe: `dutyStatuses` covers every independent or attached Duty reachable from any supplied
+policy, including an Offer, and `promiseStatuses` covers every Promise clause. A status reported
+for an Offer is descriptive only; it does not make the Offer or any of its clauses operative. A
+Duty status participates in access derivation only through an owning Privilege's
+`prerequisiteDuty` relation; independent Duties never change the access decision. `diagnostics`
+uses the causal error algebra defined by the Semantics. Explanatory labels, localized
 messages, traces, timestamps, signatures, and persistence identifiers are optional interchange or
 implementation metadata unless a profile gives them policy meaning.
 
@@ -461,12 +464,47 @@ Maintenance Duty with a finite window can represent a completed maintenance peri
 
 ## 8. Policy Transformation
 
-Offer acceptance may be specified as a pure transformation from an Offer plus explicit acceptance
-parameters to a canonical Agreement. The transformation defines normative orientation, clause
-mapping, and reference rewriting. It does not define acceptance messaging, identifier allocation,
-persistence, or a runtime effect queue.
+Offer acceptance is the pure transformation:
 
-**Open — S2-C4:** revise the existing materialization definition accordingly.
+```text
+materialize(Offer, Acceptance) -> MaterializationResult
+```
+
+An Offer is not an operative access policy: its clauses contribute no atoms to `Out` before
+acceptance. Status functions still report its Promise and reachable Duty statuses for inspection;
+those descriptive values do not activate the proposed terms. Normative access and Duty effects
+begin only after a successful transformation has produced an Agreement supplied to `Eval`.
+
+`Acceptance` supplies the Agreement identifier, grantor and grantee, an injective output-identifier
+allocation for every source Promise and policy-local Norm (including attached Duties), optional
+missing Promise-object bindings, and optional per-Promise Duty windows.
+Identity allocation is explicit input: `materialize` never calls an unspecified fresh-name
+operation. `MaterializationResult` is either one complete Agreement plus its source-clause map or
+a non-empty canonical set of attributed errors; no partial Agreement is returned.
+
+Promises of actions crystallize into Achievement Duties. Promises of states crystallize into
+Maintenance Duties. Each generated Duty names the promisor as subject and promisee as
+counterparty and receives one canonical correlative Claim in the opposite orientation. A general
+`promisedDuty` suretyship cannot be represented by the current Duty algebra without inventing an
+action or changing Maintenance semantics, so core materialization rejects it with
+`UnsupportedPromiseContent`; the Promise itself retains snapshot-derived status semantics.
+
+All policy-local Norms receive Agreement-local identifiers while retaining top-level or attached
+placement. Policy-local Norms are exactly top-level Norm clauses plus prerequisite Duties attached
+to top-level Privileges; other Norm-valued properties are references rather than ownership.
+References to local terms are rewritten through the source map; external Norm references are
+unchanged. A Promise-valued target must name a sibling Promise clause in the same Offer. A
+Promise-state query is rewritten to the crystallized Duty's
+status query; other Promise-valued queries are rejected because no Promise survives in an
+Agreement. A supplied Duty window must be a valid finite half-open interval.
+
+An Offer-level `condition` is the proposed Agreement applicability guard, not an offer-validity or
+acceptance-authorization test. The output copies that condition and semantic metadata and records
+`prov:wasDerivedFrom` provenance.
+
+The transformation reads no `WorldSnapshot`, emits no effect, and prescribes no acceptance
+message, persistence, or workflow. The full validation and rewriting algorithm is normative in
+`RL2_Semantics.md` §Pure Offer Acceptance.
 
 ## 9. ODRL Input
 

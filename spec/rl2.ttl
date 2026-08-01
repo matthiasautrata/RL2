@@ -155,7 +155,7 @@ rl2:promisedAction a owl:ObjectProperty ;
     rdfs:range rl2:Action ;
     rdfs:label "Promised Action" ;
     rdfs:comment """Tun-sollen (ought-to-do): the promisor commits to performing
-    this action on rl2:object. Fulfilled when the promisor has performed it
+    this action on the authored or acceptance-bound rl2:object. Fulfilled when the promisor has performed it
     (subsumption-aware, per the evidence selector in RL2_Semantics). On acceptance it
     crystallizes to an Achievement Duty.""" .
 
@@ -176,7 +176,10 @@ rl2:promisedDuty a owl:ObjectProperty ;
     fulfilled. The promisor does NOT thereby become the Duty's rl2:subject;
     legal assignment of the duty-bearer requires an explicit rl2:subject on the
     Duty itself. Its status projects the referenced Duty's derived status, mapping
-    Pending and Active to Promise Pending.
+    Pending and Active to Promise Pending. Core Offer acceptance does not crystallize
+    this second-order content because neither canonical Duty form represents it without
+    additional semantics; materialize() returns UnsupportedPromiseContent. A profile may
+    define an explicitly typed suretyship transformation.
     A promise (voluntary commitment, Promise Theory) is distinct from the
     Hohfeldian Duty it references.""" .
 
@@ -304,10 +307,13 @@ rl2:targetNorm a owl:ObjectProperty ;
     conformance/usecases/sla-credit-clause.md). When present, resolve(leftOperand) evaluates
     this specific norm or promise.
     PROM-7: an Offer-stage clause may target a sibling Promise directly (the Promise
-    has not crystallized yet). On Agreement formation, materialize() (RL2_Semantics.md
-    §Materialization) rewrites every such targetNorm to the crystallized Duty, so an
-    executed Agreement's targetNorm usage is always Norm-valued — no Promise survives
-    materialization (PROM-1).
+    has not crystallized yet). The targeted Promise and the condition containing this
+    reference MUST belong to the same Offer; cross-policy Promise references are invalid.
+    On Agreement formation, materialize() (RL2_Semantics.md
+    §Pure Offer Acceptance) rewrites a core promiseStateOperand query to the crystallized
+    Duty and obligationStateOperand. Other Promise-valued queries require a declared profile
+    transformation or are rejected. An Agreement's targetNorm usage is therefore Norm-valued;
+    no Promise survives materialization.
     NOTE: rdfs:range is deliberately left as the single class rl2:Norm, not an
     owl:unionOf(Norm, Promise) — plain RDFS entailment (rdfs3) can only auto-type a
     value from a range triple whose object is a single named class, and much of this
@@ -408,7 +414,7 @@ rl2:prohibitedAction a owl:ObjectProperty ;
 rl2:object a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
     rdfs:range rl2:Asset ;
-    rdfs:comment "Asset specified in a norm, or the asset a promisedAction acts upon." .
+    rdfs:comment "Asset specified in a norm or Promise; an Offer may leave an action/state Promise object for Acceptance binding." .
 
 rl2:member a owl:ObjectProperty ;
     rdfs:domain rl2:AssetCollection ;
@@ -423,9 +429,10 @@ rl2:condition a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Norm rl2:Policy) ] ;
     rdfs:range rl2:Condition ;
     rdfs:comment """Applicability condition for a norm or policy. It determines whether
-    the normative proposition applies; it does not define Duty satisfaction. Achievement
-    completion uses rl2:action and optional rl2:postCondition. Maintenance content uses
-    rl2:invariant.""" .
+    the normative proposition applies; it does not define Duty satisfaction. On an Offer it
+    denotes the applicability guard proposed for the resulting Agreement, not offer validity
+    or acceptance authorization. Achievement completion uses rl2:action and optional
+    rl2:postCondition. Maintenance content uses rl2:invariant.""" .
 
 rl2:prerequisiteDuty a owl:ObjectProperty ;
     rdfs:domain rl2:Privilege ;
@@ -790,8 +797,8 @@ rl2:Offer a owl:Class ;
     rdfs:label "Offer" ;
     rdfs:comment """A policy proposed by an assigner to potential assignees.
     An Offer expresses willingness to grant privileges or accept duties, contingent
-    on acceptance. It creates no obligations until accepted, at which point it
-    becomes an Agreement.""" .
+    on acceptance. Its Promises are voluntary commitments but do not create Agreement
+    Duties or correlative Claims until pure materialization produces an Agreement.""" .
 
 rl2:Agreement a owl:Class ;
     rdfs:subClassOf rl2:Policy ;
@@ -825,9 +832,10 @@ rl2:clause a owl:ObjectProperty ;
     A Duty linked directly with rl2:clause is an independent obligation. A Duty used as a
     Privilege prerequisite is linked only with rl2:prerequisiteDuty; its policy provenance is
     derived through that owning Privilege.
-    A Promise is a legitimate clause only in an Offer (its natural home); on
-    acceptance it crystallizes into a Duty + correlative Claim, so a well-formed
-    Agreement/Set/Privacy/Assertion contains only Norms (enforced by SHACL).""" .
+    A Promise is a legitimate clause only in an Offer (its natural home). A supported
+    Promise crystallizes on acceptance into a Duty plus correlative Claim; unsupported
+    content rejects materialization. A well-formed Agreement/Set/Privacy/Assertion
+    contains only Norms (enforced by SHACL).""" .
 
 ############################################################
 # 6a. Profile Declaration (O3)

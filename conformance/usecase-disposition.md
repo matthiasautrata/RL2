@@ -1,6 +1,6 @@
 # Use-Case Disposition for SCOPE-2
 
-**Status:** Initial classification complete; encoding migration pending.
+**Status:** Initial classification complete; encoding migration in progress.
 
 **Invariant:** Preserve every business scenario and original use-case number. A scenario may move
 to future workflow work, but it is not silently deleted because its current RDF is operational.
@@ -9,9 +9,9 @@ to future workflow work, but it is not silently deleted because its current RDF 
 
 | Disposition | Count |
 |---|---:|
-| Core conformance; current intent is already snapshot-oriented | 13 |
-| Core conformance; encoding must be rewritten | 26 |
-| RL2 language-extension conformance | 11 |
+| Core conformance; current intent is already snapshot-oriented or migrated | 17 |
+| Core conformance; encoding must be rewritten | 25 |
+| RL2 language-extension conformance | 8 |
 | Future workflow/protocol | 2 |
 | **Total** | **52** |
 
@@ -30,10 +30,10 @@ snapshot.
 | 5 | Wire Transfer SoD | Core · rewrite | Use transfer-scoped, actor-attributed preparation and approval evidence |
 | 6 | Check Signing SoD | Core · rewrite | Use check-scoped actor evidence instead of mutable norm state |
 | 7 | Ethics Approval | Core · rewrite | Supply attributed approval and expiry evidence; omit orchestration |
-| 8 | Data Stewardship | Extension | Derive Promise status from evidence rather than stored Promise state |
+| 8 | Data Stewardship | Core · migrated | Offer-local Promise dependency rewritten to an accepted Achievement Duty prerequisite |
 | 9 | GDPR Erasure | Core · rewrite | Use erasure-request and deletion evidence; omit Case lifecycle |
 | 10 | Audit Trail | Core · rewrite | Use an audit-enabled fact instead of another Duty's stored status |
-| 11 | Data Freshness Promise | Extension | Derive status from freshness evidence/time; omit ticket automation |
+| 11 | Data Freshness Promise | Core · migrated | Promised state becomes an ongoing Maintenance Duty; remedial Duty is reported, not executed |
 | 12 | Schema Evolution | Core · rewrite | Supply schema-change and notice facts; omit event-trigger machinery |
 | 13 | Quality Circuit Breaker | Core · rewrite | Evaluate quality facts directly; omit circuit-breaker state machine |
 | 14 | Step-Up Authentication | Core · rewrite | Treat authentication level as request/snapshot data |
@@ -48,7 +48,7 @@ snapshot.
 | 23 | Pass-Through Terms | Core · rewrite | Keep downstream duty; omit agreement-generation workflow |
 | 24 | Purpose Restriction | Core | Retain purpose allow-list |
 | 25 | Geographic Restriction | Core | Retain jurisdiction condition |
-| 26 | Legal Review Gate | Core · rewrite | Keep pure Offer transformation; omit review workflow |
+| 26 | Legal Review Gate | Core · migrated | Pure Offer transformation; continuing approval is snapshot evidence; review workflow omitted |
 | 27 | Approval Revocation | Extension | Keep Power/Liability meaning; externalize policy mutation |
 | 28 | Data Retention Limit | Core · rewrite | Derive duty status from deadline and deletion evidence |
 | 29 | Anonymization Required | Core · rewrite | Gate use on anonymization evidence, not stored duty state |
@@ -74,7 +74,7 @@ snapshot.
 | 49 | Policy Versioning | Core · rewrite | Select policy universe through evaluation configuration; omit Case binding |
 | 50 | Runtime Evaluation | Future workflow | Retain as request/result/Case protocol research, not core conformance |
 | 51 | Fulfillment Evidence | Future workflow | Extract evidence meaning to core; retain records/signatures/lifecycle as future work |
-| 52 | SLA Credit Clause | Extension | Keep Promise and pure materialization; omit runtime state/ID machinery |
+| 52 | SLA Credit Clause | Core · migrated | Pure materialization with explicit identities, promised-state Maintenance Duty, reference rewriting, and no runtime effects |
 
 ## Migration Gate Per Case
 

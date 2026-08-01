@@ -1,137 +1,136 @@
 # Use Case 8: Data Stewardship Promise
 
-**Pattern:** Promise fulfillment as precondition (Tun-sollen)
-**Identity Check:** `promisorOperand = currentAgent`
-**Category:** Data governance, trust frameworks
+**Pattern:** Offer-local Promise dependency rewritten on acceptance
 
-## Scenario
+**Scope:** RL2 core transformation and evaluation
 
-A researcher must make (and keep) a data stewardship promise before accessing sensitive data. The promise is a voluntary commitment, not an imposed duty.
+**Status:** SCOPE-2 migrated
 
-## Policy Intent
+## Business rule
 
-> "If YOU promised to be a good steward, YOU may access."
+> A data owner offers access to a researcher who undertakes to perform a stewardship action.
+> Access applies only after the accepted stewardship Duty has been fulfilled.
 
-## Key Characteristics
+The Promise and dependent Privilege are siblings in one Offer. The Offer is non-operative: its
+Privilege cannot grant access. Acceptance crystallizes the Promise into an Achievement Duty and
+rewrites the Privilege's Promise-status query into a Duty-status query.
 
-- Voluntary commitment (Promise, not Duty)
-- Personal accountability
-- Trust-based access control
-- Promise Theory integration
+The researcher identity is structural rather than a second condition: the Promise names the
+researcher as `promisor`, and the Privilege names the same agent as `subject`. Materialization
+allows the Promise parties only in the accepted grantor/grantee pair.
 
-## Profile-Declared Operands
-
-This use case requires a profile that declares operands for accessing promise attributes. Like event performer binding, promise identity binding uses the canonical resolution path mechanism.
+## Source Offer
 
 ```turtle
-@prefix governance: <https://example.org/profile/governance#> .
+@prefix ex:  <https://example.org/> .
 @prefix rl2: <https://rl2.example/ontology#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-# Profile-declared operand for the promisor of the stewardship promise
-governance:promisorOperand a rl2:LeftOperand ;
-    rdfs:label "Promisor" ;
-    rdfs:comment """Resolves to the agent who made the stewardship promise.
-    Used for identity binding to ensure the requester is the promisor.""" ;
-    rl2:resolutionPath "state.Promises.stewardshipPromise.promisor" ;
-    rdfs:range rl2:Agent .
-
-# Profile-declared operand for promise state
-governance:promiseStateOperand a rl2:LeftOperand ;
-    rdfs:label "Promise State" ;
-    rdfs:comment "Resolves to the current state of a promise." ;
-    rl2:resolutionPath "state.Promises.stewardshipPromise.state" ;
-    rdfs:range rl2:PromiseState .
-```
-
-## RL2 Model (Unified State Approach)
-
-```turtle
-@prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix governance: <https://example.org/profile/governance#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+ex:DataOwner a rl2:Agent .
+ex:Researcher a rl2:Agent .
+ex:SensitiveData a rl2:Asset .
+ex:steward a rl2:Action .
+ex:access a rl2:Action .
 
 ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
-    rl2:promisedAction ex:steward ;      # Tun-sollen: commit to stewarding the data
-    rl2:object ex:SensitiveData ;
-    rl2:promiseState rl2:Pending .
+    rl2:promisedAction ex:steward ;
+    rl2:object ex:SensitiveData .
 
 ex:dataAccessPrivilege a rl2:Privilege ;
     rl2:subject ex:Researcher ;
     rl2:action ex:access ;
     rl2:object ex:SensitiveData ;
     rl2:condition [
-        a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:and ;
-        rl2:operand [
-            # Check 1: Is the promise fulfilled?
-            a rl2:AtomicConstraint ;
-            rl2:leftOperand governance:promiseStateOperand ;
-            rl2:constraintOperator rl2:eq ;
-            rl2:rightOperandRef rl2:Fulfilled   # state enum is an IRI → rightOperandRef
-        ] ;
-        rl2:operand [
-            # Check 2: Am I the promisor?
-            # Uses profile-declared operand with explicit resolution path
-            a rl2:AtomicConstraint ;
-            rl2:leftOperand governance:promisorOperand ;
-            rl2:constraintOperator rl2:eq ;
-            rl2:rightOperandRef rl2:currentAgent
-        ]
+        a rl2:AtomicConstraint ;
+        rl2:targetNorm ex:stewardshipPromise ;
+        rl2:leftOperand rl2:promiseStateOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef rl2:Fulfilled
     ] .
+
+ex:stewardshipOffer a rl2:Offer ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:stewardshipPromise, ex:dataAccessPrivilege .
 ```
 
-## Resolution Semantics
+## Acceptance value
 
-When evaluating the identity binding condition:
+```text
+Acceptance(
+  agreementId = ex:stewardshipAgreement,
+  grantor      = ex:DataOwner,
+  grantee      = ex:Researcher,
+  primaryIds   = {
+    ex:stewardshipPromise -> ex:stewardshipDuty,
+    ex:dataAccessPrivilege -> ex:dataAccessPrivilege_A1
+  },
+  claimIds       = { ex:stewardshipPromise -> ex:stewardshipClaim },
+  objectBindings = {},
+  dutyWindows    = {}
+)
+```
 
-1. `governance:promisorOperand` has `rl2:resolutionPath "state.Promises.stewardshipPromise.promisor"`
-2. `resolve(governance:promisorOperand, Env, ⊥)` calls `deref("state.Promises.stewardshipPromise.promisor", Env)`
-3. This navigates: `Env.Σ.Promises["stewardshipPromise"].promisor` → returns the promisor agent
-4. `rl2:currentAgent` resolves to `Env.Agent`
-5. Constraint holds if these are equal (Tun-sollen identity binding)
+## Materialized Agreement
 
-## Promise vs. Duty
+```turtle
+@prefix ex:   <https://example.org/> .
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 
-| Aspect | Promise | Duty |
-|--------|---------|------|
-| Origin | Voluntary | Imposed |
-| Counterparty | Specific promisee | May be abstract |
-| Lifecycle | Pending → Fulfilled (or Violated) | Pending → Active → Fulfilled (or Violated) |
-| Semantics | Cooperative commitment | Normative obligation |
-| Identity Binding | `promisorOperand = currentAgent` | `dutyPerformerOperand = currentAgent` |
+ex:DataOwner a rl2:Agent .
+ex:Researcher a rl2:Agent .
+ex:SensitiveData a rl2:Asset .
+ex:steward a rl2:Action .
+ex:access a rl2:Action .
 
-## Evaluation
+ex:stewardshipDuty a rl2:Duty ;
+    rl2:subject ex:Researcher ;
+    rl2:counterparty ex:DataOwner ;
+    rl2:action ex:steward ;
+    rl2:object ex:SensitiveData .
 
-| Scenario | Promise By | Promise State | Request By | Result |
-|----------|------------|---------------|------------|--------|
-| Committed | Alice | Fulfilled | Alice | PERMIT |
-| Not yet committed | Alice | Pending | Alice | DENY |
-| Wrong person | Alice | Fulfilled | Bob | DENY |
+ex:stewardshipClaim a rl2:Claim ;
+    rl2:subject ex:DataOwner ;
+    rl2:counterparty ex:Researcher ;
+    rl2:correlativeTo ex:stewardshipDuty .
 
-## Why Profile-Declared Operands?
+ex:dataAccessPrivilege_A1 a rl2:Privilege ;
+    rl2:subject ex:Researcher ;
+    rl2:action ex:access ;
+    rl2:object ex:SensitiveData ;
+    rl2:condition [
+        a rl2:AtomicConstraint ;
+        rl2:targetNorm ex:stewardshipDuty ;
+        rl2:leftOperand rl2:obligationStateOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef rl2:Fulfilled
+    ] .
 
-Previous versions used ad-hoc properties like `ex:promisorId`. This bypassed the formal `resolve`/`deref` machinery.
+ex:stewardshipAgreement a rl2:Agreement ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:stewardshipDuty, ex:stewardshipClaim,
+               ex:dataAccessPrivilege_A1 ;
+    prov:wasDerivedFrom ex:stewardshipOffer .
+```
 
-With profile-declared operands:
-- The governance profile owns `governance:promisorOperand`
-- Resolution path is explicit and auditable
-- Pattern parallels duty performer binding (`rl2:dutyPerformerOperand`)
-- SHACL can verify correct usage
+## Expected evaluation
 
-## Promise Theory Context
+For request `(Researcher, access, SensitiveData)`:
 
-From Burgess & Bergstra: Promises are **autonomous** commitments. Unlike duties (imposed externally), promises reflect the promisor's voluntary intention.
+| Snapshot evidence | Duty status | Decision |
+|---|---|---|
+| A qualifying `steward` action by Researcher on SensitiveData | `Fulfilled` | `Permit` |
+| No qualifying stewardship evidence | `Active` | `NotApplicable` |
+| The same evidence, but a request by another agent | `Fulfilled` | `NotApplicable` |
 
-RL2 distinguishes these normatively while allowing both to serve as preconditions. The identity binding mechanism is consistent across both:
-- Duties: `rl2:dutyPerformerOperand` (core operand querying Σ.DutyPerformer)
-- Promises: `governance:promisorOperand` (profile operand querying Σ.Promises)
+Passing the source Offer directly to `Out` always contributes no atom. `NotApplicable` is not a
+global denial: another operative policy may independently permit the request.
 
-## Comparison
+## Migration note
 
-- **ODRL:** No promise concept; would use duty
-- **Smart Contracts:** Promises as executable code
-- **RL2:** Native Promise class with lifecycle tracking + profile-declared identity binding
+The earlier encoding used profile operands over mutable `state.Promises` fields and asserted
+`rl2:promiseState`. Those forms are removed. Promise status is derived from evidence, and the
+accepted Agreement queries the crystallized Duty.

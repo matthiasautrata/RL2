@@ -1,81 +1,58 @@
-# Use Case 52: SLA Credit Clause (Offer → Agreement Materialization)
+# Use Case 52: SLA Credit Clause
 
-**Pattern:** Promise + sibling Duty, crystallized on acceptance
-**Vocabulary Demonstrated:** `Offer`, `Agreement`, `targetNorm` (Promise-valued, then Norm-valued), `materialize`, `prov:wasDerivedFrom`
-**Category:** Data Contracts, SLA Enforcement
-**Status:** DRAFT
+**Pattern:** Pure Offer acceptance with a promised state and a sibling remedial term
 
----
+**Scope:** RL2 core transformation
 
-## Business Context
+**Status:** SCOPE-2 migrated
 
-A cloud provider publishes a standard SLA offer to its catalog: it *promises* 99.9% monthly
-uptime, and separately commits to a service credit *duty* if that promise is broken. The credit
-duty's condition needs to say "pay the credit once the uptime promise is violated" — but at
-Offer time there is no Duty yet to point at, only the sibling Promise. This is the
-Offer-is-the-only-container-where-Promise-and-Norm-clauses-coexist case that motivates
-**PROM-7**'s `rl2:targetNorm` range widening and the `materialize` function
-(RL2_Semantics.md §Materialization).
+## Business rule
 
-The same Offer is accepted by many customers, so whatever the Agreement ends up looking like
-must not let two customers' credit duties collide in `Σ`.
+> A provider offers 99.9% uptime for a calendar month. After acceptance, the provider owes the
+> customer a maintenance Duty for that interval and a service-credit Duty if the uptime Duty is
+> violated.
 
-## Policy Intent
+The catalog Offer is not an operative access policy. Its Promise may be inspected, but `Out`
+derives no atoms from the Offer. Acceptance materializes a separate Agreement with explicit,
+Agreement-local identifiers.
 
-> "The provider promises 99.9% monthly uptime. If that promise is violated, the provider owes
-> the customer a service credit."
-
-## Stage 1 — Offer (catalog, not yet binding)
-
-The Promise and the Duty are siblings in the same Offer. The Duty's condition targets the
-Promise directly — this requires `rl2:targetNorm`'s widened range (`rl2:Norm ⊔ rl2:Promise`,
-PROM-7) and a Promise-valued left operand, since the promise has not crystallized yet and there
-is no Duty to target.
+## Source Offer
 
 ```turtle
-@prefix ex: <https://example.org/> .
-@prefix sla: <https://example.org/profile/sla#> .
-@prefix rl2: <https://rl2.example/ontology#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <https://example.org/> .
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-sla:monthlyUptimeOperand a rl2:LeftOperand ;
-    rdfs:label "Monthly Uptime Percentage" ;
-    rdfs:comment "Measured uptime percentage for the current billing month." ;
-    rl2:resolutionPath "asset.metadata.monthlyUptime" ;
-    rdfs:range xsd:decimal .
+ex:CloudProvider a rl2:Agent .
+ex:Customer a rl2:Agent .
+ex:ProductionService a rl2:Asset .
 
-sla:promiseStateOperand a rl2:LeftOperand ;
-    rdfs:label "Promise State Operand" ;
-    rdfs:comment "Queries the PromiseState of the target promise (Offer-stage only)." ;
-    rl2:resolutionPath "state.Promises.<target>.state" ;
-    rdfs:range rl2:PromiseState .
+ex:issueServiceCredit a rl2:Action .
+ex:monthlyUptimeOperand a rl2:LeftOperand ;
+    rdfs:range xsd:decimal ;
+    rl2:resolutionPath "asset.metadata.monthlyUptime" .
 
-sla:issueServiceCredit a rl2:Action ;
-    rdfs:label "Issue Service Credit" .
+ex:uptimeMeetsSLA a rl2:AtomicConstraint ;
+    rl2:leftOperand ex:monthlyUptimeOperand ;
+    rl2:constraintOperator rl2:gte ;
+    rl2:rightOperand "99.9"^^xsd:decimal .
 
-# The Promise: provider commits to an uptime SLA (Sein-sollen — a state, not an action).
 ex:uptimePromise a rl2:Promise ;
     rl2:promisor ex:CloudProvider ;
     rl2:promisee ex:Customer ;
     rl2:promisedState ex:uptimeMeetsSLA ;
     rl2:object ex:ProductionService .
 
-ex:uptimeMeetsSLA a rl2:AtomicConstraint ;
-    rl2:leftOperand sla:monthlyUptimeOperand ;
-    rl2:constraintOperator rl2:gte ;
-    rl2:rightOperand "99.9"^^xsd:decimal .
-
-# The Duty: sibling clause in the same Offer. Its condition targets the Promise directly —
-# there is no crystallized Duty to point at yet.
 ex:creditDuty a rl2:Duty ;
     rl2:subject ex:CloudProvider ;
-    rl2:action sla:issueServiceCredit ;
-    rl2:object ex:Customer ;
+    rl2:counterparty ex:Customer ;
+    rl2:action ex:issueServiceCredit ;
+    rl2:object ex:ProductionService ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:uptimePromise ;
-        rl2:leftOperand sla:promiseStateOperand ;
+        rl2:leftOperand rl2:promiseStateOperand ;
         rl2:constraintOperator rl2:eq ;
         rl2:rightOperandRef rl2:Violated
     ] .
@@ -86,35 +63,58 @@ ex:uptimeOffer a rl2:Offer ;
     rl2:clause ex:uptimePromise, ex:creditDuty .
 ```
 
-## Stage 2 — Materialization (Offer → Agreement)
+## Acceptance value
 
-On acceptance, `materialize(ex:uptimeOffer, Acceptance)` (RL2_Semantics.md §Materialization)
-produces a fresh Agreement:
+```text
+Acceptance(
+  agreementId = ex:uptimeAgreement,
+  grantor      = ex:CloudProvider,
+  grantee      = ex:Customer,
+  primaryIds   = {
+    ex:uptimePromise -> ex:uptimeDuty,
+    ex:creditDuty    -> ex:creditDuty_A1
+  },
+  claimIds     = { ex:uptimePromise -> ex:uptimeClaim },
+  objectBindings = {},
+  dutyWindows  = {
+    ex:uptimePromise -> [2026-07-01T00:00:00Z, 2026-08-01T00:00:00Z)
+  }
+)
+```
 
-1. Mint a fresh Agreement IRI (`ex:uptimeAgreement`).
-2. Crystallize `ex:uptimePromise` into a freshly-minted Duty `ex:uptimeDuty` (fulfillment
-   inherited from `ex:uptimeMeetsSLA`, per the `PromisedState` row of the crystallization table)
-   and its correlative Claim `ex:uptimeClaim`.
-3. Copy the restated `ex:creditDuty` clause under a **freshly-minted** IRI, `ex:creditDuty_A1`
-   — not the same IRI as the Offer's, because `Σ.ObligationState : Duty → State` has no
-   per-Agreement dimension (RL2_Semantics.md §Σ): if a second customer accepted the same Offer
-   and its copy reused `ex:creditDuty`'s IRI, the two customers' credit-duty states would
-   collide in the same map entry.
-4. Rewrite `ex:creditDuty_A1`'s condition: `targetNorm` now points at the crystallized
-   `ex:uptimeDuty`, and the left operand becomes the ordinary `rl2:obligationStateOperand` —
-   the Promise is gone, so there is nothing left for `promiseStateOperand` to query.
-5. Record `ex:uptimeAgreement prov:wasDerivedFrom ex:uptimeOffer`.
+## Materialized Agreement
 
 ```turtle
-@prefix ex: <https://example.org/> .
-@prefix rl2: <https://rl2.example/ontology#> .
+@prefix ex:   <https://example.org/> .
+@prefix rl2:  <https://rl2.example/ontology#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:CloudProvider a rl2:Agent .
+ex:Customer a rl2:Agent .
+ex:ProductionService a rl2:Asset .
+ex:issueServiceCredit a rl2:Action .
+
+ex:monthlyUptimeOperand a rl2:LeftOperand ;
+    rdfs:range xsd:decimal ;
+    rl2:resolutionPath "asset.metadata.monthlyUptime" .
+
+ex:uptimeMeetsSLA a rl2:AtomicConstraint ;
+    rl2:leftOperand ex:monthlyUptimeOperand ;
+    rl2:constraintOperator rl2:gte ;
+    rl2:rightOperand "99.9"^^xsd:decimal .
 
 ex:uptimeDuty a rl2:Duty ;
     rl2:subject ex:CloudProvider ;
-    rl2:action sla:maintainUptime ;
+    rl2:counterparty ex:Customer ;
     rl2:object ex:ProductionService ;
-    rl2:condition ex:uptimeMeetsSLA .
+    rl2:invariant ex:uptimeMeetsSLA ;
+    rl2:dutyWindow [
+        a rl2:DutyWindow ;
+        rl2:startInclusive "2026-07-01T00:00:00Z"^^xsd:dateTimeStamp ;
+        rl2:endExclusive "2026-08-01T00:00:00Z"^^xsd:dateTimeStamp
+    ] .
 
 ex:uptimeClaim a rl2:Claim ;
     rl2:subject ex:Customer ;
@@ -123,8 +123,9 @@ ex:uptimeClaim a rl2:Claim ;
 
 ex:creditDuty_A1 a rl2:Duty ;
     rl2:subject ex:CloudProvider ;
-    rl2:action sla:issueServiceCredit ;
-    rl2:object ex:Customer ;
+    rl2:counterparty ex:Customer ;
+    rl2:action ex:issueServiceCredit ;
+    rl2:object ex:ProductionService ;
     rl2:condition [
         a rl2:AtomicConstraint ;
         rl2:targetNorm ex:uptimeDuty ;
@@ -138,31 +139,24 @@ ex:uptimeAgreement a rl2:Agreement ;
     rl2:grantee ex:Customer ;
     rl2:clause ex:uptimeDuty, ex:uptimeClaim, ex:creditDuty_A1 ;
     prov:wasDerivedFrom ex:uptimeOffer .
-
-sla:maintainUptime a rl2:Action ;
-    rdfs:label "Maintain Uptime" .
 ```
 
-No `rl2:Promise` survives in `ex:uptimeAgreement` — consistent with `AgreementShape` and PROM-1
-— and `targetNorm` inside the executed Agreement is Norm-valued throughout, exactly as
-`rl2:targetNorm`'s comment in `rl2.ttl` specifies.
+The transformation changes both parts of the Promise-status query: `targetNorm` now identifies
+the crystallized Duty and `promiseStateOperand` becomes `obligationStateOperand`. It copies the
+sibling Duty under a new identifier and preserves the Promise's state condition as the
+Maintenance Duty's `invariant`; it does not invent a `maintainUptime` action.
 
-## Why fresh IRIs, not the Offer's own clause IRIs
+## Expected transformation result
 
-`ex:uptimeOffer` is a catalog entry: one Offer, many customers, many Agreements. Every clause
-`materialize` places in an Agreement — crystallized or merely restated — gets its own fresh IRI
-for the same reason: `Σ`'s state maps (`ObligationState`, `DutyPerformer`, `Requirements`) are
-keyed by bare Duty/Claim IRI with no Case or Agreement dimension. Reusing an IRI across
-Agreements would let one customer's fulfillment silently overwrite another's. (Contrast
-`usecases/legal-review-gate.md`, which reuses a clause IRI across its Offer and Agreement —
-safe there only because that Offer is a single bespoke proposal accepted exactly once, never
-republished to a second grantee.)
+| Observation | Expected value |
+|---|---|
+| Source Offer passed directly to `Out` | Empty envelope |
+| Transformation result | `Materialized(ex:uptimeAgreement, sourceMap)` |
+| Source-map entry for `ex:uptimePromise` | `ex:uptimeDuty` |
+| Source-map entry for `ex:creditDuty` | `ex:creditDuty_A1` |
+| Promise clauses in Agreement | None |
+| Snapshot or runtime effects read/emitted | None |
 
-## References
-
-- RL2_Semantics.md §Crystallization, §Materialization
-- RL2_IR.md §7.2 (`CrystallizePromise` is runtime bookkeeping, not `materialize`)
-- `rl2:targetNorm` (`rl2.ttl`) — PROM-7 range widening
-- PROV-O: <https://www.w3.org/TR/prov-o/> (`prov:wasDerivedFrom`)
-- Compare `usecases/data-freshness-promise.md` (a *standalone*, never-crystallized promise) and
-  `usecases/legal-review-gate.md` (the corpus's other Offer→Agreement example)
+General `promisedDuty` suretyship, a missing promised-state object, conflicting parties, duplicate
+output identifiers, or a Promise-targeted `promisorOperand` query yields `Rejected(errors)` and no
+partial Agreement.

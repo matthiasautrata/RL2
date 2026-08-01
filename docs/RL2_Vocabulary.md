@@ -449,12 +449,13 @@ ex:tenureImmunity a rl2:Immunity ;
 - `rl2:promisor` — Agent making the promise
 - `rl2:promisee` — Agent receiving the promise
 - **Exactly one** of the three disjoint content properties:
-  - `rl2:promisedAction` — Tun-sollen: an Action the promisor will perform (with `rl2:object`)
+  - `rl2:promisedAction` — Tun-sollen: an Action the promisor will perform
   - `rl2:promisedState` — Sein-sollen: a Condition the promisor will keep true
   - `rl2:promisedDuty` — suretyship: a Duty the promisor will see fulfilled
 
 **Optional Properties**:
-- `rl2:promiseState` — Current state of the promise
+- `rl2:object` — Asset of an action or state Promise; an Offer may leave it for Acceptance binding
+- `rl2:promiseState` — Serialization of a known derived status; never authoritative evaluator input
 
 **SHACL Shapes**: `rl2:PromiseShape`, `rl2:PromiseStateShape`
 
@@ -468,8 +469,7 @@ ex:dataStewardshipDuty a rl2:Duty ;
 ex:dataPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
-    rl2:promisedDuty ex:dataStewardshipDuty ;   # suretyship
-    rl2:promiseState rl2:Pending .
+    rl2:promisedDuty ex:dataStewardshipDuty .   # suretyship
 ```
 
 **Notes**: Promises are fundamentally different from Duties:
@@ -488,13 +488,15 @@ Canonical form requires a single shape per proposition.
 
 | Property | Range | Deontic sense | Fulfilled when |
 |----------|-------|---------------|----------------|
-| `rl2:promisedAction` | `rl2:Action` (+ `rl2:object`) | Tun-sollen ("I will do X") | the promisor has performed the action (subsumption-aware) |
+| `rl2:promisedAction` | `rl2:Action` | Tun-sollen ("I will do X") | the promisor has performed the action on the authored or acceptance-bound object (subsumption-aware) |
 | `rl2:promisedState` | `rl2:Condition` | Sein-sollen ("X will hold") | the condition evaluates true |
 | `rl2:promisedDuty` | `rl2:Duty` | Suretyship ("I will see D fulfilled") | the Duty's ObligationState reaches Fulfilled |
 
 **Notes**: `promisedDuty` does **not** make the promisor the Duty's `rl2:subject`;
 the duty-bearer is assigned explicitly on the Duty. A promise (voluntary commitment,
-Promise Theory) remains distinct from the Hohfeldian Duty it references.
+Promise Theory) remains distinct from the Hohfeldian Duty it references. Its status is defined
+in core, but pure Offer acceptance rejects this content because neither canonical Duty form
+represents general suretyship. A profile may define an explicit transformation.
 
 ---
 
@@ -935,8 +937,10 @@ ex:termsOfService a rl2:Set ;
 **Superclass**: `rl2:Policy`
 
 **Notes**:
-- Creates no obligations until accepted
-- Upon acceptance, becomes an Agreement
+- Promises are voluntary commitments but create no Agreement Duty or correlative Claim before acceptance
+- Pure materialization produces an Agreement or an attributed rejection
+- Promise-valued targets are permitted only between sibling clauses of the same Offer
+- An Offer condition is proposed Agreement applicability, not offer validity
 - Grantor identifies the offering party
 
 **Example**:
@@ -966,6 +970,7 @@ ex:licenseOffer a rl2:Offer ;
 - All parties are explicitly identified
 - Duties create enforceable obligations
 - Violations have normative consequences
+- A materialized Agreement contains no Promise clauses
 
 **Example**:
 ```turtle
@@ -1070,7 +1075,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:action` | Norm | Action | Action specified in the norm |
 | `rl2:prohibitedAction` | Prohibition | Action | Action that is forbidden (subproperty of action) |
 | `rl2:includedIn` | Action | Action | Action taxonomy: narrower action included in broader (transitive) |
-| `rl2:object` | Norm, Promise | Asset | Asset the norm concerns, or that a promisedAction acts upon |
+| `rl2:object` | Norm, Promise | Asset | Asset the norm or Promise concerns; may be acceptance-bound for action/state Offers |
 | `rl2:condition` | Norm, Policy | Condition | Activation condition |
 | `rl2:prerequisiteDuty` | Privilege | Duty | Applicable Duty that must be Fulfilled before the Privilege can contribute a permit |
 | `rl2:correlativeTo` | Norm | Norm | Links correlative Hohfeldian positions |
@@ -1085,7 +1090,7 @@ ex:complianceAssertion a rl2:Assertion ;
 |----------|--------|-------|-------------|
 | `rl2:promisor` | Promise | Agent | Agent making the promise |
 | `rl2:promisee` | Promise | Agent | Agent receiving the promise |
-| `rl2:promisedAction` | Promise | Action | Tun-sollen content (with `rl2:object`) |
+| `rl2:promisedAction` | Promise | Action | Tun-sollen content; object may be authored or acceptance-bound |
 | `rl2:promisedState` | Promise | Condition | Sein-sollen content |
 | `rl2:promisedDuty` | Promise | Duty | Suretyship content |
 | `rl2:promiseState` | Promise | PromiseState | Current promise state |
@@ -1123,7 +1128,7 @@ ex:complianceAssertion a rl2:Assertion ;
 | `rl2:constraintOperator` | Condition | Operator | Operator for evaluation |
 | `rl2:rightOperand` | Condition | (literal) | Literal value for comparison |
 | `rl2:rightOperandRef` | Condition | (resource) | Resource for comparison |
-| `rl2:targetNorm` | AtomicConstraint | Norm (RDFS); Promise admitted by SHACL | Duty/norm or Offer-stage Promise whose state to query; materialization rewrites Promise targets |
+| `rl2:targetNorm` | AtomicConstraint | Norm (RDFS); Promise admitted by SHACL | Duty/norm or same-Offer sibling Promise whose state to query; core materialization rewrites only `promiseStateOperand` targets and rejects unsupported Promise queries |
 | `rl2:operand` | LogicalConstraint | Condition | Sub-condition |
 | `rl2:expectsEvent` | EventConstraint | Event | Required event |
 | `rl2:resolutionPath` | LeftOperand | xsd:string | Sandboxed path resolved from the evaluation environment |
@@ -1262,6 +1267,7 @@ The following SHACL shapes validate RL2 policies. See **rl2-shacl.ttl** for comp
 | `rl2:AtomicConstraintShape` | rl2:AtomicConstraint | Requires leftOperand, ComparisonOperator, rightOperand or rightOperandRef; validates targetNorm if present |
 | `rl2:NormStateConstraintShape` | AtomicConstraint with obligationStateOperand/dutyPerformerOperand | Requires exactly one Norm-valued targetNorm |
 | `rl2:PromiseStateConstraintShape` | AtomicConstraint with promiseStateOperand/promisorOperand | Requires exactly one Promise-valued targetNorm |
+| `rl2:PromiseTargetLocalityShape` | AtomicConstraint with a Promise-valued targetNorm | Requires the target and containing condition to belong to the same Offer |
 | `rl2:LogicalConstraintShape` | rl2:LogicalConstraint | Requires one LogicalOperator; operator-specific shapes require one operand for not and at least two for and/or/xone |
 | `rl2:EventConstraintShape` | rl2:EventConstraint | Requires expectsEvent |
 | `rl2:DynamicOperandPairingShape` | AtomicConstraint with dutyPerformerOperand | Warns if rightOperandRef is not a RuntimeReference |
@@ -1331,7 +1337,10 @@ ex:paymentReq a rl2p:Requirement ;
 ```turtle
 ex:dataQualityPromise a rl2:Promise ;
     rl2:promisor ex:DataProvider ; rl2:promisee ex:DataConsumer ;
-    rl2:promisedState ex:qualityThresholdMet .
+    rl2:promisedState ex:qualityThresholdMet ;
+    rl2:object ex:DataAsset .
+
+ex:DataAsset a rl2:Asset .
 
 # A Promise's natural home is an Offer. (In an accepted Agreement it would have
 # crystallized into a Duty + correlative Claim.)

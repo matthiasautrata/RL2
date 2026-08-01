@@ -71,8 +71,8 @@ rl2:PolicyShape a sh:NodeShape ;
     ] .
 
 # Agreement requires both grantor and grantee, and contains only Norms.
-# Promises live in Offers; on acceptance they crystallize into Duties + Claims,
-# so a well-formed executed Agreement carries no surviving Promise clause. A
+# Promises live in Offers; supported content crystallizes on acceptance into Duties + Claims,
+# while unsupported content rejects materialization. A well-formed Agreement carries no Promise. A
 # Promise here would be inert (no correlative, not runtime-tracked) — a
 # verification liability. Non-binding recitals belong in an rl2:Assertion.
 rl2:AgreementShape a sh:NodeShape ;
@@ -90,7 +90,7 @@ rl2:AgreementShape a sh:NodeShape ;
     sh:property [
         sh:path rl2:clause ;
         sh:not [ sh:class rl2:Promise ] ;
-        sh:message "An Agreement clause must be a Norm, not a Promise. Promises crystallize into Duties on acceptance; use an rl2:Assertion for non-binding recitals."
+        sh:message "An Agreement clause must be a Norm, not a Promise. Supported Promises crystallize during pure Offer acceptance; use an rl2:Assertion for non-binding recitals."
     ] .
 
 # Set, Privacy, and Assertion are Norm-only containers too. Only Offer permits a
@@ -292,9 +292,7 @@ rl2:PromiseShape a sh:NodeShape ;
     sh:property [ sh:path rl2:promisee ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Agent ] ;
     sh:property [ sh:path rl2:object ; sh:maxCount 1 ] ;
     sh:xone (
-        [ sh:property [ sh:path rl2:promisedAction ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ;
-          sh:property [ sh:path rl2:object ; sh:minCount 1 ;
-              sh:message "A promisedAction Promise must identify its object." ] ]
+        [ sh:property [ sh:path rl2:promisedAction ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Action ] ]
         [ sh:property [ sh:path rl2:promisedState  ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Condition ] ]
         [ sh:property [ sh:path rl2:promisedDuty   ; sh:minCount 1 ; sh:maxCount 1 ; sh:class rl2:Duty ] ]
     ) ;
@@ -379,6 +377,48 @@ rl2:PromiseStateConstraintShape a sh:NodeShape ;
         sh:minCount 1 ;
         sh:class rl2:Promise ;
         sh:message "AtomicConstraint with promiseStateOperand or promisorOperand must specify a Promise-valued targetNorm."
+    ] .
+
+# A Promise target is transformation-local. The Promise and every condition that queries it
+# belong to one Offer, so materialization can rewrite the complete dependency without scanning
+# or mutating another policy universe. The path covers policy conditions, clause conditions and
+# content, and conditions on attached prerequisite Duties.
+rl2:PromiseTargetLocalityShape a sh:NodeShape ;
+    sh:targetClass rl2:AtomicConstraint ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A Promise-valued targetNorm must target a sibling Promise clause in the same Offer as the containing condition." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this WHERE {
+                $this rl2:targetNorm ?promise .
+                ?promise a rl2:Promise .
+                {
+                    ?policy a rl2:Policy ;
+                            rl2:condition ?root .
+                }
+                UNION
+                {
+                    ?policy rl2:clause ?owner .
+                    ?owner ?conditionProperty ?root .
+                    FILTER(?conditionProperty IN
+                        (rl2:condition, rl2:postCondition, rl2:invariant, rl2:promisedState))
+                }
+                UNION
+                {
+                    ?policy rl2:clause ?owner .
+                    ?owner rl2:prerequisiteDuty ?attached .
+                    ?attached ?conditionProperty ?root .
+                    FILTER(?conditionProperty IN
+                        (rl2:condition, rl2:postCondition, rl2:invariant))
+                }
+                ?root (rl2:operand)* $this .
+                FILTER NOT EXISTS {
+                    ?policy a rl2:Offer ;
+                            rl2:clause ?promise .
+                }
+            }
+        """
     ] .
 
 # Logical constraints combine sub-conditions via logical operators.

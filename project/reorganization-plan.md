@@ -99,11 +99,11 @@ RL2/
 
 ## Immediate Next Work
 
-1. Complete S2-C4: pure Offer→Agreement transformation without runtime effects or persistence.
-2. Migrate the first use-case wave (static Privilege/Prohibition/condition cases) into exact
+1. Complete S2-C5 by extracting canonical RDF→AST projection rules from the preserved SCOPE-1
+   Architecture/IR into the core.
+2. Build the S2-M1 ODRL disposition and translation matrix against that projection.
+3. Continue migrating use cases into exact
    request + snapshot + expected-result vectors.
-3. Extract canonical projection rules from the preserved SCOPE-1 Architecture/IR into the core
-   before simplifying those future documents further.
 
 Do not resume the former C3-2 state-machine repair directly; its core question is now S2-C2 and
 depends on S2-C1's evidence model.
@@ -188,3 +188,5 @@ Before closing the reorganization:
 | 2026-07-31 | Closed S2-C1: adopted the immutable WorldSnapshot and pure Eval contract, added nine snapshot-resolution component vectors, aligned protected ontology/SHACL annotations without changing axioms or constraints, and advanced active work to S2-C2 |
 | 2026-07-31 | Audited S2-C2 against the semantics and 52 cases; bounded the pure status algebra and identified the remaining language decision: norm applicability must be distinct from Duty/Promise performance conditions and occurrence windows |
 | 2026-07-31 | Closed S2-C3: added canonical `prerequisiteDuty` attachment with ODRL-compatible shared fulfillment, made unsatisfied prerequisites local to their Privilege, excluded independent Duties from access resolution, and moved concurrent/post-use packaging plus `PermitWithObligations` outside core; core parse 510/593 triples, corpus PASS 52 · WARN 0 · FAIL 0, touched-document fences PASS 3 · WARN 0 · FAIL 0 |
+| 2026-07-31 | Closed the S2-C4 normative design: pure total Offer materialization with explicit identity allocation, action/state crystallization, typed rejection of unsupported suretyship/query forms, complete internal-reference rewriting, and no pre-acceptance Offer atoms; added a bounded delegated follow-up package; core parse 510/593 triples, corpus PASS 52 · WARN 0 · FAIL 0, touched-document fences PASS 3 · WARN 0 · FAIL 0 · SKIP 6 |
+| 2026-07-31 | Completed the S2-C4 review sweep: made locality top-level-plus-prerequisite, constrained Promise targets to sibling clauses in one Offer, clarified Offer conditions, unified action/state object binding, validated accepted Duty windows, migrated cases 8/11/26, and moved case 50 to future protocol. Core parse 510/595; active corpus PASS 51 · WARN 0 · FAIL 0 · SKIP 1; future case PASS 1; touched active fences PASS 7 · WARN 0 · FAIL 0 · SKIP 6; negative locality fixture rejected; Markdown links broken 0 |

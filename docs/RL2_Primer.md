@@ -525,10 +525,12 @@ ex:DataStewardshipDuty a rl2:Duty ;
 ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;       # Maker of the promise
     rl2:promisee ex:DataOwner ;        # Recipient
-    rl2:promisedDuty ex:DataStewardshipDuty ;  # Suretyship: see the duty fulfilled
-    rl2:promiseState rl2:Pending .              # Current state
+    rl2:promisedDuty ex:DataStewardshipDuty .  # Suretyship: see the duty fulfilled
 ```
-Pending/Active/Fulfilled/Violated are shared state individuals; promises never use `Active`.
+
+The Promise's status is derived from the referenced Duty; it is not authored. This suretyship
+form can be evaluated as a Promise, but core Offer materialization rejects it because the current
+Duty forms cannot express the accepted second-order obligation without additional semantics.
 
 ### Promise Status
 
@@ -550,27 +552,22 @@ When Alice promises Bob to delete data, this may generate:
 - A **Duty** on Alice (to delete)
 - A **Claim** for Bob (to have deletion performed)
 
-The promise is the *source*; the norms are the *effects*. This enables tracking of obligation provenance.
+The Promise is the source; the Duty and Claim are the materialized Agreement terms. The source map
+and `prov:wasDerivedFrom` preserve that provenance without a runtime effect.
 
-### Promises as Conditions
+### Offer Terms Depending on Promises
 
-Policies may require promises as preconditions:
+An Offer term may depend on a sibling Promise:
 
 ```turtle
 @prefix rl2:  <https://rl2.example/ontology#> .
 @prefix ex:   <https://example.org/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 ex:stewardshipPromise a rl2:Promise ;
     rl2:promisor ex:Researcher ;
     rl2:promisee ex:DataOwner ;
     rl2:promisedAction ex:steward ;
-    rl2:object ex:Dataset ;
-    rl2:promiseState rl2:Pending .
-
-ex:stewardshipStateOperand a rl2:LeftOperand ;
-    rl2:resolutionPath "state.Promises.stewardshipPromise.state" ;
-    rdfs:range rl2:PromiseState .
+    rl2:object ex:Dataset .
 
 ex:accessPrivilege a rl2:Privilege ;
     rl2:subject ex:Researcher ;
@@ -578,13 +575,23 @@ ex:accessPrivilege a rl2:Privilege ;
     rl2:object ex:SensitiveData ;
     rl2:condition [
         a rl2:AtomicConstraint ;
-        rl2:leftOperand ex:stewardshipStateOperand ;
-        rl2:constraintOperator rl2:neq ;
-        rl2:rightOperandRef rl2:Violated
+        rl2:targetNorm ex:stewardshipPromise ;
+        rl2:leftOperand rl2:promiseStateOperand ;
+        rl2:constraintOperator rl2:eq ;
+        rl2:rightOperandRef rl2:Fulfilled
     ] .
+
+ex:stewardshipOffer a rl2:Offer ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Researcher ;
+    rl2:clause ex:stewardshipPromise, ex:accessPrivilege .
 ```
 
-This states: "The researcher may access sensitive data only if the stewardship promise has been made and not violated." Conditions on norm state (or Promise state, as here) are expressed as `AtomicConstraint`s over a profile-declared `LeftOperand` with a `resolutionPath` into Σ — the same mechanism used for duty-state preconditions (§ Duty State as Precondition) — not via a distinct dependency link.
+The Offer itself grants no access. On successful materialization, the Promise becomes an
+Achievement Duty and this condition is rewritten to use `obligationStateOperand` targeting that
+Duty. The resulting Agreement permits access only after the stewardship action is fulfilled.
+Cross-policy Promise targets are invalid: the transformation rewrites one Offer locally and never
+scans or mutates another policy.
 
 ---
 
@@ -910,7 +917,7 @@ RL2 defines five policy types:
 | Type | Application | Characteristics |
 |------|-------------|-----------------|
 | **Set** | Public terms, general rules | No specific counterparty |
-| **Offer** | Proposed terms awaiting acceptance | No obligations until accepted |
+| **Offer** | Proposed terms awaiting acceptance | No operative atoms until materialized |
 | **Agreement** | Binding contract between parties | Both parties identified and consenting |
 | **Privacy** | Data protection policies | Duties on controllers, rights for subjects |
 | **Assertion** | Claims about status | Declares facts; does not create norms |
@@ -940,9 +947,9 @@ ex:licenseOffer a rl2:Offer ;
     rl2:clause ex:attributionDuty .
 ```
 
-Until acceptance, no obligations are created: a Promise binds its promisor but
-creates no correlative Claim, and there is no consenting counterparty to demand
-performance.
+Before acceptance, the Offer contributes no atoms to `Out`: its proposed Privileges and Duties
+cannot affect an access decision. A Promise still describes its promisor's voluntary commitment,
+but creates no Agreement Duty or correlative Claim.
 
 ### Agreement
 
@@ -959,18 +966,24 @@ ex:dataContract a rl2:Agreement ;
 
 Both parties are identified. SHACL validation requires Agreements to have both `grantor` and `grantee`.
 
-**Crystallization.** Acceptance turns an Offer into an Agreement: each Promise
-*crystallizes* into a Duty plus its correlative Claim (acceptance supplies the
-claim-holder the bare Promise lacked), and any restated external Duties carry
-through. An executed Agreement therefore contains **only Norms — Duties and Claims,
-never Promises**. A Promise creates no correlative, so one sitting in a signed
-Agreement would be inert goodwill; SHACL rejects it (use an `rl2:Assertion` for a
-non-binding recital). Promises live in Offers; Duties live in Agreements. See
-*Crystallization (Offer → Agreement)* in `RL2_Semantics.md` for the full mapping.
+**Pure materialization.** Acceptance supplies the Agreement parties, stable output identifiers,
+and any accepted object bindings or Duty windows. An action Promise becomes an Achievement Duty;
+a state Promise becomes a Maintenance Duty. Each receives a correlative Claim, while restated
+top-level Norms and attached prerequisite Duties are copied and their local references are
+rewritten. The transformation reads no world snapshot and creates no runtime effect.
+
+An Agreement contains **only Norms, never Promises**. General `promisedDuty` suretyship is rejected
+by core materialization because the current Duty forms cannot represent it without inventing an
+action; a profile may define an explicit transformation. Promise-specific queries that have no
+Duty equivalent are rejected for the same reason. See *Pure Offer Acceptance (Offer → Agreement)*
+in `../spec/RL2_Semantics.md` for the complete contract.
 
 ### Policy-Level Conditions
 
 Policies may have applicability conditions:
+
+On an Offer, the condition is the applicability guard proposed for the resulting Agreement. It
+does not express offer validity or authorize Acceptance.
 
 ```turtle
 ex:emergencyPolicy a rl2:Set ;

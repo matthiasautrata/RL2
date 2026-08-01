@@ -1,9 +1,11 @@
 # RL2 Use Cases
 
-**Total: 52 use cases** — 52 structurally valid; SCOPE-2 semantic migration in progress
+**Total: 52 preserved scenarios** — 51 active conformance cases and one future protocol case;
+SCOPE-2 semantic migration remains in progress
 
-All 52 files pass the current SHACL harness. This is a structural baseline, not a claim that every
-current operational explanation matches the revised pure-evaluation scope. The authoritative
+All 51 active files pass the current SHACL harness. Use Case 50 is preserved under
+`future/protocol/` and validates separately. This is a structural baseline, not a claim that every
+remaining operational explanation matches the revised pure-evaluation scope. The authoritative
 migration classification is [`../usecase-disposition.md`](../usecase-disposition.md). Thirty-five
 individual files still carry legacy `Status: DRAFT` metadata; those labels will be normalized as
 each case is migrated rather than changed mechanically in advance.
@@ -30,10 +32,10 @@ each case is migrated rather than changed mechanically in advance.
 | 5 | wire-transfer-sod.md | Separation of Duty | ✅ |
 | 6 | check-signing-sod.md | Dynamic SoD | ✅ |
 | 7 | ethics-approval.md | Multi-party workflow | ✅ |
-| 8 | data-stewardship.md | Promise fulfillment | ✅ |
+| 8 | data-stewardship.md | Offer Promise → accepted Achievement Duty | ✅ migrated |
 | 9 | gdpr-erasure.md | GDPR data subject rights | ✅ |
 | 10 | audit-trail.md | Compliance prerequisite | ✅ |
-| 11 | data-freshness-promise.md | Promise + violation | ✅ |
+| 11 | data-freshness-promise.md | Promised state → ongoing Maintenance Duty | ✅ migrated |
 | 12 | schema-evolution.md | Event + temporal | ✅ |
 | 13 | quality-circuit-breaker.md | State machine | ✅ |
 | 14 | step-up-auth.md | Conditional duty | ✅ |
@@ -62,7 +64,7 @@ each case is migrated rather than changed mechanically in advance.
 |---|------|---------|------------|--------|
 | 24 | purpose-restriction.md | Purpose whitelist | `isAnyOf` | ✅ |
 | 25 | geo-restriction.md | Jurisdiction control | `isNoneOf` | ✅ |
-| 26 | legal-review-gate.md | Approval workflow | `Offer`→`Agreement` | ✅ |
+| 26 | legal-review-gate.md | Pure acceptance + approval fact | `Offer`→`Agreement` | ✅ migrated |
 | 27 | approval-revocation.md | Power to revoke | `Power` | ✅ |
 | 28 | data-retention-limit.md | Time-bound deletion | — | ✅ |
 | 29 | anonymization-required.md | Processing constraint | — | ✅ |
@@ -114,9 +116,9 @@ each case is migrated rather than changed mechanically in advance.
 
 | # | File | Pattern | Gap Filled | Status |
 |---|------|---------|------------|--------|
-| 50 | runtime-evaluation.md | Evaluation trace | `rl2p:Requirement` | ✅ |
+| 50 | [runtime-evaluation.md](../../future/protocol/usecases/runtime-evaluation.md) | Evaluation trace | `rl2p:Requirement` | Future protocol |
 | 51 | fulfillment-evidence.md | Audit trail | `rl2p:fulfillmentEvidence` | ✅ |
-| 52 | sla-credit-clause.md | Promise + sibling Duty, crystallized on acceptance | `targetNorm` (Promise-valued), `materialize`, `prov:wasDerivedFrom` | ✅ |
+| 52 | sla-credit-clause.md | Pure promised-state Offer materialization + sibling Duty rewrite | `Acceptance`, `targetNorm`, `materialize`, `prov:wasDerivedFrom` | ✅ migrated |
 ---
 
 ## Sources
@@ -169,4 +171,6 @@ Draft use cases (18-51) fill remaining vocabulary gaps:
 
 ## Next Steps
 
-All 52 use cases are complete with validated RL2 Turtle models. Future work: expand Hohfeldian and Protocol categories with additional scenarios as needed.
+All 52 use cases have structurally valid Turtle. Semantic migration to explicit Request,
+WorldSnapshot, and expected-result vectors remains in progress; see
+`../usecase-disposition.md`.

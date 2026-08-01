@@ -139,6 +139,10 @@ def run_shacl(data: Graph, shapes: Graph) -> tuple[int, int, str]:
         advanced=True,
         meta_shacl=False,
     )
+    # pyshacl reports malformed SHACL/SPARQL as a textual Validation Failure rather than
+    # raising. Treating that as zero counted violations would make an invalid shapes graph pass.
+    if "Validation Failure" in report_text:
+        raise ValueError(report_text.strip())
     return (
         report_text.count("Severity: sh:Violation"),
         report_text.count("Severity: sh:Warning"),

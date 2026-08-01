@@ -8,7 +8,9 @@ unambiguous. [WorldSnapshot Resolution Vectors](snapshot-resolution.md) cover S2
 scope, validity, conflict, evidence tie, and admissibility rules. [Duty and Promise Status
 Vectors](duty-status.md) cover S2-C2 boundaries, interval coverage, postconditions, invariants,
 Promise projection, and status derivation. [Duty Attachment Decision Vectors](duty-attachment.md)
-cover S2-C3 prerequisite gating, independent-duty isolation, and multiple-grant locality.
+cover S2-C3 prerequisite gating, independent-duty isolation, and multiple-grant locality. [Offer
+Materialization Vectors](offer-materialization.md) cover S2-C4 identity, party orientation,
+Promise-to-Duty mappings, reference rewriting, rejection, and Offer non-operation.
 
 Each vector must identify:
 

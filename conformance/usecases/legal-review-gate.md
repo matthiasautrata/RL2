@@ -1,266 +1,128 @@
 # Use Case 26: Legal Review Gate
 
-**Pattern:** Multi-stage approval with policy lifecycle  
-**Vocabulary Demonstrated:** `Offer`, `Agreement`, policy lifecycle  
-**Category:** Data Contracts, Governance  
-**Status:** DRAFT
+**Pattern:** Pure Offer acceptance with an Agreement applicability guard
 
----
+**Scope:** RL2 core transformation
 
-## Business Context
+**Status:** SCOPE-2 migrated
 
-Access to sensitive data often requires legal review before approval. This involves a state transition:
+## Business rule
 
-1. **Request submitted** — Prospective user asks for access
-2. **Terms offered** — System presents terms (Offer)
-3. **Legal review** — Legal team reviews and may modify terms
-4. **Agreement formed** — User accepts, binding Agreement created
-5. **Access enabled** — Privileges become active
+> A vendor may access customer data only under accepted terms and while the supplied world
+> snapshot establishes legal approval.
 
-The transition from **Offer** to **Agreement** is a key governance control.
+Legal review workflow and authorization to issue an Acceptance are outside core RL2. If continuing
+approval evidence must gate access, it is an ordinary policy applicability condition. On the
+Offer that condition means “this is the guard proposed for the Agreement”; it does not make the
+Offer operative and does not control the `materialize` call.
 
-## Scenario
-
-A third-party vendor requests access to customer data for integration testing. Before access is granted:
-
-1. Standard data use terms are presented (Offer)
-2. Legal reviews the vendor's request and terms
-3. Legal may require additional clauses
-4. Vendor accepts modified terms
-5. Agreement formed; access privileges activate
-
-## Policy Intent
-
-> "Access privileges are NOT active until legal review completes AND requestor accepts the terms."
-
-## Normative Structure
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Offer: Proposed Access Terms                        │
-│  ─────────────────────────────────────────────────  │
-│  Grantor: Data Owner                                 │
-│  Proposed Grantee: Vendor                            │
-│  Clauses: [accessPrivilege, deletionDuty, ...]       │
-│  Status: Pending review                              │
-└─────────────────────────────────────────────────────┘
-            │
-            │ After legal review + acceptance
-            ▼
-┌─────────────────────────────────────────────────────┐
-│  Agreement: Binding Data Contract                    │
-│  ─────────────────────────────────────────────────  │
-│  Grantor: Data Owner                                 │
-│  Grantee: Vendor                                     │
-│  Clauses: [accessPrivilege, deletionDuty, ...]       │
-│  Effective: Agreement formation date                 │
-└─────────────────────────────────────────────────────┘
-```
-
-## Offer vs Agreement
-
-| Aspect | Offer | Agreement |
-|--------|-------|-----------|
-| **Status** | Proposed, not binding | Binding on both parties |
-| **Privileges** | Not yet active | Active |
-| **Duties** | Not yet enforceable | Enforceable |
-| **Can be modified** | Yes, before acceptance | Only by amendment |
-
-## State Transitions
-
-```
-         ┌──────────┐
-         │  Draft   │
-         └────┬─────┘
-              │ submit
-              ▼
-         ┌──────────┐
-         │  Offer   │ ◄─── Legal may request changes
-         └────┬─────┘
-              │
-    ┌─────────┴─────────┐
-    │                   │
-    ▼                   ▼
-┌────────┐         ┌─────────┐
-│Rejected│         │Accepted │
-└────────┘         └────┬────┘
-                        │ forms
-                        ▼
-                  ┌───────────┐
-                  │ Agreement │
-                  └───────────┘
-```
-
-## Legal Review as Event
-
-Legal review completion is modeled as an Event:
+## Source Offer
 
 ```turtle
-ex:legalReviewEvent a rl2:Event ;
-    rl2:approver ex:LegalTeam ;
-    rl2:eventTime "2025-01-15T14:30:00Z"^^xsd:dateTime .
-```
+@prefix ex:   <https://example.org/> .
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-The Agreement formation is conditioned on this event:
+ex:DataOwner a rl2:Agent .
+ex:Vendor a rl2:Agent .
+ex:CustomerData a rl2:Asset .
+ex:access a rl2:Action .
 
-```turtle
+ex:legalApprovalOperand a rl2:LeftOperand ;
+    rdfs:range xsd:boolean ;
+    rl2:resolutionPath "global.legalReview.approved" .
+
+ex:legalApprovalRequired a rl2:AtomicConstraint ;
+    rl2:leftOperand ex:legalApprovalOperand ;
+    rl2:constraintOperator rl2:eq ;
+    rl2:rightOperand true .
+
 ex:vendorAccessPrivilege a rl2:Privilege ;
     rl2:subject ex:Vendor ;
     rl2:action ex:access ;
     rl2:object ex:CustomerData .
 
-ex:vendorAgreement a rl2:Agreement ;
+ex:vendorAccessOffer a rl2:Offer ;
     rl2:grantor ex:DataOwner ;
     rl2:grantee ex:Vendor ;
-    rl2:clause ex:vendorAccessPrivilege ;
-    rl2:condition [
-        a rl2:EventConstraint ;
-        rl2:expectsEvent [
-            a rl2:Event ;
-            rl2:approver ex:LegalTeam
-        ]
-    ] .
-```
-
-## Evaluation Logic
-
-```
-Request: Vendor wants to access customer data
-
-1. Find applicable policy
-2. Is policy type Agreement? 
-   - If Offer → privileges NOT active
-   - If Agreement → continue
-3. Check Agreement conditions:
-   - Legal review event exists? YES/NO
-   - Acceptance recorded? YES/NO
-4. If all YES → privileges active
-   If any NO → access denied
-```
-
-## Multi-Level Review Pattern
-
-Complex scenarios may require sequential reviews:
-
-```
-Request → Manager Review → Legal Review → Compliance Review → Agreement
-```
-
-Each stage can be an Event with its own approver:
-
-```turtle
-ex:multiReviewAgreement a rl2:Agreement ;
-    rl2:grantor ex:DataOwner ;
-    rl2:grantee ex:Vendor ;
-    rl2:clause ex:vendorAccessPrivilege ;
-    rl2:condition [
-        a rl2:LogicalConstraint ;
-        rl2:constraintOperator rl2:and ;
-        rl2:operand [
-            a rl2:EventConstraint ;
-            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Manager ]
-        ] ;
-        rl2:operand [
-            a rl2:EventConstraint ;
-            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:LegalTeam ]
-        ] ;
-        rl2:operand [
-            a rl2:EventConstraint ;
-            rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:Compliance ]
-        ]
-    ] .
-```
-
-## Real-World Examples
-
-### Enterprise Software Licensing
-
-Before deploying third-party software:
-1. Vendor offers license terms
-2. Legal reviews for risk
-3. Procurement negotiates pricing
-4. Agreement signed
-
-### Data Partnership
-
-Before sharing data with partner:
-1. DPA (Data Processing Agreement) offered
-2. Legal reviews data protection terms
-3. Privacy team approves
-4. Both parties sign
-
-### Clinical Research
-
-Before research access to patient data:
-1. Data use terms offered
-2. IRB reviews ethics
-3. Legal reviews liability
-4. Agreement formed
-
-## Comparison with Related Use Cases
-
-| Use Case | Focus |
-|----------|-------|
-| **legal-review-gate** | Offer → Agreement lifecycle |
-| ethics-approval (7) | Single approval event |
-| multi-level-approval (31) | Sequential events |
-| approval-revocation (27) | Power to undo |
-
-## Profile Requirements
-
-```turtle
-@prefix contract: <https://example.org/profile/contract#> .
-
-contract:submitRequest a rl2:Action ;
-    rdfs:label "Submit Access Request" .
-
-contract:acceptTerms a rl2:Action ;
-    rdfs:label "Accept Terms" .
-```
-
-> **Note:** The Offer-vs-Agreement distinction is *structural* — it is carried by
-> the norm's class (`rl2:Offer` vs `rl2:Agreement`) and handled by the evaluation
-> pipeline (an Offer's clauses are not derived as active permits). It is therefore
-> not gated by a runtime condition operand.
-
-## Audit Requirements
-
-Track the full lifecycle:
-- Request submission timestamp
-- Each review decision (approve/reject/modify)
-- Terms modifications
-- Acceptance timestamp
-- Agreement effective date
-
----
-
-## RL2 Model
-
-The lifecycle is two policies over the same clause: an `Offer` (not binding) that
-becomes an `Agreement` once the legal-review event has occurred.
-
-```turtle
-# Stage 1 — Offer: terms proposed, not yet binding
-ex:accessOffer a rl2:Offer ;
-    rl2:grantor ex:DataOwner ;
-    rl2:grantee ex:Vendor ;
+    rl2:condition ex:legalApprovalRequired ;
     rl2:clause ex:vendorAccessPrivilege .
-
-# Stage 2 — Agreement: formed after the legal-review event
-ex:accessAgreement a rl2:Agreement ;
-    rl2:grantor ex:DataOwner ;
-    rl2:grantee ex:Vendor ;
-    rl2:clause ex:vendorAccessPrivilege ;
-    rl2:condition [
-        a rl2:EventConstraint ;
-        rl2:expectsEvent [ a rl2:Event ; rl2:approver ex:LegalTeam ]
-    ] .
 ```
 
----
+Passing this Offer to `Out` produces no atom, even when the approval fact is true.
 
-## References
+## Acceptance value
 
-- Contract law: Offer and acceptance doctrine
-- GDPR Article 28: Data Processing Agreements
-- Enterprise software procurement workflows
+```text
+Acceptance(
+  agreementId = ex:vendorAccessAgreement,
+  grantor      = ex:DataOwner,
+  grantee      = ex:Vendor,
+  primaryIds   = {
+    ex:vendorAccessPrivilege -> ex:vendorAccessPrivilege_A1
+  },
+  claimIds       = {},
+  objectBindings = {},
+  dutyWindows    = {}
+)
+```
+
+Legal review completion is a precondition for the external party deciding to issue this value. It
+is not an event consumed by `materialize` and is not encoded as Agreement-formation state.
+
+## Materialized Agreement
+
+```turtle
+@prefix ex:   <https://example.org/> .
+@prefix rl2:  <https://rl2.example/ontology#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+ex:DataOwner a rl2:Agent .
+ex:Vendor a rl2:Agent .
+ex:CustomerData a rl2:Asset .
+ex:access a rl2:Action .
+
+ex:legalApprovalOperand a rl2:LeftOperand ;
+    rdfs:range xsd:boolean ;
+    rl2:resolutionPath "global.legalReview.approved" .
+
+ex:legalApprovalRequired a rl2:AtomicConstraint ;
+    rl2:leftOperand ex:legalApprovalOperand ;
+    rl2:constraintOperator rl2:eq ;
+    rl2:rightOperand true .
+
+ex:vendorAccessPrivilege_A1 a rl2:Privilege ;
+    rl2:subject ex:Vendor ;
+    rl2:action ex:access ;
+    rl2:object ex:CustomerData .
+
+ex:vendorAccessAgreement a rl2:Agreement ;
+    rl2:grantor ex:DataOwner ;
+    rl2:grantee ex:Vendor ;
+    rl2:condition ex:legalApprovalRequired ;
+    rl2:clause ex:vendorAccessPrivilege_A1 ;
+    prov:wasDerivedFrom ex:vendorAccessOffer .
+```
+
+## Expected evaluation
+
+For request `(Vendor, access, CustomerData)`:
+
+| Snapshot fact `global.legalReview.approved` | Decision |
+|---|---|
+| `true` | `Permit` |
+| `false` | `NotApplicable` |
+| missing, invalid, or conflicting | `Indeterminate` with attributed causes |
+
+The source and result use different Privilege identifiers. Reusing
+`ex:vendorAccessPrivilege` in the Agreement would violate materialization freshness.
+
+## Workflow boundary
+
+Submission, negotiation, review assignment, rejection, modification, signature, persistence, and
+audit-log workflow belong to the non-core protocol work in `../../future/protocol/`. Core RL2
+standardizes the Offer value, explicit Acceptance input, resulting Agreement, and evaluation of
+the supplied approval fact.

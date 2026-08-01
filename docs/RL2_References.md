@@ -437,12 +437,12 @@ date: 2026-07-24
 
 | Document | Description |
 |----------|-------------|
-| rl2.ttl | Core ontology (OWL) |
-| rl2-shacl.ttl | SHACL validation shapes |
-| RL2_Semantics.md | Formal evaluation semantics |
-| RL2_Architecture.md | Evaluation pipeline, layer separation, design rationale |
-| RL2_IR.md | Intermediate representation: compilation target, correspondence, equivalence obligation |
-| RL2_Protocol.md | Request/response protocol for interoperability |
-| RL2_ODRL_Comparison.md | Mapping from ODRL 2.2/3.0 to RL2 |
-| RL2_Primer.md | Tutorial introduction |
-| RL2_Vocabulary.md | Complete class and property reference |
+| [`rl2.ttl`](../spec/rl2.ttl) | Normative core ontology (OWL) |
+| [`rl2-shacl.ttl`](../spec/rl2-shacl.ttl) | Normative core SHACL shapes |
+| [`RL2_Semantics.md`](../spec/RL2_Semantics.md) | Formal evaluation semantics |
+| [`RL2_Architecture.md`](RL2_Architecture.md) | Evaluation pipeline and scope boundaries |
+| [`RL2_IR.md`](../future/reference-implementation/RL2_IR.md) | Non-core reference implementation design |
+| [`RL2_Protocol.md`](../future/protocol/RL2_Protocol.md) | Non-core request/workflow protocol research |
+| [`RL2_ODRL_Mapping.md`](../spec/RL2_ODRL_Mapping.md) | ODRL 2.2 translation and compatibility |
+| [`RL2_Primer.md`](RL2_Primer.md) | Tutorial introduction |
+| [`RL2_Vocabulary.md`](RL2_Vocabulary.md) | Generated and explanatory vocabulary reference |

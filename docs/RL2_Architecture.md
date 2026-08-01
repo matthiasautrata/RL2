@@ -146,7 +146,34 @@ registries.
 Profiles may define operands, types, and provenance requirements. They may not replace missing
 core semantics with an opaque implementation callback.
 
-## 7. ODRL Migration
+## 7. Offer Acceptance
+
+Offer acceptance is a pure transformation that precedes evaluation:
+
+```text
+materialize(Offer, Acceptance) -> Materialized(Agreement, sourceMap) | Rejected(errors)
+```
+
+The Acceptance value supplies parties, output identifiers, optional object bindings, and optional
+Duty windows. This makes identity deterministic without requiring the evaluator to allocate names.
+Supported action and state Promises become Agreement-local Duties plus correlative Claims; all
+policy-local Norms—top-level Norm clauses plus attached prerequisite Duties—are copied with
+Agreement-local identity and their placement preserved. Other Norm-valued properties are
+references: local targets are rewritten and external targets remain external. Promise-valued
+targets must be sibling clauses in the same Offer. No Promise survives in the Agreement.
+
+An Offer-level condition is the applicability guard proposed for the resulting Agreement. It is
+not an offer-validity window or authorization to accept; those workflow questions are outside the
+transformation.
+
+An Offer may be included for status inspection, but `Out` derives no normative atoms from it.
+Proposed Privileges and Duties become operative only from the successfully materialized Agreement.
+
+General `promisedDuty` suretyship and Promise-specific queries without a defined Duty equivalent
+are rejected rather than approximated. Materialization performs no I/O, reads no WorldSnapshot,
+and creates no runtime effect or protocol record.
+
+## 8. ODRL Migration
 
 ODRL 2.2 is a source language for a conforming translation step, not a second native shape for
 each RL2 proposition. Translation produces canonical RL2 or a specified diagnostic.
@@ -155,7 +182,7 @@ This separation allows RL2 to accept existing ODRL practice without weakening it
 It also exposes assumptions that ODRL leaves to evaluators, such as request matching, conflict
 behavior, duty attachment, fulfillment evidence, and state-of-the-world interpretation.
 
-## 8. Conformance Strategy
+## 9. Conformance Strategy
 
 Structural conformance establishes that an RDF graph uses a valid authored shape. Semantic
 conformance establishes that evaluation produces the specified result.

@@ -223,6 +223,86 @@ decisions rather than being guessed as phases.
 
 ---
 
+## S2-C4 — pure Offer acceptance and materialization
+
+**Resolved:** 2026-07-31 · **Scope:** model, semantics, ontology annotations, architecture,
+Primer, ODRL mapping, use cases, and conformance · **Tags:** [VER] [GEN] [COV]
+
+### Decision
+
+- `materialize(Offer,Acceptance)` is a pure total function returning either one complete
+  Agreement plus a source-clause map or a canonical non-empty set of materialization errors.
+- Acceptance is a semantic value, not an event. It supplies the Agreement identifier, grantor,
+  grantee, injective output identifiers, optional missing-object bindings, and optional
+  per-Promise Duty windows. There is no implicit fresh-name operation.
+- A promised action becomes an Achievement Duty; a promised state becomes a Maintenance Duty.
+  The generated Duty has `subject=promisor` and `counterparty=promisee`; its one generated Claim
+  has the reverse roles and an authored Claim→Duty `correlativeTo` link.
+- General `promisedDuty` suretyship is rejected with `UnsupportedPromiseContent`. Its Promise
+  status remains defined, but neither current Duty form can represent the accepted second-order
+  obligation without inventing an action or changing Maintenance semantics.
+- All policy-local Norms, including non-clause attached Duties, receive Agreement-local identity
+  while retaining their placement. Internal Norm references are rewritten; external references
+  remain external.
+  Core `promiseStateOperand` queries become Duty `obligationStateOperand` queries; Promise-specific
+  queries with no Duty equivalent are rejected.
+- An Offer is not operative: its clauses contribute no atoms to `Out` before acceptance. Status
+  functions may still report Promise and referenced Duty statuses for inspection.
+- Materialization reads no WorldSnapshot, emits no effect, and specifies no messaging,
+  persistence, Case, Requirement, or remedial-generation behavior.
+
+### Rationale
+
+Making identity allocation part of Acceptance preserves determinism while keeping global IRI
+allocation outside the language. Rejection of unsupported suretyship preserves the S2-C2 Duty
+algebra and totality; silent approximation would assign a materially different obligation.
+Suppressing Offer atoms closes the pre-acceptance authorization hole in which a proposed
+Privilege could otherwise contribute a permit.
+
+### Conformance
+
+- `conformance/vectors/offer-materialization.md` defines positive, negative, determinism, and
+  locality vectors.
+- `conformance/usecases/sla-credit-clause.md` is the canonical promised-state example and no
+  longer invents an Achievement action for maintenance content.
+- Core ontology and shapes parse independently (`510` ontology triples; `593` shape triples).
+- Full use-case corpus: `PASS 52 · WARN 0 · FAIL 0`.
+- Per-fence validation of the nine touched specification, explanatory, use-case, and vector
+  documents: `PASS 3 · WARN 0 · FAIL 0 · SKIP 6` (the skipped files contain no Turtle fences).
+
+### Post-review tightening
+
+The follow-up review found boundary ambiguities without reopening the transformation's core
+shape. The final disposition was:
+
+- `localNorms(O)` is exactly the Offer's top-level Norm clauses plus prerequisite Duties attached
+  to its top-level Privileges. Other Norm-valued properties are references, not ownership.
+- Promise-valued targets are transformation-local sibling references within one Offer. A
+  cross-policy Promise query is structurally invalid.
+- An Offer-level condition is proposed Agreement applicability; offer validity and authorization
+  to accept remain outside core.
+- Object binding is uniform for action and state Promises. Accepted Duty windows must be valid
+  finite intervals and otherwise yield `InvalidDutyWindow`.
+- Explicit identity maps, generated Claims, unsupported-operand rejection, and status reporting
+  over every reachable Duty were retained. General Claim derivation remains a separate
+  Hohfeld/canonicality question; diagnostic unification and an Acceptance conformance class remain
+  with S2-M1 and S2-T1 respectively.
+- Use cases 8, 11, and 26 were rewritten to the pure Offer→Acceptance→Agreement pattern. Use Case
+  50 was preserved under `future/protocol/usecases/` rather than kept as core conformance.
+
+PROM-4 is resolved: `rl2:promisorOperand` exists in core. Materialization intentionally rejects
+it because an Agreement has no Promise and core defines no corresponding authored-Norm-subject
+operand.
+
+Final validation: core parse `510/595` ontology/shape triples; active corpus `PASS 51 · WARN 0 ·
+FAIL 0 · SKIP 1`; relocated future scenario `PASS 1`; touched active-document fences `PASS 7 ·
+WARN 0 · FAIL 0 · SKIP 6`. A negative cross-policy Promise fixture produced the required
+`PromiseTargetLocalityShape` violation, while an object-less action Promise Offer passed. The
+validation harness now treats pyshacl textual `Validation Failure` results as failures rather than
+miscounting them as zero violations. The local Markdown-link check found zero broken links.
+
+---
+
 ## Corrections to the source reviews
 
 Grounding the reviews against the current files surfaced several stale or incorrect claims. Recorded here so we don't act on them:

@@ -41,7 +41,7 @@ Issues are tagged **[GEN]** (affects generatability / canonical form), **[VER]**
 | S2-C1 | Pure evaluation contract and immutable `WorldSnapshot` | ✅ Resolved 2026-07-31 — immutable snapshot contract, pure `Eval` integration, component vectors, and protected annotation alignment; see [issues-log.md](issues-log.md) | Stateful `Σ`, C3-3 core fragment, C3-7 snapshot fragment |
 | S2-C2 | Declarative Duty and Promise status semantics | ✅ Resolved 2026-07-31 — structural Achievement/Maintenance forms, finite DutyWindow, pure status derivation | C3-2; transition-oriented WP-4/S4 |
 | S2-C3 | Duty attachment and decision interaction | ✅ Resolved 2026-07-31 — one canonical prerequisite relation; independent Duties have no access effect; protocol phases excluded from core | C3-4; WP-4/S7 |
-| S2-C4 | Pure Offer→Agreement transformation | Open | C3-5 without runtime effects or persistence |
+| S2-C4 | Pure Offer→Agreement transformation | ✅ Resolved 2026-07-31 — explicit Acceptance value and identity allocation; action/state crystallization; typed rejection; complete reference rewriting; Offers non-operative before acceptance | C3-5 without runtime effects or persistence |
 | S2-C5 | Canonical RDF→AST projection | Open | C3-8; normative portions of the former IR |
 | S2-M1 | ODRL 2.2 disposition and translation matrix | Open | OPEN-3; WP-7 |
 | S2-T1 | Structural and semantic conformance suite | In progress | VALID-4; revised golden vectors; 52-use-case migration |
@@ -69,32 +69,8 @@ decision lands.
 Items moved out of core are deferred by scope, not considered semantically resolved. Their detailed
 findings remain below until they are moved to a future-work tracker.
 
-### S2-C1 — resolved
-
-Resolved 2026-07-31. The decision, rationale, protected annotation alignment, and validation
-record are archived in [issues-log.md](issues-log.md).
-
-### S2-C2 — declarative Duty and Promise status — resolved
-
-Resolved 2026-07-31. `rl2:condition` is applicability only. Canonical Achievement Duties require
-`rl2:action` and may use `rl2:postCondition`; canonical Maintenance Duties require
-`rl2:invariant` and have no action. Either may use one finite half-open `rl2:dutyWindow`. The
-content shape derives the mode, so the former authored `dutyMode` enumeration is removed. Status
-is a total snapshot-derived `StatusResult`; recurrence, persistence, and scheduling are outside
-core Eval. See [issues-log.md](issues-log.md) and `RL2_Semantics.md` §Declarative Duty and Promise
-status.
-
-### S2-C3 — Duty attachment and decision interaction — resolved
-
-Resolved 2026-07-31. `rl2:prerequisiteDuty` links a Privilege to zero or more conjunctive Duties.
-An attached Duty is referenced by one or more Privileges and is not also an independent Policy clause;
-sharing preserves ODRL's fulfill-once behavior.
-Every applicable prerequisite must have `Known(Fulfilled)` status before its owner can contribute
-a permit; an unsatisfied or violated prerequisite disables only that Privilege and never creates
-a global Deny. Independent Duties remain normative/status results but never affect access
-resolution. Core has no concurrent/post-use attachment mode and no `PermitWithObligations`
-decision; workflow packaging remains under `future/protocol/`. See [issues-log.md](issues-log.md)
-and `RL2_Semantics.md` §Duty Attachment Boundary. **S2-C4 is next.**
+Resolved S2-C1 through S2-C4 decisions and validation records are archived in
+[issues-log.md](issues-log.md). **S2-C5 is next.**
 
 ---
 
@@ -260,7 +236,7 @@ The review's core claim: WP-2…WP-5 each closed a definition in isolation, but 
 | C3-2 | ✅ **Resolved 2026-07-31 as S2-C2** — applicability, Achievement qualification, Maintenance invariant, and finite interval are separate canonical fields; status is snapshot-derived and total | **WP-4/S4** |
 | C3-3 | `EventSet(E)` picks an arbitrary `e` (sequence depends on iteration order); `TimeAdvanced`/`MetadataChanged` mutate scalars but aren't appended (not idempotent/replayable, clock can go backward); witness derivation ignores subject/Case scope/activation window (D4) | **WP-3/S6+S5** |
 | C3-4 | ✅ **Resolved by S2-C3 (2026-07-31)** — `prerequisiteDuty` gates only its owning Privilege; independent Duty status is excluded from access resolution; concurrent/post-use workflow is outside core | **WP-4/S7** |
-| C3-5 | `CrystallizePromise` fires on a `PromiseEntry` inside an already-materialized Agreement that Agreement-SHACL rejects; crystallization table can't build valid Duties (PromisedState → Maintenance Duty with no `action`; PromisedDuty suretyship incomplete; `correlativeTo` symmetric though only Claim-side is canonical) | **WP-2** materialization + **PROM-7** + the IR effect algebra |
+| C3-5 | ✅ **Resolved by S2-C4 (2026-07-31)** — materialization is a pre-evaluation pure transformation, not an IR/runtime effect; PromisedState produces a valid Maintenance Duty; unsupported suretyship rejects; Claims are authored Claim→Duty; complete internal reference rewriting is defined | **WP-2** materialization + **PROM-7** |
 | C3-6 | Case history called append-only but RDF exposes unordered `evaluationHistory` + mutable `caseStatus`; EvaluationResult lacks replay identity; Approved can't represent a Permit with ongoing post-use obligations | = **WP-6** (P1/P2/P3/P4), still open |
 | C3-7 | `resolveOutOfBand` doesn't handle duplicate/conflicting/ill-typed/stale/wrong-subject assertions; any requester can assert access; live SourceBinding calls omit a source snapshot/version so the Context isn't a coherent cut | **WP-5/E1** (+ D11–D14, D24) |
 | C3-8 | Canonical `project(Graph,Profiles)` still doesn't fully fix entailment regime, blank-node/clause identity, list/dedup, literal normalization, unknown-term behavior, or deterministic fresh IDs | **WP-2/C5** |
@@ -276,7 +252,7 @@ The review's core claim: WP-2…WP-5 each closed a definition in isolation, but 
 Historical SCOPE-1 sequence retained to explain the integration findings. It no longer controls
 current work; use **SCOPE-2 Active Workstreams — authoritative order** above.
 
-1. **Decide the semantic roots:** ~~C3-1 (result algebra)~~ → ~~C3-2 / S2-C2 (declarative Duty status)~~ → ~~C3-4 / S2-C3 (Duty attachment)~~ ✅ resolved 2026-07-31 → **C3-5 / S2-C4 (pure Offer→Agreement transformation), next**.
+1. **Decide the semantic roots:** C3-1 → C3-2/S2-C2 → C3-4/S2-C3 → C3-5/S2-C4 are resolved. Continue with **S2-C5 canonical projection**.
 2. **Unify state:** C3-3 (event log) → C3-6 (protocol projection) → C3-7 (resolved context).
 3. **Complete ingestion:** C3-8 (canonical projection) + the ODRL compatibility matrix (WP-7).
 4. Apply the bounded **Class 2** decisions against that model.
@@ -412,7 +388,7 @@ Claim, Power, Immunity, Liability are specified but not stress-tested — their 
 ## Promise Theory (PROM)
 
 
-> **Resolved here → [issues-log.md](issues-log.md):** PROM-1, PROM-3, PROM-7.
+> **Resolved here → [issues-log.md](issues-log.md):** PROM-1, PROM-3, PROM-4, PROM-5, PROM-7.
 
 ### PROM-2 — Framework agreements / Power-to-promise
 
@@ -420,20 +396,6 @@ Claim, Power, Immunity, Liability are specified but not stress-tested — their 
 **Files:** `RL2_Primer.md`, `usecases/*`
 
 "A master agreement under which A may make future binding promises to B" is properly modeled as a **Power** (in A) + **Liability** (in B) inside the Agreement, plus Promises made *outside* it. RL2 can express this but never explains the Power↔Promise connection. Document it; add a use case.
-
-### PROM-4 — No `promisorOperand` in core
-
-**Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER] [COV]
-**Files:** `rl2.ttl` (cf. `dutyPerformerOperand:267`), use case 8
-
-Duty identity-binding is core-supported (`dutyPerformerOperand`); promise identity-binding is delegated to a profile operand (use case 8's `governance:promisorOperand`). If Promise is first-class, add a core `rl2:promisorOperand` for symmetry.
-
-### PROM-5 — "Promise references a Duty" = suretyship, unspecified
-
-**Status:** Open · **Severity:** S2 · **Source:** critique 1 §3.2, critique 2 · **Tags:** [VER] [COV]
-**Files:** `rl2.ttl:122`, `RL2_Semantics.md`
-
-Promising to fulfill *someone else's* Duty (without becoming its dutyHolder) is a real legal concept — guarantee/suretyship — with no analysis. CANON-2's `rl2:promisedDuty` names it; this issue is to give it semantics (what state/obligation the suretyship promise creates for the promisor). **PROM-1 handoff (2026-07-25):** crystallization maps a `promisedDuty` promise to a *second-order Duty* on the promisor, fulfilled when the referenced Duty reaches Fulfilled (target fixed by PROM-1). Open here: the remedy/liability the surety incurs when the referenced Duty is Violated — guarantee vs indemnity.
 
 ### PROM-6 — Promise-as-Generator mechanism
 

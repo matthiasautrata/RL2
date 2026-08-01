@@ -107,7 +107,7 @@ The RL2 approach trades *first-read simplicity* for *operational clarity* — yo
 | **Express a simple license** (Creative Commons-style) | ✓ Best — flat vocabulary, one Permission with constraints | Overengineered for this |
 | **Express a bilateral contract** with reciprocal obligations | Awkward — no Claim, correlative relations implicit | ✓ Native — Duty↔Claim, Power↔Liability via `correlativeTo` |
 | **Model GDPR/consent** | Partial — Privacy subclass exists but no subject-rights vocabulary | ✓ Privacy profile (427 lines) + data subject rights as Claims |
-| **Multi-party supply chain** with promises → crystallized duties | No explicit promise/acceptance model | Promise content and status are core; canonical acceptance transformation remains open |
+| **Multi-party supply chain** with promises → crystallized duties | No explicit promise/acceptance model | Action/state Promise acceptance is a pure total transformation; unsupported suretyship is rejected |
 | **Policy orchestration** (escalation, delegation, approval workflows) | Requires application logic beyond the core model | Future companion protocol; not part of core language conformance |
 | **Automated compliance/audit** | Requires external logic | Partial — SHACL checks canonical structure and core semantics return an attributed envelope, derived statuses, and diagnostics; persistence and replay are outside core |
 | **Cross-domain profiles** | In-practice fragmentation (Mpeg21, LDR, IDS each fork) | Designed for profile extensibility via `LeftOperand` resolution paths |
@@ -173,7 +173,15 @@ distinction and supplies deterministic status semantics.
 *   **Maintenance Duty:** Requires an `invariant` and has no action.
 *   **`dutyWindow`:** Optional finite half-open interval for one Duty occurrence; it is not inferred from a general condition.
 *   **`Promise`:** Used pre-contract, in an `Offer`, for voluntary commitments (action or state) that bind their promisor in the Promise-Theory sense but create no correlative Claim yet.
-*   **Crystallization:** Acceptance-to-Agreement mapping is a pure policy transformation under S2-C4, not a runtime state transition.
+*   **Crystallization:** Acceptance-to-Agreement mapping is a pure, total policy transformation,
+    not a runtime transition. Acceptance supplies parties, output identifiers, optional object
+    bindings, and optional Duty windows. Action and state Promises become Duties plus Claims;
+    unsupported suretyship or Promise-specific references produce attributed diagnostics.
+
+ODRL `Offer` and `Agreement` identify policy purposes but ODRL 2.2 does not define an equivalent
+normative acceptance transformation. An importer therefore maps an already accepted ODRL
+Agreement directly; it MUST NOT infer that an ODRL Offer was accepted or invoke RL2
+`materialize` without explicit acceptance parameters.
 
 For ODRL import, a Duty action maps to an RL2 Achievement Duty. A Permission's `odrl:duty` edge
 maps to `rl2:prerequisiteDuty`; a Policy's `odrl:obligation` edge maps to `rl2:clause`. An ODRL constraint maps to

@@ -1,9 +1,12 @@
 # Use Case 50: Runtime Evaluation
 
+> **Non-core future work.** This scenario preserves the former request/result/Requirement and Case
+> workflow. It is not part of RL2 core evaluation or core conformance under SCOPE-2.
+
 **Pattern:** Evaluation trace and requirements  
 **Vocabulary Demonstrated:** `rl2p:Requirement`, `rl2p:sourceNorm`, `rl2p:requirementStatus`  
 **Category:** Protocol Demonstration  
-**Status:** DRAFT
+**Status:** Preserved future protocol scenario
 
 ---
 
