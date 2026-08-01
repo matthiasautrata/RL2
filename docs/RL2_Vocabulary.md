@@ -50,11 +50,12 @@ neither. A Policy requires at least one clause and has at most one policy-level 
 | `rl2:action` | Action of a Privilege, Achievement Duty, or Prohibition; on a Promise, the promised action. |
 | `rl2:object` | Asset or resource governed by a Norm or Promise. |
 | `rl2:priority` | Integer on a Privilege or Prohibition, used before conflict-strategy resolution; default `0`. |
-| `rl2:prerequisiteDuty` | Duty that must be Fulfilled before its owning Privilege contributes a permit. |
+| `rl2:prerequisiteDuty` | Duty that must be Fulfilled before the gated Privilege contributes a permit. On a Privilege it gates that Privilege; on a Policy it gates every Privilege clause of that Policy. |
 
-A Privilege and Prohibition each have exactly one subject, action, and object. An attached
-prerequisite Duty is not also a direct policy clause. The same Duty node may be shared by several
-Privileges.
+A Privilege and Prohibition each have exactly one subject, action, and object. A prerequisite
+Duty may simultaneously be an independent policy clause — it then contributes its standing
+obligation and gates its referencing Privilege(s), with one derived status. The same Duty node
+may be shared by several Privileges.
 
 ## 4. Duty Forms
 
@@ -69,8 +70,12 @@ Every Duty also has one subject and one object. `rl2:condition` controls applica
 `rl2:postCondition` tests the result at an Achievement witness; `rl2:invariant` is the maintained
 state. These properties are not interchangeable.
 
-`rl2:DutyWindow` is one finite half-open interval. It has exactly one timezone-qualified
-`rl2:startInclusive` and `rl2:endExclusive`, with start before end.
+`rl2:DutyWindow` is one finite half-open interval, with start before end once resolved. Each
+endpoint is exactly one of: an absolute timezone-qualified instant (`rl2:startInclusive` /
+`rl2:endExclusive`) or a relative endpoint — an anchor operand plus a day-time offset
+(`rl2:startRelativeTo` + `rl2:startOffset` / `rl2:endRelativeTo` + `rl2:endOffset`), resolved
+once per evaluation against the snapshot; an unresolvable anchor makes the Duty's status
+`IndeterminateStatus`.
 
 The derived Duty states are `rl2:Pending`, `rl2:Active`, `rl2:Fulfilled`, and `rl2:Violated`.
 They are evaluator results and comparison values, not asserted Duty properties.
