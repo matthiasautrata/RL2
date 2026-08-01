@@ -52,11 +52,18 @@ neither. A Policy requires at least one clause and has at most one policy-level 
 | `rl2:object` | Asset or resource governed by a Norm or Promise. |
 | `rl2:priority` | Integer on a Privilege or Prohibition, used before conflict-strategy resolution; default `0`. |
 | `rl2:prerequisiteDuty` | Duty that must be Fulfilled before the gated Privilege contributes a permit. On a Privilege it gates that Privilege; on a Policy it gates every Privilege clause of that Policy. |
+| `rl2:consequentDuty` | Duty on a Privilege that fires alongside its grant — its obligate atom enters the envelope when the Privilege fires — but never gates the decision. Declared only on a Privilege, not on a Policy. The post-use/companion counterpart to `rl2:prerequisiteDuty` (pre vs. post). |
 
 A Privilege and Prohibition each have exactly one subject, action, and object. A prerequisite
 Duty may simultaneously be an independent policy clause — it then contributes its standing
 obligation and gates its referencing Privilege(s), with one derived status. The same Duty node
 may be shared by several Privileges.
+
+`rl2:prerequisiteDuty` and `rl2:consequentDuty` may both carry a Duty whose subject or object is a
+sentinel (`rl2:anyAgent`/`rl2:anyAsset`, §6): such a Duty is a template with no standalone status,
+bound to the request's concrete agent and asset wherever it is consulted or emitted
+(`RL2_Semantics.md` §Duty Template Binding). No sentinel ever appears in an emitted `obligate` atom
+or in a `dutyStatus` query.
 
 ## 4. Duty Forms
 
@@ -106,13 +113,13 @@ and are not consulted before acceptance. Its derived states are `Pending`, `Fulf
 | `rl2:Agent` | Person, organization, service, or other policy party. |
 | `rl2:AgentCollection` | Agent whose direct members may be matched; a closed, enumerated group. |
 | `rl2:agentMember` | Direct agent-collection membership; core matching does not recursively flatten nested collections. |
-| `rl2:anyAgent` | Sentinel individual: a norm's `rl2:subject rl2:anyAgent` matches every requesting agent, with the population delimited by conditions over `agent.*` facts. Not valid as a Request's `requestingAgent` or as a collection member. |
+| `rl2:anyAgent` | Sentinel individual: a norm's `rl2:subject rl2:anyAgent` matches every requesting agent, with the population delimited by conditions over `agent.*` facts. Not valid as a Request's `requestingAgent` or as a collection member. A Duty MAY carry it as `rl2:subject`: the Duty is then a template, bound to the concrete request agent wherever it is consulted or emitted (`RL2_Semantics.md` §Duty Template Binding). Prohibited on a Promise (`SentinelMisuse`, `RL2_Compilation.md` §6.1). |
 | `rl2:Action` | Profile-defined action individual. |
 | `rl2:includedIn` | Transitive relation from a narrower action to a broader action. |
 | `rl2:Asset` | Resource governed by a policy. |
 | `rl2:AssetCollection` | Asset whose direct members may be matched. |
 | `rl2:member` | Direct collection membership; core matching does not recursively flatten nested collections. |
-| `rl2:anyAsset` | Sentinel individual: a norm's `rl2:object rl2:anyAsset` matches every requested asset, with the population delimited by conditions over `asset.*` facts. Not valid as a Request's `requestedAsset` or as a collection member. |
+| `rl2:anyAsset` | Sentinel individual: a norm's `rl2:object rl2:anyAsset` matches every requested asset, with the population delimited by conditions over `asset.*` facts. Not valid as a Request's `requestedAsset` or as a collection member. A Duty MAY carry it as `rl2:object`: the Duty is then a template, bound to the concrete request asset wherever it is consulted or emitted (`RL2_Semantics.md` §Duty Template Binding). Prohibited on a Promise (`SentinelMisuse`, `RL2_Compilation.md` §6.1). |
 
 Subject and object matching are each one of three forms: exact identifier equality, direct
 membership in an `AgentCollection`/`AssetCollection`, or the `rl2:anyAgent`/`rl2:anyAsset` sentinel

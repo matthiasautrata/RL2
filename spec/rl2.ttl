@@ -95,7 +95,10 @@ rl2:anyAgent a rl2:Agent ;
     rdfs:comment """Distinguished sentinel individual. A norm's rl2:subject rl2:anyAgent
     matches every requesting agent; the population is delimited by conditions over
     agent.* facts, not by matching. It may not appear as a member of an AgentCollection
-    and may not be a Request's requestingAgent.""" .
+    and may not be a Request's requestingAgent. A Duty MAY carry rl2:anyAgent as its
+    subject: it is then a template, bound to the concrete requesting or matched agent via
+    bind() (RL2_Semantics.md) wherever the Duty is consulted or emitted in a request
+    context; no sentinel ever appears in an emitted envelope atom or dutyStatus query.""" .
 
 # Normative roles (core semantic roles)
 rl2:subject a owl:ObjectProperty ;
@@ -148,7 +151,10 @@ rl2:anyAsset a rl2:Asset ;
     rdfs:comment """Distinguished sentinel individual. A norm's rl2:object rl2:anyAsset
     matches every requested asset; the population is delimited by conditions over
     asset.* facts, not by matching. It may not appear as a member of an AssetCollection
-    and may not be a Request's requestedAsset.""" .
+    and may not be a Request's requestedAsset. A Duty MAY carry rl2:anyAsset as its
+    object: it is then a template, bound to the concrete requested or matched asset via
+    bind() (RL2_Semantics.md) wherever the Duty is consulted or emitted in a request
+    context; no sentinel ever appears in an emitted envelope atom or dutyStatus query.""" .
 
 rl2:Condition a owl:Class ;
     rdfs:label "Condition" ;
@@ -284,6 +290,20 @@ rl2:prerequisiteDuty a owl:ObjectProperty ;
     prerequisite Duty may simultaneously be an independent rl2:clause of a Policy: it then also
     contributes its obligation atom independently, in addition to gating its referencing
     owner(s). Ongoing or post-use enforcement is outside core Eval.""" .
+
+rl2:consequentDuty a owl:ObjectProperty ;
+    rdfs:domain rl2:Privilege ;
+    rdfs:range rl2:Duty ;
+    rdfs:label "Consequent Duty" ;
+    rdfs:comment """Associates a Privilege with a Duty that fires alongside it: when the
+    Privilege fires for a request, the referenced Duty's obligate atom is emitted into the
+    normative envelope, with sentinel substitution per the bind() rule (RL2_Semantics.md).
+    Unlike rl2:prerequisiteDuty, a consequentDuty does not gate the decision — it is a
+    post-use or companion obligation (e.g. attribution, logging) triggered by the grant, not
+    a precondition to it. Pairs with rl2:prerequisiteDuty as the pre/post counterpart on a
+    Privilege. Deliberately not widened to rl2:Policy: unlike a gating prerequisite, a
+    consequent obligation is tied to the specific Privilege clause that fired, not to every
+    Privilege of a Policy.""" .
 
 rl2:postCondition a owl:ObjectProperty ;
     rdfs:domain rl2:Duty ;

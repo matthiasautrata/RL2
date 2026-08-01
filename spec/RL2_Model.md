@@ -370,7 +370,11 @@ policy, including an Offer, and `promiseStatuses` covers every Promise clause. A
 for an Offer is descriptive only; it does not make the Offer or any of its clauses operative. A
 Duty status participates in access derivation only through a `prerequisiteDuty` relation — declared
 on an owning Privilege or on its owning Policy; a Duty that is a Policy clause only, and never the
-object of `prerequisiteDuty`, never changes the access decision. `diagnostics`
+object of `prerequisiteDuty`, never changes the access decision. Every Duty named by an `obligate`
+atom in `normativeEnvelope` — whether from an independent clause or from a firing `consequentDuty`
+(§7.2) — is a concrete, sentinel-free occurrence: a sentinel-carrying Duty template is bound to the
+request's agent and asset before it is ever placed in the envelope (`RL2_Semantics.md` §Duty
+Template Binding). `diagnostics`
 uses the causal error algebra defined by the Semantics. Explanatory labels, localized
 messages, traces, timestamps, signatures, and persistence identifiers are optional interchange or
 implementation metadata unless a profile gives them policy meaning.
@@ -452,11 +456,24 @@ many `DutyWindow` occurrences, is the candidate future extension.
 
 ### 7.2 Duty ownership and access interaction
 
-A Duty has one or both of two structural roles, and both may hold at once:
+A Duty has one or more of three structural roles, and any combination may hold at once:
 
 - **prerequisite** — it is the object of one or more Privileges' `rl2:prerequisiteDuty`, or of a
-  Policy's `rl2:prerequisiteDuty` (gating every Privilege clause of that Policy); or
-- **independent** — it is a Policy clause.
+  Policy's `rl2:prerequisiteDuty` (gating every Privilege clause of that Policy);
+- **independent** — it is a Policy clause; or
+- **consequent** — it is the object of a Privilege's `rl2:consequentDuty`: it fires alongside that
+  Privilege's grant (contributing its `obligate` atom to the envelope) but never gates it, the
+  post-use or companion counterpart to a prerequisite. Unlike `prerequisiteDuty`, `consequentDuty`
+  is declared only on a Privilege, never folded in from an owning Policy.
+
+A Duty's `rl2:subject` or `rl2:object` may be the sentinel `rl2:anyAgent` / `rl2:anyAsset` (§3);
+such a Duty is a **template** naming an attribute-defined population, not a concrete occurrence,
+and has no standalone status of its own. In every request-context place a template Duty is
+consulted or emitted — prerequisite gating, consequent-duty firing, and independent-clause atom
+emission — it is first bound to the request's concrete agent and asset (`RL2_Semantics.md` §Duty
+Template Binding); no sentinel ever appears in an emitted `obligate` atom or in a `dutyStatus`
+query. A **bound occurrence** produced this way, once recorded in an `EvaluationResult`, is an
+ordinary concrete Duty and may be status-evaluated again against a later snapshot.
 
 A Duty that is both a Policy clause and a prerequisite is a standing obligation that also gates
 access: it contributes its own `obligate` atom as an independent clause, and independently gates
@@ -480,9 +497,12 @@ read by every owner, so one qualifying fulfillment can satisfy all of them. This
 separate Duty nodes, which denote separate occurrences even when their content is otherwise equal.
 
 An independent Duty that is not also a prerequisite contributes normative and status information
-but never changes an access decision. Core has no concurrent or post-use attachment mode and no
-`PermitWithObligations` decision. Applications may use the returned decision and Duty information
-for enforcement or
+but never changes an access decision; the same is true of a consequent Duty, whose firing follows
+its Privilege's grant and cannot feed back into it. Core has no concurrent attachment mode and no
+`PermitWithObligations` decision — a genuinely ongoing requirement is a Maintenance Duty with an
+optional window, not a distinct attachment mode. `consequentDuty` is core's one-shot post-use
+attachment mode (attribution, logging, and similar companion duties triggered by a grant).
+Applications may use the returned decision and Duty information for enforcement or
 scheduling without changing core semantics.
 
 ### 7.3 Status meaning

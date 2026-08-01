@@ -21,6 +21,15 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
   `False`); `permit + indeterminate` resolution under each strategy; the four exception-pattern
   forms; profile version negotiation and digest mismatch; relative-window resolution incl.
   missing anchor; sentinel-population norm with missing population fact.
+- F-01 vectors (sentinel Duty binding, `rl2:consequentDuty`): positive — a Privilege's
+  `consequentDuty` fires on grant and the envelope carries the *bound* obligate atom
+  (`bind(d, requestAgent, requestAsset)`), never the sentinel-bearing template; bound
+  prerequisite-gating positive and negative — a sentinel-carrying `prerequisiteDuty` template is
+  gated via `dutyStatus(bind(d, requestAgent, requestAsset))`, both fulfilled and unmet; a
+  consequent Duty with an `Unknown` condition of its own — confirms the decision outcome is
+  unaffected by a consequent Duty's condition value (only the Privilege's own `accessResult.truth
+  = True` gates firing); `UnboundStatusTarget` negative compile vector — an
+  `rl2:obligationStateOperand` targeting a Duty whose `rl2:subject`/`rl2:object` is a sentinel.
 - Translation runner comparing normalized ODRL fixtures to expected modules.
 - Reference harness (`tools/evaluate.py` or similar); two independent evaluators before any
   interoperability claim.
@@ -112,3 +121,16 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   per-primitive-relation claim plus enumerated local rules is the standing position.
 - The three-test rule (demand / determinism / runtime-independence) governs every future
   vocabulary question; `odrl:implies` stays rejected; `includedIn` stays core.
+- F-01 (sentinel Duty subject/object with no instance binding): resolved via new
+  `rl2:consequentDuty` (Privilege → Duty, non-gating, the post-use/companion counterpart to
+  `rl2:prerequisiteDuty`) plus a universal `bind(d, a, o)` substitution applied at exactly four
+  request-context sites — prerequisite gating, attached-duty reporting, `consequentDuty` emission,
+  and independent-clause atom emission. Envelope atoms and `dutyStatus` queries are always
+  concrete and sentinel-free;
+  `dutyStatus` itself stays defined on concrete duties only (a bound occurrence recorded in an
+  `EvaluationResult` is concrete and re-evaluable). Sentinels remain legal in Duty templates but
+  are `SentinelMisuse` on a Promise (a Promise crystallizes at materialization with no binding
+  source). ODRL `odrl:duty` from a Permission is `clarified`, not `normalized`: a
+  `TranslationConfiguration` must declare per profile/policy whether it means
+  `prerequisiteDuty` or `consequentDuty`; an undeclared interpretation is
+  `MissingTranslationInterpretation`.

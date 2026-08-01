@@ -49,7 +49,8 @@ We define RL2 expressions as:
 ```
 Norm ::=
     Privilege(Agent, Action, Asset, Condition,
-              prerequisiteDuties: finite set of Duty)
+              prerequisiteDuties: finite set of Duty,
+              consequentDuties: finite set of Duty)
   | Duty(Agent subject, Agent? counterparty, Asset, Condition,
          dutyWindow: DutyWindow?, body: DutyBody)
   | Prohibition(Agent, Action, Asset, Condition)
@@ -79,6 +80,17 @@ When a Duty is both a top-level clause and a prerequisite, it contributes its in
 prerequisite); these are two effects of one Duty occurrence, not two Duties. The Duty still has
 exactly one derived status (§Duty Status Derivation), which is read once and reported once,
 regardless of how many roles or owners consult it.
+
+`Privilege.consequentDuties` is projected from zero or more `rl2:consequentDuty` values declared
+on the Privilege itself (there is no Policy-level fold for `consequentDuty`, unlike
+`prerequisiteDuties`). A consequent Duty fires alongside its Privilege: when the Privilege
+matches the request and its `accessResult` is `True`, the referenced Duty's obligate atom is
+emitted into the normative envelope (§Normative Derivation), bound to the request's concrete
+agent and asset via `bind` (§Duty Template Binding below). Unlike a prerequisite Duty, a
+consequent Duty never gates the decision — it is read-only with respect to `accessResult` and
+contributes no `prerequisiteResult` term. `rl2:prerequisiteDuty` and `rl2:consequentDuty` are the
+pre- and post-condition halves of the same authoring pattern: one gates the grant, the other rides
+along with it.
 
 ```
 WindowEndpoint ::= Absolute(DateTime) | Relative(LeftOperand, Duration)
@@ -922,6 +934,17 @@ dutyStatus(d, U, W, C) =
                     Maintain(_) → maintenanceStatus(d,rw,U,W,C)
 ```
 
+`dutyStatus` is defined on concrete duties only: `d.subject` and `d.object` are read directly
+throughout (`mkStatusEnv`, `achievementCandidates`, `dutyApplicabilityResult`) with no sentinel
+handling. A Duty carrying `rl2:anyAgent` or `rl2:anyAsset` is a template with no standalone
+status — calling `dutyStatus` on it directly is meaningless, since no evidence is ever attributed
+to a sentinel. A caller in a request context resolves this first, via `bind` (§Duty Template
+Binding): a *bound occurrence* — the concrete duty produced by `bind(d, a, o)` for a specific
+request's agent and asset — is an ordinary concrete duty. Once such a bound occurrence is recorded
+in an `EvaluationResult` (as the target of a `permit`/`obligate` atom), it is a fully concrete Duty
+and its status is well-defined and may be evaluated again — `dutyStatus` against a later
+`WorldSnapshot` — for later audit or status inquiry, exactly like any authored Duty.
+
 Window resolution happens once, before applicability or body evaluation, so an unresolved
 `Relative` endpoint (a `Missing` or `Invalid` anchor) makes the whole Duty `IndeterminateStatus`
 rather than silently falling through to `Pending` or a body-specific status.
@@ -1146,6 +1169,43 @@ evaluated (a `Missing` fact) yields `Unknown` and therefore an attributed `indet
 through the ordinary truth algebra — an unknown population member is never silently permitted or
 denied.
 
+#### Duty Template Binding
+
+A Duty carrying `rl2:anyAgent` as its subject or `rl2:anyAsset` as its object is a **template**:
+it names an attribute-defined population, not a concrete instance, and by itself supplies no
+instance for evidence selection, window anchoring, or condition evaluation to scope against
+(§Declarative Duty and Promise status builds exactly such a scope from `d.subject`/`d.object`).
+`bind` produces the concrete duty a request-context computation actually needs:
+
+```
+bind(d, a, o) = d with
+    subject := a  iff d.subject = rl2:anyAgent, else d.subject
+    object  := o  iff d.object  = rl2:anyAsset,  else d.object
+    -- all other fields (condition, dutyWindow, body, counterparty) unchanged
+```
+
+`bind` is the identity on a Duty that carries no sentinel. It is applied in exactly four
+request-context places, each tied to a Privilege or Duty that has already matched the current
+Request `R = Env.Request`, so the substitution values are always `R.requestingAgent` and
+`R.requestedAsset`:
+
+1. **Prerequisite gating** (§Pre-Resolution Normative Envelope) — `prerequisiteResult` consults
+   the bound duty, not the raw (possibly sentinel-bearing) template.
+2. **Attached-duty reporting** (§Normative Derivation) — `ownerScopeResult` evaluates the bound
+   duty's applicability, and the `obligate`/`indeterminate` atoms emitted for `attachedDuties(P)`
+   target the bound duty.
+3. **`rl2:consequentDuty` derivation** (§Normative Derivation) — the obligate atom emitted when a
+   Privilege fires is that of the bound duty.
+4. **Independent Duty clause atom emission** (§Normative Derivation, the existing
+   `independentDuties(P)` rule) — the emitted `obligate` atom is bound likewise.
+
+**Invariant.** No sentinel individual (`rl2:anyAgent`, `rl2:anyAsset`) ever appears as the subject
+or object of a Duty inside an emitted `NormativeAtom`, nor as the `d.subject`/`d.object` supplied
+to a `dutyStatus` query. Every duty reaching `dutyStatus` or an envelope atom in a request context
+has already passed through `bind`. `dutyStatus` itself is unchanged and continues to assume a
+concrete, sentinel-free duty (§Declarative Duty and Promise status) — templates are made concrete
+by their caller, not by `dutyStatus`.
+
 Action subsumption is defined by the transitive closure of `rl2:includedIn`:
 
 ```
@@ -1224,11 +1284,12 @@ Duty for a Promise and the copied Norm for a policy-local Norm. Locality is stru
 ```text
 localNorms(O) =
     { n : Norm | n ∈ O.clauses }
-    ∪ { d : Duty | ∃ n : Privilege ∈ O.clauses : d ∈ n.prerequisiteDuties }
+    ∪ { d : Duty | ∃ n : Privilege ∈ O.clauses : d ∈ n.prerequisiteDuties ∪ n.consequentDuties }
 ```
 
-The second set contains the non-clause Duties owned through `prerequisiteDuty`; their attachment
-placement is preserved rather than promoted to Agreement clauses. `targetNorm` is a reference,
+The second set contains the non-clause Duties owned through `prerequisiteDuty` or
+`consequentDuty`; their attachment placement is preserved rather than promoted to Agreement
+clauses. `targetNorm` is a reference,
 not an ownership relation. Its target is rewritten only when independently present in
 `localNorms(O)` or among the Promise clauses of `O`; otherwise it remains external and is not
 copied. Canonical RDF projection preserves this distinction.
@@ -1403,8 +1464,11 @@ dutyConditionResult(d, Env) =
                                       Env.Configuration))
 
 prerequisiteResult(d, Env) =
-    foldK(kOr, [notResult(dutyConditionResult(d,Env)), fulfilledResult(d,Env)])
-    -- not applicable OR fulfilled
+    let bd = bind(d, Env.Request.requestingAgent, Env.Request.requestedAsset) in
+    foldK(kOr, [notResult(dutyConditionResult(bd,Env)), fulfilledResult(bd,Env)])
+    -- not applicable OR fulfilled, against the concrete (bound) duty — a sentinel-bearing
+    -- prerequisite template is never itself passed to dutyConditionResult or dutyStatus
+    -- (§Duty Template Binding)
 
 notResult(r) = { truth: ¬ᴷ r.truth, causes: r.causes }
 ```
@@ -1443,7 +1507,7 @@ accessResult(P, n : Prohibition, Env) = ⟦effectiveCondition(P,n)⟧(Env)
 
 ownerScopeResult(P, n, d, Env) =
     if ¬matchesRequest(n,Env) then { truth: False, causes: ∅ }
-    else foldK(kAnd, [⟦effectiveCondition(P,n)⟧(Env), dutyConditionResult(d,Env)])
+    else foldK(kAnd, [⟦effectiveCondition(P,n)⟧(Env), dutyConditionResult(bindReq(d,Env),Env)])
 
 attachedDutyResult(P, d, Env) =
     anyResults([ ownerScopeResult(P,n,d,Env) |
@@ -1470,22 +1534,45 @@ Out : (PolicySet S, Env) → ℘(NormativeAtoms), where S ⊆ Env.Universe
 Out(S, Env) =
     ⋃ { deriveNorms(P, Env) | P ∈ S }
 
+bindReq(d, Env) = bind(d, Env.Request.requestingAgent, Env.Request.requestedAsset)
+    -- (§Duty Template Binding): the concrete duty for atoms and status queries raised in this
+    -- request's own evaluation
+
 deriveNorms(P, Env) =
     if P : Offer then ∅
     else
         { permit(n, P)   | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
         { forbid(n, P)   | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = True } ∪
-        { obligate(d, P) | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
-        { obligate(d, P) | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = True } ∪
+        { obligate(bindReq(d,Env), P) | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
+        { obligate(bindReq(d,Env), P) | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = True } ∪
+        { obligate(bindReq(d,Env), P)
+                         | n : Privilege ∈ P.clauses, d ∈ n.consequentDuties,
+                           matchesRequest(n, Env), accessResult(P,n,Env).truth = True,
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = True } ∪
         { indeterminate(n, P, accessResult(P,n,Env).causes)
                          | n : Privilege ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
         { indeterminate(n, P, accessResult(P,n,Env).causes)
                          | n : Prohibition ∈ P.clauses, matchesRequest(n, Env), accessResult(P,n,Env).truth = Unknown } ∪
-        { indeterminate(d, P, ⟦effectiveCondition(P,d)⟧(Env).causes)
+        { indeterminate(bindReq(d,Env), P, ⟦effectiveCondition(P,d)⟧(Env).causes)
                          | d ∈ independentDuties(P), matchesRequest(d, Env), ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown } ∪
-        { indeterminate(d, P, attachedDutyResult(P,d,Env).causes)
-                         | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = Unknown }
+        { indeterminate(bindReq(d,Env), P, attachedDutyResult(P,d,Env).causes)
+                         | d ∈ attachedDuties(P), attachedDutyResult(P,d,Env).truth = Unknown } ∪
+        { indeterminate(bindReq(d,Env), P, ⟦effectiveCondition(P,d)⟧(Env).causes)
+                         | n : Privilege ∈ P.clauses, d ∈ n.consequentDuties,
+                           matchesRequest(n, Env), accessResult(P,n,Env).truth = True,
+                           ⟦effectiveCondition(P,d)⟧(Env).truth = Unknown }
 ```
+
+The `rl2:consequentDuty` clause above fires only alongside its own Privilege's grant
+(`accessResult(P,n,Env).truth = True`); it contributes no term to `accessResult` itself and so
+cannot affect whether that Privilege — or any other norm — resolves to `Permit`. Its own
+`effectiveCondition(P,d)` (present only when the Duty declares one) is evaluated under the
+existing independent-Duty condition discipline, the same rule `independentDuties(P)` uses just
+above, not the status-scoped `mkStatusEnv` discipline used for prerequisite gating: a
+`consequentDuty` is a request-context obligation like an independent clause, not a status
+observation. Both the independent-clause and consequent-duty atoms are emitted for the *bound*
+duty (`bindReq`, §Duty Template Binding); a sentinel-carrying template Duty never itself becomes
+the target of an `obligate` or `indeterminate` atom.
 
 `deriveNorms` reads the Request, snapshot, and configuration only through `Env`; there is no free
 mutable state or external-context argument.
@@ -1909,16 +1996,18 @@ the evidence interval for each attached Duty.
 
 ### Duty Attachment Boundary
 
-Core has two Duty relationships only:
+Core has three Duty relationships only:
 
-- a Duty linked from one or more Privileges with `rl2:prerequisiteDuty` is blocking for each owner when applicable; and
-- a Duty linked directly from a Policy with `rl2:clause` is independent.
+- a Duty linked from one or more Privileges (or their owning Policy) with `rl2:prerequisiteDuty` is blocking for each owner when applicable;
+- a Duty linked directly from a Policy with `rl2:clause` is independent; and
+- a Duty linked from a Privilege with `rl2:consequentDuty` fires alongside that Privilege's grant (§Normative Derivation) but never blocks it — the post-use or companion counterpart to `rl2:prerequisiteDuty`.
 
-Concurrent and post-use obligations are not additional core attachment modes. Their substantive
-requirements can still be stated as Achievement or Maintenance Duties with applicability,
-postconditions, invariants, and optional windows. Core `Eval` returns `Permit` plus the complete
-Duty-status map; it does not schedule, enforce, or claim that an ongoing obligation was imposed by
-the act of evaluation.
+Concurrent obligations are not an additional core attachment mode; a genuinely ongoing requirement
+is stated as a Maintenance Duty with an optional `dutyWindow`, independent or prerequisite as
+appropriate. A one-shot post-use obligation triggered by a grant — attribution, logging, and
+similar companion duties — is exactly what `rl2:consequentDuty` is for. Core `Eval` returns
+`Permit` plus the complete Duty-status map; it does not schedule, enforce, or claim that an
+ongoing obligation was imposed by the act of evaluation.
 
 ### Note on Evaluation Complexity
 

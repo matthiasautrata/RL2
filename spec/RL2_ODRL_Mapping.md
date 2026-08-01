@@ -95,7 +95,7 @@ same Duty, their RL2 Privileges refer to the same prerequisite Duty rather than 
 | `odrl:Permission` | `rl2:Privilege` | normalized |
 | `odrl:Prohibition` | `rl2:Prohibition` | normalized |
 | action-bearing `odrl:Duty` | Achievement `rl2:Duty` | clarified |
-| `odrl:duty` from Permission | `rl2:prerequisiteDuty` | normalized |
+| `odrl:duty` from Permission | `rl2:prerequisiteDuty` or `rl2:consequentDuty` | clarified |
 | `odrl:obligation` from Policy | independent `rl2:Duty` clause | normalized |
 | `odrl:remedy` from Prohibition | none | rejected |
 | `odrl:consequence` from Duty | none | rejected |
@@ -111,6 +111,14 @@ The common fields map as follows:
 | Rule `odrl:assigner` | Offer or Agreement `rl2:grantor`; Set provenance metadata | A Rule-local assigner must agree with the containing policy after normalization. A Set has no operative grantor field. |
 | Duty beneficiary | `rl2:counterparty` | Defaults to the Permission assigner only when the ODRL functional-role inheritance rule applies unambiguously. |
 | `odrl:constraint` | `rl2:condition` | Only constraints governing Rule applicability map directly. |
+
+ODRL 2.2's `odrl:duty` on a Permission does not distinguish a pre-condition the grant depends on
+from a post-use or companion duty the grant merely triggers (e.g. attribution or logging) — the
+`Duty` class carries no marker for this. RL2 does distinguish them (`rl2:prerequisiteDuty` gates
+the grant; `rl2:consequentDuty` fires alongside it without gating), so the mapping cannot default
+silently to one reading. `TranslationConfiguration` MUST declare, per profile or per policy, which
+interpretation applies to a given `odrl:duty`; with no declared interpretation the importer rejects
+with `MissingTranslationInterpretation`.
 
 ODRL Duty fulfillment depends on application state and action performance. RL2 makes this
 interpretation explicit. An imported action-bearing Duty is an Achievement Duty whose qualifying

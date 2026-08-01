@@ -111,7 +111,9 @@ rl2:PrivilegeShape a sh:NodeShape ;
     sh:property [ sh:path rl2:counterparty ; sh:maxCount 0 ;
         sh:message "counterparty is defined only for Duties." ] ;
     sh:property [ sh:path rl2:prerequisiteDuty ; sh:class rl2:Duty ;
-        sh:message "Each prerequisiteDuty of a Privilege must be a Duty." ] .
+        sh:message "Each prerequisiteDuty of a Privilege must be a Duty." ] ;
+    sh:property [ sh:path rl2:consequentDuty ; sh:class rl2:Duty ;
+        sh:message "Each consequentDuty of a Privilege must be a Duty." ] .
 
 # A prerequisite Duty is referenced by one or more Privileges, or by a Policy directly (gating
 # every Privilege clause of that Policy). Its policy provenance is derived through those owners.
@@ -141,6 +143,16 @@ rl2:PrerequisiteDutyShape a sh:NodeShape ;
             }
         """
     ] .
+
+# A consequent Duty is referenced by a Privilege via rl2:consequentDuty; unlike a
+# prerequisite Duty it does not gate a decision, so no inverse-reference or Policy-clause
+# SPARQL check is required here — only the structural shape of the reference. Sentinel
+# placement and obligationStateOperand targeting are compile-owned (RL2_Compilation.md),
+# not SHACL-owned.
+rl2:ConsequentDutyShape a sh:NodeShape ;
+    sh:targetObjectsOf rl2:consequentDuty ;
+    sh:nodeKind sh:IRI ;
+    sh:class rl2:Duty .
 
 # Duty shape
 rl2:DutyShape a sh:NodeShape ;
