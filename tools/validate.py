@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.9"
-# dependencies = ["pyshacl>=0.26", "rdflib>=7.0"]
+# dependencies = ["pyshacl>=0.40,<0.41", "rdflib>=7.0,<8"]
 # ///
 """
 RL2 SHACL validation harness.

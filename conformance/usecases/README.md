@@ -33,7 +33,7 @@ rules. Profile-defined operands identify their WorldSnapshot dependencies with r
 |---|---|---|
 | [Exclusive Use Category](exclusive-use-category.md) | [Multiple Required Certifications](multi-certification.md) | [Suspension Exception](negated-condition.md) |
 | [Role-Constrained Access](role-hierarchy.md) | [Collection Access](asset-collection-access.md) | [Compliance Attestation](compliance-attestation.md) |
-| [Policy Selection Provenance](policy-versioning.md) | [Fulfillment Evidence](fulfillment-evidence.md) | [SLA Credit Clause](sla-credit-clause.md) |
+| [Policy Selection Provenance](universe-selection.md) | [Fulfillment Evidence](fulfillment-evidence.md) | [SLA Credit Clause](sla-credit-clause.md) |
 
 The [semantic vectors](../vectors/) cover reusable boundary cases. The
 [migration fixtures](../migration/) show the corresponding ODRL 2.2 import contract.

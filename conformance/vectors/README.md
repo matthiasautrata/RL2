@@ -8,6 +8,6 @@ are not traces from a particular implementation.
 - [Duty attachment](duty-attachment.md): prerequisite locality in access decisions.
 - [Offer materialization](offer-materialization.md): pure Offer-to-Agreement transformation.
 
-Each executable vector identifies the policy universe, request, world snapshot, evaluation
+Each vector identifies the policy universe, request, world snapshot, evaluation
 configuration, and expected result or diagnostic. A conforming evaluator produces the stated
 observable result for every well-formed vector.

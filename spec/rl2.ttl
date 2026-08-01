@@ -519,7 +519,7 @@ rl2:Fulfilled a rl2:PromiseState .
 rl2:Violated a rl2:PromiseState .
 
 ############################################################
-# 6. Policy Containers
+# 5. Policy Containers
 ############################################################
 
 rl2:Policy a owl:Class ;
@@ -565,7 +565,7 @@ rl2:clause a owl:ObjectProperty ;
     Duty. A well-formed Agreement or Set contains only Norms.""" .
 
 ############################################################
-# 6a. Profile Declaration
+# 6. Profile Declaration
 ############################################################
 
 rl2:Profile a owl:Class ;

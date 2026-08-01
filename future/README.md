@@ -2,7 +2,9 @@
 
 RL2 0.7 is limited to the policy language, its pure evaluation semantics, ODRL 2.2 migration, and
 conformance. The following topics may justify separate specifications or implementation projects.
-They do not define RL2 behavior.
+They do not define RL2 behavior. `../spec/RL2_Scope.md` §Out of Scope is the normative enumeration
+of what a conforming evaluator does not have to do; the topics below are candidate follow-on work
+in that space, not a restatement of it.
 
 ## Normative instruments
 

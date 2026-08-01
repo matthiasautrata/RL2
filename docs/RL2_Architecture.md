@@ -102,3 +102,5 @@ remain observationally equivalent to the normative contract and conformance vect
 API design, source connectors, enforcement, audit storage, retries, transactions, distributed
 coordination, and formal-verification toolchains are outside the language specification. A future
 companion specification may address them without changing core policy meaning.
+`../spec/RL2_Scope.md` §Out of Scope is the normative enumeration of what a conforming evaluator
+does not have to do; this section only summarizes its architectural consequences.

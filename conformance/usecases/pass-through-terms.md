@@ -47,4 +47,4 @@ World snapshot: `context.downstreamTerms.bound = true`, attributed to the agreem
 
 ## Expected result
 
-Expected decision: `Permit`; the maintenance duty is assessed independently from evidence concerning the continuing binding. If the registry says `false`, the redistribution privilege does not match.
+Expected decision: `Permit`; the pass-through duty is assessed independently from evidence concerning the continuing binding. If the registry says `false`, the redistribution privilege does not match.

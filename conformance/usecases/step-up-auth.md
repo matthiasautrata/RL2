@@ -60,4 +60,4 @@ World snapshot: `agent.authentication.level` is `1` for password-only authentica
 
 ## Expected result
 
-At level `2`, the request is `Permit`. At level `1`, the access privilege is inactive and the step-up Duty is active.
+At level `2`, the request is `Permit`. At level `1`, the access privilege is inactive and the step-up Duty's derived status is `Active` — a status-map entry for the independent Duty, not an `obligate` atom for the `read` request; the Duty's own action and object (`authenticate`, `AuthenticationService`) do not match it.

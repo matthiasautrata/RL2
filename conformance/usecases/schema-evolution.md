@@ -82,4 +82,4 @@ World snapshot: classified change evidence provides `breaking` and `noticePeriod
 
 ## Expected result
 
-A compatible change is `Permit`. A breaking change is `Permit` only when the notice period has elapsed; otherwise neither privilege applies. The notification Duty is active for a breaking change.
+A compatible change is `Permit`. A breaking change is `Permit` only when the notice period has elapsed; otherwise neither privilege applies. The notification Duty's derived status is `Active` for a breaking change — a status-map entry for the independent Duty, not an `obligate` atom for the `deployChange` request; the Duty's own action, `notifyConsumers`, does not match it.

@@ -15,7 +15,7 @@ For a Duty requiring action `x` in `[2026-08-01, 2026-09-01)`:
 | A3 | At the end; the only witness is at the end instant. | `Known(Violated)` |
 | A4 | During the window; a witness fails its postcondition. | `Known(Active)` |
 | A5 | At the end; no qualifying witness exists. | `Known(Violated)` |
-| A6 | A witness’s postcondition depends on missing data. | `IndeterminateStatus({Missing(...)})` |
+| A6 | A witness’s postcondition depends on missing data. | `IndeterminateStatus({Missing({site: SnapshotSite(...), target: None})})` |
 | A7 | Unbounded Duty; no witness. | `Known(Active)` |
 
 No matching action evidence is not a missing-data error.
@@ -30,7 +30,7 @@ For an invariant over `[2026-08-01, 2026-09-01)`:
 | M2 | During the window; the invariant holds over elapsed coverage. | `Known(Active)` |
 | M3 | During or after the window; one covered instant establishes false. | `Known(Violated)` |
 | M4 | At the end; complete coverage establishes true throughout. | `Known(Fulfilled)` |
-| M5 | At the end; required elapsed coverage is missing. | `IndeterminateStatus({Missing(...)})` |
+| M5 | At the end; required elapsed coverage is missing. | `IndeterminateStatus({Missing({site: SnapshotSite(...), target: None})})` |
 | M6 | Unbounded; true at the evaluation snapshot. | `Known(Active)` |
 | M7 | Unbounded; false at the evaluation snapshot. | `Known(Violated)` |
 

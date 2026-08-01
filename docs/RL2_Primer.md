@@ -92,8 +92,11 @@ bounds.
 
 A norm is relevant when its subject, action, and object match the Request. Action matching uses
 the finite `rl2:includedIn` hierarchy. Asset matching uses equality or direct membership in an
-`rl2:AssetCollection`. Agent matching is exact; role and group membership are expressed as typed
-profile conditions rather than hidden matching rules.
+`rl2:AssetCollection`. Subject matching in core 0.7 is exact identifier equality against the
+authored `rl2:subject` — a condition cannot substitute for this match, because an unmatched norm
+never reaches condition evaluation. Policies over an open population (any researcher, any
+employee) are therefore not expressible in core 0.7; classification-based subject targeting is
+under consideration as a possible extension, not part of the current normative language.
 
 `rl2:condition` is an applicability guard. It answers whether a Policy or Norm applies in the
 current environment. It does not say whether a Duty has been performed.

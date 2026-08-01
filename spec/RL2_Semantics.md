@@ -219,9 +219,9 @@ Prohibition:
 Promise:
 
 ```
-Γ ⊢ p : Agent   Γ ⊢ q : Agent   Γ ⊢ content : PromiseContent
--------------------------------------------------------------
-       Γ ⊢ Promise(p, q, content)
+Γ ⊢ p : Agent   Γ ⊢ q : Agent   Γ ⊢ s : Asset?   Γ ⊢ content : PromiseContent
+--------------------------------------------------------------------------------
+       Γ ⊢ Promise(p, q, s?, content) : Promise
 ```
 
 Condition types follow typical logical typing rules.
@@ -275,19 +275,40 @@ through `W.facts`. Duty and Promise statuses are derived from policy content and
 ### Environments
 
 ```
-Env = (Universe, Request, Agent, Asset, Snapshot, Configuration)
+Env = (Universe, Request?, Agent, Asset, Snapshot, Configuration)
 ```
 
 A named six-field record (not a bare product), used for evaluating matching and operand paths.
-The fields correspond one-to-one with the canonical path roots (`request.*`,
-`agent.*`, `asset.*`, `state.*`, `context.*`, `global.*`):
 
 - `Universe` — the immutable canonical PolicyUniverse and its finite term-inclusion indexes
-- `Request` — the core request being evaluated
+- `Request?` — the core request being evaluated, when one exists; absent when `Env` is built for
+  status derivation (`mkStatusEnv`, §Declarative Duty and Promise status), which has no access
+  Request
 - `Agent`   — the requesting agent (`Request.requestingAgent`; what `rl2:currentAgent` resolves to)
 - `Asset`   — the requested asset
 - `Snapshot` — the immutable `WorldSnapshot`
 - `Configuration` — profiles, bounds, trust parameters, and conflict strategy
+
+When `Request` is absent, every `request.*` path resolves to
+`Invalid({ site: Path(path), target: None })` (§`requestField`), consistent with the status
+environment's rule that `request.*` is invalid outside an access Request.
+
+The fields do not correspond one-to-one with the canonical path roots (`request.*`, `agent.*`,
+`asset.*`, `state.*`, `context.*`, `global.*`); several roots are backed by `Snapshot`, and two
+fields back no root at all:
+
+| Path root  | Backing `Env` field(s) |
+|------------|-------------------------|
+| `request.*` | `Request` — the three core Request fields only (§`deref`) |
+| `agent.*`   | `Snapshot` — facts under `AgentScope(Agent)`; `Agent` supplies the scope identity, not the data |
+| `asset.*`   | `Snapshot` — facts under `AssetScope(Asset)`; `Asset` supplies the scope identity, not the data |
+| `state.*`   | `Snapshot` — `state.Clock` is `Snapshot.evaluationTime`; other `state.*` paths are `StateScope` facts |
+| `context.*` | `Snapshot` — `EvaluationScope` facts |
+| `global.*`  | `Snapshot` — `GlobalScope` facts |
+
+`Universe` backs no path root: it supplies the policy graph and term-inclusion indexes used by
+matching, action-ancestor lookups, and status derivation. `Configuration` backs no path root: it
+supplies the profile, bound, trust, and conflict-strategy parameters consulted during resolution.
 
 `context.*` and `global.*` are scoped fact paths within `Snapshot`; they are not separate live
 objects. `Env` contains no callback, source adapter, or mutable record.
@@ -616,7 +637,7 @@ deref(path, op, Env) =
                                       Env.Snapshot, Env.Configuration)
 ```
 
-`requestField(None,_,path)` returns `Invalid(OperandSite(path))`; a request path therefore cannot
+`requestField(None,_,path)` returns `Invalid({ site: Path(path), target: None })`; a request path therefore cannot
 silently read a Duty or Promise status environment. `factKey` is total over canonical fact paths
 when the required scope is present:
 
@@ -784,13 +805,14 @@ is required; merely observing the invariant as true at `evaluationTime` is insuf
 Promise status is derived without a Promise state machine:
 
 ```
-promiseStatus(Promise(p,q,s?,content), U, W, C) =
+promiseStatus(pr, U, W, C) =
+    let Promise(p,q,s?,content) = pr in
     case content of
         PromisedAction(x) →
             case s? of
                 None → IndeterminateStatus({
-                    Missing({ site: StatusSite(PromiseTarget(p)),
-                              target: Some(PromiseTarget(p)) }) })
+                    Missing({ site: StatusSite(PromiseTarget(pr)),
+                              target: Some(PromiseTarget(pr)) }) })
                 Some(s) → case selectEvidence(actionSelector(p,x,s,None,U), W, C) of
                     Err(e)    → IndeterminateStatus({e})
                     Ok(∅)     → Known(Pending)
@@ -1276,9 +1298,11 @@ do not produce access-decision `indeterminate` atoms.
 and policy that produced it. Atom equality is structural: `(atom-kind,n,P)` for
 definite atoms and `(indeterminate,n,P,causes)` for Unknown atoms. `causes` is itself a canonical
 set, so its enumeration order cannot create a second atom. Two policies granting the same
-`(a,x,s)` shape remain distinct atoms with independent provenance because `n` is unique per
-policy. For an attached Duty, `P` contains at least one Privilege that references it; the Duty
-itself is not in `P.clauses`. Resolution consumes this attributed envelope.
+`(a,x,s)` shape remain distinct atoms with independent provenance because atom equality includes
+`P`: even the same Norm `n` — SHACL permits one Norm to be a clause of multiple Policies — still
+yields one distinct atom per owning Policy. For an attached Duty, `P` contains at least one
+Privilege that references it; the Duty itself is not in `P.clauses`. Resolution consumes this
+attributed envelope.
 
 ### Monotonicity of Derivation
 

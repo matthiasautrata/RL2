@@ -232,15 +232,6 @@ projection and validation.
 
 ## 12. Related Work
 
-RL2 follows a substantial body of work on ODRL formalization and evaluation. Relevant starting
-points include:
-
-- the [ODRL Formal Semantics](https://w3c.github.io/odrl/formal-semantics/) work;
-- Steyskal and Polleres, *Towards a Formal Semantics for ODRL Policies*;
-- Pucella and Weissman, *A Formal Foundation for ODRL*;
-- Fornara and Colombetti's work on operational semantics for ODRL;
-- Makinson and van der Torre, *Input/Output Logics*; and
-- the [ODRL Profile Best Practices](https://www.w3.org/community/reports/odrl/CG-FINAL-profile-bp-20240808.html).
-
-The bibliography in `../docs/RL2_References.md` supplies full citations. These works motivate the
-need for explicit interpretation but do not substitute for RL2 conformance vectors.
+See `../docs/RL2_References.md` for the full bibliography of ODRL formalization and evaluation
+work that motivates RL2's explicit interpretation; those works do not substitute for RL2
+conformance vectors.

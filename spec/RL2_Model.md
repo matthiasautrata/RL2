@@ -179,15 +179,20 @@ resolveFact(k, τ, p, W, C) =
         f in W.facts |
         f.key = k and contains(f.validDuring, W.evaluationTime)
     }
-    in if candidates = empty then Err(Missing(k))
+    in if candidates = empty then Err(Missing({ site: SnapshotSite(k.path), target: None }))
        else if any f in candidates is not admissibleFact(p, f.attribution, C)
-            then Err(Invalid(k))
+            then Err(Invalid({ site: SnapshotSite(k.path), target: None }))
        else if any f.value is not of type τ
-            then Err(Invalid(k))
+            then Err(Invalid({ site: SnapshotSite(k.path), target: None }))
        else let values = distinctSemanticValues(candidates)
             in if |values| = 1 then Ok(the element of values)
-               else Err(Conflict(k))
+               else Err(Conflict({ site: SnapshotSite(k.path), target: None }))
 ```
+
+Each `Err` carries the canonical `ErrorKey` record defined in `RL2_Semantics.md` (§Result and
+Truth Algebra): `site` identifies the failing snapshot path via `SnapshotSite(String)`, and
+`target` is the `StateTarget?` of the Duty or Promise being evaluated, when the fact lookup is
+part of status derivation, or `None` for an ordinary operand lookup.
 
 Equal values asserted under different identifiers therefore agree; they do not create a
 conflict. Distinct values for a single-valued key conflict. A profile that needs multiple values

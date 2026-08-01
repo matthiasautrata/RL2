@@ -22,13 +22,13 @@ ex:CustomerDataset a rl2:Asset .
 ex:inspect a rl2:Action .
 
 ex:datasetAge a rl2:LeftOperand ;
-    rdfs:range xsd:duration ;
+    rdfs:range xsd:dayTimeDuration ;
     rl2:resolutionPath "asset.metadata.datasetAge" .
 
 ex:isFresh a rl2:AtomicConstraint ;
     rl2:leftOperand ex:datasetAge ;
     rl2:constraintOperator rl2:lte ;
-    rl2:rightOperand "PT6H"^^xsd:duration .
+    rl2:rightOperand "PT6H"^^xsd:dayTimeDuration .
 
 ex:freshnessPromise a rl2:Promise ;
     rl2:promisor ex:Provider ;
@@ -61,4 +61,4 @@ World snapshot: `asset.metadata.datasetAge` is either `PT2H` or `PT7H`.
 
 ## Expected result
 
-At `PT2H`, `freshnessDuty` is `Active`. At `PT7H`, it is `Violated`. The evaluator classifies the Duty; remediation is outside the policy decision.
+At `PT2H`, `freshnessDuty` is `Active`. At `PT7H`, it is `Violated`. The evaluator classifies the Duty; remediation is outside the policy decision. No clause in `freshnessAgreement` grants, denies, or attaches a prerequisite to the `inspect` action, so the request's decision is `NotApplicable`; the `inspect` action illustrates status inspection only and is not itself governed by this Agreement.

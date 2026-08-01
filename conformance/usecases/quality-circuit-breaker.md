@@ -72,4 +72,4 @@ World snapshot: `asset.quality.errorRate` is `0.02` or `0.08`.
 
 ## Expected result
 
-At `0.02`, the request is `Permit`. At `0.08`, it is `Deny` and the incident-reporting Duty is active.
+At `0.02`, the request is `Permit`. At `0.08`, it is `Deny` and the incident-reporting Duty's derived status is `Active` — a status-map entry for the independent Duty, not an `obligate` atom for the `read` request; the Duty is subject `DataTeam` acting `report` on `QualityIncident`, distinct from this request's subject, action, and object.
