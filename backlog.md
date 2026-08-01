@@ -100,6 +100,7 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
 | Assembly contract → normative | A deployment exercises `assemble()` |
 | RDFC-1.0 source-RDF digests | Cross-party identity over raw RDF re-ingestion |
 | Violation-evidence vocabulary for the Remedies profile | Cross-party remedy interop |
+| Declarative operator DSL with a normative interpreter (machine-checkable profile-operator semantics, replacing prose denotations) | A profile requires machine-verified operator semantics (e.g. the Lean-verified evaluator track) |
 
 ## 7. Do not relitigate
 
@@ -134,3 +135,9 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   `TranslationConfiguration` must declare per profile/policy whether it means
   `prerequisiteDuty` or `consequentDuty`; an undeclared interpretation is
   `MissingTranslationInterpretation`.
+- F-03 (plug-in `rl2:ProfileOperator` semantics unconstrained): operators stay (D8), quarantined —
+  the declaring profile must ship a total-function denotation (same register as core `apply`) plus
+  positive/negative conformance vectors, or the profile is non-conforming; STRICT core conformance
+  (`spec/RL2_Compilation.md` §8, §10) excludes profile operators entirely; a request-independent
+  profile judgment should be precomputed as a `WorldSnapshot` fact rather than declared as an
+  operator.

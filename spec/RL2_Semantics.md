@@ -1061,6 +1061,14 @@ instanceOf(VURI(u), VURI(c), U) =
 Canonical projection computes the finite `rdf:type`/`rdfs:subClassOf` closure used by `isA`.
 Profiles that use `isA` must supply the relevant classes and hierarchy in the policy universe.
 
+A profile may extend the operator set beyond these ten via a declared `rl2:ProfileOperator` (see
+`RL2_Compilation.md` §9.1). Such a declaration is conforming only when the profile's own normative
+document supplies a denotation that extends `apply` as a pure **total** function over the operator's
+declared `leftParamType`/`rightParamType` pair — every input pair maps to `True`, `False`, or a typed
+`EvalError`, with no partiality and no host discretion, exactly as `apply` is defined above for the
+core operators. Core conformance claims quantify over the ten core comparison operators enumerated
+here only; implementing a profile's operators is that profile's own, separate conformance claim.
+
 ---
 
 ## Denotational Semantics for Norms

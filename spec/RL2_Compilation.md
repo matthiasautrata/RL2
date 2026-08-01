@@ -355,6 +355,14 @@ correctly, as properties of the data, never eliminated by compilation.
 These are normative obligations now; a mechanized (e.g. Lean) proof is future work and does not
 gate conformance.
 
+**Scope: core operators only.** The evaluation-determinism obligation above is stated over modules
+whose atomic constraints use the ten core comparison operators (§Denotational Semantics,
+`RL2_Semantics.md`). A module that uses a `rl2:ProfileOperator` (§9.1) is deterministic *relative to*
+that profile's own normative denotation — the theorem's guarantee still holds conditional on the
+denotation being a pure total function, exactly as required — but cross-implementation agreement on
+the operator's actual output is a separate, per-profile conformance claim, checked by that profile's
+vector suite, not part of core STRICT conformance (§10).
+
 ### 8.1 Site partition
 
 `RL2_Semantics.md`'s `ErrorSite` grammar is:
@@ -435,6 +443,26 @@ operators is established the same way as core conformance — by that profile's 
 against `OperandTypeMismatch` and `UnknownOperator` at the `link`/`type` stages when a
 policy misuses the declared signature.
 
+**Normative denotation requirement.** Declaring a `rl2:ProfileOperator` is not by itself enough to
+make a profile conforming. The declaration pins the operator's *identity* (name, digest, parameter
+types); it does not pin its *behavior*, so two evaluators can compile the same profile digest and
+still disagree on what the operator returns. A conforming profile MUST therefore also supply, in
+the profile's own normative document, a **denotation**: a definition of the operator as a pure
+**total** function over its declared `leftParamType`/`rightParamType` pair, in the same register as
+`apply` (`RL2_Semantics.md`, `apply : Operator × Value × Value × Env → Boolean`) defines the ten core
+comparison operators — every input pair in the declared domain maps to `True`, `False`, or a typed
+`EvalError`; no partiality, and no discretion left to the host implementation. A
+`rl2:ProfileOperator` declaration without such a denotation makes the profile non-conforming. The
+profile MUST also ship conformance vectors exercising each declared operator, both positive
+(operator returns `True`) and negative (operator returns `False`, and, where the denotation admits
+one, the `EvalError` case).
+
+**Doctrine note (non-normative).** When the profile-specific judgment is request-independent — e.g.
+"these two parties are in the same jurisdiction group" — prefer precomputing it as a typed,
+attributed `WorldSnapshot` fact at assembly time rather than declaring an operator for it. Reserve a
+`rl2:ProfileOperator` for genuine per-request value-pair comparisons that cannot be tabulated at
+assembly time.
+
 ```turtle
 @prefix rl2:     <https://w3id.org/rl2#> .
 @prefix privacy: <https://w3id.org/rl2/profiles/privacy#> .
@@ -446,6 +474,9 @@ privacy:sameJurisdictionGroup a rl2:ProfileOperator ;
     rl2:leftParamType privacy:Jurisdiction ;
     rl2:rightParamType privacy:Jurisdiction .
 ```
+
+This declaration alone is not conforming; the privacy profile's own normative text is where
+`sameJurisdictionGroup`'s total-function denotation (and its conformance vectors) must live.
 
 ## 10. Conformance
 
@@ -468,3 +499,12 @@ re-run phase (1) or phase (2) checks itself. A conforming interchange participan
 API, a replay tool) uses the JSON Schemas of §7 for `Request`, `WorldSnapshot`,
 `EvaluationConfiguration`, and `EvaluationResult`, and the canonical serialization of §5.1 for
 `CompiledPolicyModule` and `ProfileModule` digests.
+
+**Profile operators are outside core conformance.** Clauses 3–5 above (byte-identical projection,
+byte-identical diagnostics, byte-identical evaluation results — STRICT conformance) quantify over
+policies whose atomic constraints use core comparison operators only. An implementation MAY claim
+full core conformance, including STRICT conformance, without implementing any `rl2:ProfileOperator`
+(§9.1). Conversely, "conforms to profile P" is a distinct claim: it requires implementing every
+operator P declares, per P's own normative denotation (§9.1), and passing P's conformance vector
+suite in full. Core conformance and profile conformance are independently checkable and neither
+implies the other.

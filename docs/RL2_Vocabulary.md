@@ -159,6 +159,12 @@ A `rl2:ProfileOperator` declares exactly one `leftParamType` and one `rightParam
 to a supported, in-scope operator and checking it against its declared signature are compile-time
 checks (`../spec/RL2_Compilation.md` §9.1), not SHACL structural ones.
 
+Declaring a `rl2:ProfileOperator` is not by itself conforming: the declaring profile's own normative
+document must also supply a total-function denotation for the operator (same register as core
+`apply`) plus positive/negative conformance vectors, or the profile is non-conforming
+(`../spec/RL2_Compilation.md` §9.1). Core conformance, including STRICT conformance
+(`../spec/RL2_Compilation.md` §10), does not require implementing any profile operator.
+
 ## 8. Snapshot Operands
 
 | Term | Meaning |
