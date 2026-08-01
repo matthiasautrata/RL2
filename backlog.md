@@ -102,7 +102,8 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
 | Evidence-existence operand (event-triggered activation, Cimmino P4d) | Migration demand |
 | `rl2:enforcementMode` metadata (regimentation vs sanction, eval-ignored) | PEP integration work |
 | Policy containment / conflict detection tooling (SMT over the 3-valued condition language; authoring-time, no solver in Eval) | Negotiation or change-impact requirements |
-| Assembly contract → normative | A deployment exercises `assemble()` |
+| Assembly contract → normative | A deployment exercises `assemble()`, at which point the informative `SelectedPolicyUniverse` manifest (`docs/RL2_ExternalData.md` §6) also becomes normative |
+| Port churn under a live agreement (product terms extending to later-created ports; amendment/lifecycle) | A deployed data product creates ports under an existing Agreement |
 | RDFC-1.0 source-RDF digests | Cross-party identity over raw RDF re-ingestion |
 | Violation-evidence vocabulary for the Remedies profile | Cross-party remedy interop |
 | Declarative operator DSL with a normative interpreter (machine-checkable profile-operator semantics, replacing prose denotations) | A profile requires machine-verified operator semantics (e.g. the Lean-verified evaluator track) |
@@ -154,3 +155,11 @@ Settled during the 2026-08-01 review cycle (rationale in commit messages and the
   `sh:Warning` never rejects but must be reported; canonical report projection is
   `(source shape IRI, focus node, result path, severity)`, deduplicated and sorted, messages
   excluded.
+- F-06/F-07 (Offer bundling / output-port boundary): no `materializeBundle` and no overloading
+  `rl2:Offer`/`requiresProfile` to carry a bundle of tagged `Set` policies —
+  `materialize(Offer, Acceptance)` stays single-Offer. Concrete-at-acceptance data products (Level
+  1) are expressed with one Promise per named output port plus a product-wide prerequisite
+  attestation Duty (see `conformance/usecases/data-product-offer.md`). Per-request policy-universe
+  selection (e.g. tag-based, per port/asset) is the assembler's job, kept replayable via the
+  informative `SelectedPolicyUniverse` manifest (`docs/RL2_ExternalData.md` §6), not a kernel
+  concept.

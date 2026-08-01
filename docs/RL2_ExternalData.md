@@ -115,7 +115,41 @@ machinery — the same way any other derived value is checked. RL2 Core does not
 "freshness" operator; `observedAt` is exposed as an ordinary resolvable `DateTime` value, checked
 with `lte`/`gte` like any other.
 
-## 6. Re-evaluation
+## 6. Replayable universe selection (informative)
+
+Some deployments do not bake every possible policy into one static `PolicyUniverse`. Instead a
+trusted assembler chooses, per request, which `CompiledPolicyModule`s belong in the universe that
+particular request is evaluated against — for example selecting by asset or port tag rather than by
+authoring-time enumeration. `Eval` itself is unaffected: it still takes one fixed `PolicyUniverse`
+(`RL2_Model.md` §3, `RL2_Semantics.md`) and has no notion of "selection." Making the selection step
+itself replayable is therefore an assembly-side concern, informative here, not a change to `Eval`'s
+signature.
+
+A `SelectedPolicyUniverse` manifest records that assembler-side decision as a plain, replayable
+record:
+
+- **selected policy digests** — the `CompiledPolicyModule` digests (`RL2_Compilation.md` §5.1) that
+  the assembler assembled into the `PolicyUniverse` for this evaluation;
+- **selector identity and version** — which selection logic, and which version of it, made the
+  choice;
+- **selection inputs** — the inputs that drove the selection itself (e.g. the asset/port tags or
+  request attributes consulted to choose modules), distinct from the `WorldSnapshot` facts `Eval`
+  later consults;
+- **selection time** — when the selection was made, distinct from the snapshot's `evaluationTime`.
+
+An `EvaluationResult`'s interchange schema already carries the digest of the one compiled module it
+ran against, alongside `evaluationTime` and the applied `EvaluationConfiguration`
+(`RL2_Compilation.md` §7), so a result is independently re-derivable — it tells you *what* was
+decided. The `SelectedPolicyUniverse` manifest is a distinct, complementary record: it tells you
+*why these policies* were in the universe evaluated, i.e. how the assembler arrived at that set of
+digests in the first place. An `EvaluationResult` MAY carry the manifest's digest as optional
+interchange metadata alongside its existing replay-anchoring fields.
+
+This section is informative only: `SelectedPolicyUniverse` has no SHACL shape and does not change
+`Eval`'s signature or `EvaluationResult`'s normative fields. It becomes normative when the assembly
+contract (`assemble()`, `backlog.md` §6) does.
+
+## 7. Re-evaluation
 
 An application may request missing inputs, refresh a snapshot, and evaluate again. Each call is a
 separate evaluation over one immutable input. RL2 does not standardize subscription, polling,
