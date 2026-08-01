@@ -168,23 +168,9 @@ rl2:DutyShape a sh:NodeShape ;
 
 rl2:DutyWindowShape a sh:NodeShape ;
     sh:targetClass rl2:DutyWindow ;
-    sh:property [
-        sh:path rl2:startInclusive ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:datatype xsd:dateTimeStamp ;
-        sh:message "A DutyWindow must have exactly one timezone-qualified startInclusive instant."
-    ] ;
-    sh:property [
-        sh:path rl2:endExclusive ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:datatype xsd:dateTimeStamp ;
-        sh:message "A DutyWindow must have exactly one timezone-qualified endExclusive instant."
-    ] ;
     sh:sparql [
         a sh:SPARQLConstraint ;
-        sh:message "A DutyWindow must satisfy startInclusive < endExclusive." ;
+        sh:message "A DutyWindow with both endpoints Absolute must satisfy startInclusive < endExclusive. (Relative endpoints resolve at evaluation time and are not statically orderable.)" ;
         sh:select """
             PREFIX rl2: <https://rl2.example/ontology#>
             SELECT $this WHERE {
@@ -194,6 +180,47 @@ rl2:DutyWindowShape a sh:NodeShape ;
             }
         """
     ] .
+
+# Each endpoint of a DutyWindow (P12) is independently Absolute (a literal instant) or Relative
+# (an anchor LeftOperand + a duration offset). Split into two shapes, one per endpoint, so each
+# gets its own violation message.
+rl2:DutyWindowStartEndpointShape a sh:NodeShape ;
+    sh:targetClass rl2:DutyWindow ;
+    sh:xone (
+        [
+            sh:property [ sh:path rl2:startInclusive ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:datatype xsd:dateTimeStamp ] ;
+            sh:property [ sh:path rl2:startRelativeTo ; sh:maxCount 0 ] ;
+            sh:property [ sh:path rl2:startOffset ; sh:maxCount 0 ]
+        ]
+        [
+            sh:property [ sh:path rl2:startRelativeTo ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:class rl2:LeftOperand ] ;
+            sh:property [ sh:path rl2:startOffset ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:datatype xsd:dayTimeDuration ] ;
+            sh:property [ sh:path rl2:startInclusive ; sh:maxCount 0 ]
+        ]
+    ) ;
+    sh:message "A DutyWindow start endpoint must be exactly one of Absolute (startInclusive alone) or Relative (startRelativeTo paired with startOffset, and vice versa)." .
+
+rl2:DutyWindowEndEndpointShape a sh:NodeShape ;
+    sh:targetClass rl2:DutyWindow ;
+    sh:xone (
+        [
+            sh:property [ sh:path rl2:endExclusive ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:datatype xsd:dateTimeStamp ] ;
+            sh:property [ sh:path rl2:endRelativeTo ; sh:maxCount 0 ] ;
+            sh:property [ sh:path rl2:endOffset ; sh:maxCount 0 ]
+        ]
+        [
+            sh:property [ sh:path rl2:endRelativeTo ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:class rl2:LeftOperand ] ;
+            sh:property [ sh:path rl2:endOffset ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:datatype xsd:dayTimeDuration ] ;
+            sh:property [ sh:path rl2:endExclusive ; sh:maxCount 0 ]
+        ]
+    ) ;
+    sh:message "A DutyWindow end endpoint must be exactly one of Absolute (endExclusive alone) or Relative (endRelativeTo paired with endOffset, and vice versa)." .
 
 # Prohibition shape
 rl2:ProhibitionShape a sh:NodeShape ;
@@ -323,6 +350,28 @@ rl2:NormStateConstraintShape a sh:NodeShape ;
         sh:minCount 1 ;
         sh:or ( [ sh:class rl2:Duty ] [ sh:class rl2:Promise ] ) ;
         sh:message "AtomicConstraint with obligationStateOperand must specify a Duty or Offer-local Promise targetNorm."
+    ] .
+
+# 0.7 restriction (P8): a Maintenance Duty's or Promise's invariant admits only fact-resolving
+# operands and clock comparisons; obligationStateOperand is rejected there at canonical
+# projection. Status operands remain permitted in applicability conditions (rl2:condition),
+# which this shape does not target. Nesting inside a Condition tree uses the repeatable
+# rl2:operand property (LogicalConstraint -> Condition), not an RDF list, so the property path
+# (rl2:operand)* below reaches an AtomicConstraint at any nesting depth in one query; no depth
+# limit is needed.
+rl2:InvariantOperandRestrictionShape a sh:NodeShape ;
+    sh:targetClass rl2:AtomicConstraint ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A Maintenance Duty's or Promise's invariant may not contain obligationStateOperand in RL2 0.7; status operands are permitted only in applicability conditions." ;
+        sh:select """
+            PREFIX rl2: <https://rl2.example/ontology#>
+            SELECT $this WHERE {
+                $this rl2:leftOperand rl2:obligationStateOperand .
+                ?owner rl2:invariant ?root .
+                ?root (rl2:operand)* $this .
+            }
+        """
     ] .
 
 # A Promise target and every condition that queries it belong to one Offer, allowing complete
@@ -487,8 +536,8 @@ rl2:LeftOperandShape a sh:NodeShape ;
         sh:path rl2:resolutionPath ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
-        sh:pattern "^((agent|asset|context|state|global)\\.[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*|request\\.(requestingAgent|requestedAction|requestedAsset))$" ;
-        sh:message "resolutionPath must be a canonical scoped path; request paths are limited to the three core Request fields."
+        sh:pattern "^((agent|asset|context|state|global)\\.[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*|request\\.(requestingAgent|requestedAction|requestedAsset|parameters\\.[A-Za-z_][A-Za-z0-9_]*))$" ;
+        sh:message "resolutionPath must be a canonical scoped path; request paths are limited to requestingAgent, requestedAction, requestedAsset, or parameters.<name>."
     ] .
 
 # Every profile-defined operand declares its snapshot path. Core operands have built-in rules.

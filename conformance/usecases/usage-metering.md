@@ -6,7 +6,7 @@ A subscriber may run analytics queries while the requested query count plus the 
 
 ## Why it matters
 
-Metered rights require an unambiguous admission test. RL2 evaluates a supplied immutable quota observation; it does not update the counter.
+Metered rights require an unambiguous admission test. RL2 evaluates a supplied immutable quota observation; it does not update the counter. This use case keeps the fully precomputed-fact style throughout; compare `volume-limit.md`, which additionally checks a fixed per-request ceiling directly against `request.parameters.requestedRecords` — both styles remain valid in RL2 0.7.
 
 ## Canonical policy
 

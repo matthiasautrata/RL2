@@ -8,6 +8,15 @@ A logistics recipient may process shipment data for route optimization. Once the
 
 Completion evidence activates the deletion duty; deletion status is then derived from the same immutable snapshot. RL2 does not perform deletion or maintain a workflow state machine.
 
+The deletion deadline is "within 24 hours of completion" — a relative deadline anchored to a
+snapshot fact, not a calendar date fixed at authoring time. The duty window is expressed with
+`rl2:startRelativeTo`/`rl2:endRelativeTo` anchored to the completion timestamp fact, each with a
+`rl2:startOffset`/`rl2:endOffset`, rather than by precomputing an absolute expiry and baking it
+into the policy RDF. Policy meaning therefore stays in the policy: replaying this Agreement
+against a snapshot with a different completion time yields a different, correctly shifted window,
+which a hardcoded absolute window could not do. Compare `data-retention-limit.md`, which keeps the
+absolute-endpoint style for a fixed contractual date — both endpoint forms remain valid.
+
 ## Canonical policy
 
 ```turtle
@@ -24,6 +33,9 @@ ex:delete a rl2:Action .
 ex:processingComplete a rl2:LeftOperand ;
     rdfs:range xsd:boolean ;
     rl2:resolutionPath "global.routeOptimization.completed" .
+ex:completedAt a rl2:LeftOperand ;
+    rdfs:range xsd:dateTimeStamp ;
+    rl2:resolutionPath "global.routeOptimization.completedAt" .
 
 ex:routeOptimization a rl2:Privilege ;
     rl2:subject ex:Recipient ; rl2:action ex:optimizeRoute ; rl2:object ex:ShipmentData .
@@ -33,8 +45,8 @@ ex:deleteAfterCompletion a rl2:Duty ;
     rl2:condition [ a rl2:AtomicConstraint ; rl2:leftOperand ex:processingComplete ;
         rl2:constraintOperator rl2:eq ; rl2:rightOperand true ] ;
     rl2:dutyWindow [ a rl2:DutyWindow ;
-        rl2:startInclusive "2026-08-01T12:00:00Z"^^xsd:dateTimeStamp ;
-        rl2:endExclusive "2026-08-02T12:00:00Z"^^xsd:dateTimeStamp ] .
+        rl2:startRelativeTo ex:completedAt ; rl2:startOffset "PT0S"^^xsd:dayTimeDuration ;
+        rl2:endRelativeTo ex:completedAt ; rl2:endOffset "P1D"^^xsd:dayTimeDuration ] .
 
 ex:shipmentAgreement a rl2:Agreement ;
     rl2:grantor ex:LogisticsCompany ; rl2:grantee ex:Recipient ;
@@ -45,7 +57,10 @@ ex:shipmentAgreement a rl2:Agreement ;
 
 Request: `(Recipient, optimizeRoute, ShipmentData)`.
 
-World snapshot: `global.routeOptimization.completed = true` with completion time `2026-08-01T12:00:00Z`; the stated duty window is the resulting 24-hour period. Deletion evidence is supplied separately.
+World snapshot: `global.routeOptimization.completed = true` and
+`global.routeOptimization.completedAt = 2026-08-01T12:00:00Z`. `resolveWindow` resolves the duty
+window to `[2026-08-01T12:00:00Z, 2026-08-02T12:00:00Z)` — the anchor plus each offset. Deletion
+evidence is supplied separately.
 
 ## Expected result
 

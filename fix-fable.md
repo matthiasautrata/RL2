@@ -432,7 +432,9 @@ content. [G] offers both; take (b) for 0.7 and (a) as the lift, unless a use cas
 (a). Add vectors for nested status references at exact start/evidence/end instants either way.
 Algorithm sketch in §3.3.
 
-### P9 · Narrow the canonical-form claim; canonicalize the enumerated duplicates
+### P9 · Narrow the canonical-form claim; canonicalize the enumerated duplicates — DECIDED
+2026-08-01 (all three recommendation items confirmed, incl. normalizing the five
+status-condition-gating use cases onto `prerequisiteDuty`)
 
 **Origin:** [G] C2-1 (the sharper analysis) merged with [O] R3/§9.3 (the concrete exception
 patterns and their `Unknown` divergence).
@@ -518,6 +520,15 @@ proof intact.
 
 ### P13 · Request parameters — DECIDED 2026-08-01
 
+**Gap surfaced during execution (recorded, not decided):** RL2 conditions compare a resolved
+left operand against an *authored* right side (literal, IRI constant, or the sole
+`RuntimeReference` `rl2:currentAgent`) — a **fact-vs-fact comparison** ("request.parameters
+.requestedRecords ≤ global.quota.remainingRecords") is not expressible; the dynamic side must be
+precomputed by the assembler into an admission fact. Candidates if demand materializes: widen
+`RuntimeReference` to resolvable paths (touches determinism analysis in §3.1/3.2 — right side
+becomes symbolic), or keep assembler-side precomputation as the doctrine. Deferred; revisit with
+the Commercial profile, whose metering scenarios are where this bites.
+
 **Origin:** [O] O4; corroborated by [G] §5.6 (multi-level-approval binds approval to "project P"
 that the Request cannot carry) and by both metering use cases whose prose invents Request fields
 that don't exist.
@@ -594,9 +605,9 @@ strengths).
   obligation. Formal grammar only; the RDF surface (`rl2:action` xor `rl2:invariant`) is
   unchanged, so no policy is affected. Land before freezing the P1 module format, which encodes
   it.
-- **One action property**: `rl2:prohibitedAction` duplicates `rl2:action` (modality is already
-  carried by the class; `actionMatches` treats them identically), held apart only by a SHACL
-  message. Unify on `rl2:action`, or document why import fidelity requires the split.
+- **One action property — DECIDED 2026-08-01: unify on `rl2:action`.** `rl2:prohibitedAction` is
+  deleted; Prohibitions use `rl2:action` like every other norm (modality is carried by the
+  class). Mechanical corpus migration rides along.
 - **Bounds normative and complete** (+[G] C2-5): the complexity section is non-normative yet
   requires bound enforcement. Move bounds into a normative section; split into authoring bounds
   (rejected at compile) vs input bounds (rejected at snapshot admission) with stated failure

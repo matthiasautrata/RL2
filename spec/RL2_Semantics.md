@@ -81,11 +81,22 @@ exactly one derived status (§Duty Status Derivation), which is read once and re
 regardless of how many roles or owners consult it.
 
 ```
-DutyWindow = [startInclusive: Time, endExclusive: Time)
+WindowEndpoint ::= Absolute(DateTime) | Relative(LeftOperand, Duration)
+DutyWindow = [start: WindowEndpoint, end: WindowEndpoint)
 ```
 
 The window is finite when present. Absence means unbounded; it is not a second RDF spelling for an
-interval with omitted endpoints.
+interval with omitted endpoints. Each endpoint is independently `Absolute` (the existing literal
+instant, `rl2:startInclusive`/`rl2:endExclusive`) or `Relative` (an anchor `LeftOperand` plus a
+`Duration` offset, `rl2:startRelativeTo`+`rl2:startOffset` / `rl2:endRelativeTo`+`rl2:endOffset`);
+see `resolveWindow` below for how a `Relative` endpoint becomes a concrete instant. A `DutyWindow`
+denotes exactly one half-open interval. Recurring obligations ("ready at 8am every Monday") are
+out of scope for 0.7: a Maintenance or Achievement Duty materialized from a recurring commitment
+covers only its current occurrence. The deployment pattern is either a snapshot assembler that
+instantiates the current period's window, or a profile-defined operand that carries the schedule.
+A bounded recurrence form — a fixed period and count, expanded at compile time into finitely many
+`DutyWindow` occurrences — is the candidate future extension; compile-time expansion keeps `Eval`
+and the cell-partition argument (§Maintenance status, boundary completeness) unchanged.
 
 #### Promises
 
@@ -349,7 +360,7 @@ fields back no root at all:
 
 | Path root  | Backing `Env` field(s) |
 |------------|-------------------------|
-| `request.*` | `Request` — the three core Request fields only (§`deref`) |
+| `request.*` | `Request` — the three core scalar fields plus `request.parameters.<name>` (§`deref`) |
 | `agent.*`   | `Snapshot` — facts under `AgentScope(Agent)`; `Agent` supplies the scope identity, not the data |
 | `asset.*`   | `Snapshot` — facts under `AssetScope(Asset)`; `Asset` supplies the scope identity, not the data |
 | `state.*`   | `Snapshot` — `state.Clock` is `Snapshot.evaluationTime`; other `state.*` paths are `StateScope` facts |
@@ -661,9 +672,9 @@ A path exceeding `MaxPathDepth`, using another root, containing an empty segment
 `*`, `/`, `\\`, `%`, `..`, or an escape sequence is rejected during canonical projection. Paths
 are data keys, not filesystem or language-level member expressions.
 
-The only canonical `request.*` paths are `request.requestingAgent`,
-`request.requestedAction`, and `request.requestedAsset`. Any other `request.*` path is rejected
-during canonical projection.
+The canonical `request.*` paths are `request.requestingAgent`, `request.requestedAction`,
+`request.requestedAsset`, and `request.parameters.<name>` for a declared parameter name. Any other
+`request.*` path is rejected during canonical projection.
 
 ```text
 deref(path, op, Env) =
@@ -671,6 +682,7 @@ deref(path, op, Env) =
         "request.requestingAgent" → requestField(Env.Request, requestingAgent, path)
         "request.requestedAction" → requestField(Env.Request, requestedAction, path)
         "request.requestedAsset"  → requestField(Env.Request, requestedAsset, path)
+        "request.parameters." + name → requestParameter(Env.Request, name, path)
         "request." + _            → failure(Invalid, path, None,
                                              "unsupported core Request field")
         "state.Clock"             → Ok(Env.Snapshot.evaluationTime)
@@ -681,9 +693,31 @@ deref(path, op, Env) =
                                       Env.Snapshot, Env.Configuration)
 ```
 
+`resolveFact` and its `admissibleFact` admissibility check are defined in `RL2_Model.md` §4.2/§4.4,
+along with the normative threat model they operate under: `WorldSnapshot` is the output of a single
+trusted assembler, `resolveFact`'s strict poisoning rule (`Invalid` on any inadmissible candidate,
+never a silent fallback) is specified under that trust model, and mixed-trust filtering across
+sources is the assembler's responsibility before the snapshot is constructed — `Eval` performs no
+source-level trust arbitration of its own.
+
 `requestField(None,_,path)` returns `Invalid({ site: Path(path), target: None })`; a request path therefore cannot
-silently read a Duty or Promise status environment. `factKey` is total over canonical fact paths
-when the required scope is present:
+silently read a Duty or Promise status environment.
+
+```text
+requestParameter(None, _, path)    = failure(Invalid, path, None,
+                                             "request.parameters used outside an access Request")
+requestParameter(Some(R), name, path) =
+    case R.parameters[name] of
+        Some(v) → Ok(v)
+        None    → failure(Missing, path, None, "request parameter not supplied")
+```
+
+`request.parameters.<name>` resolves through the same discipline as any other operand: present
+under `name` is `Ok(value)`, using the same `Value` universe as every other operand (values are
+typed per the profile's declared operand range); absent is `Missing`, never a silent default.
+Attribution for either outcome is the Request itself, not a snapshot `AttributedFact` — the
+parameters map is immutable input to `Eval`, so this adds no impurity. `factKey` is total over
+canonical fact paths when the required scope is present:
 
 ```text
 factKey("agent."   + rest, a, _)       = Ok(AgentScope(a), canonicalPath)
@@ -695,9 +729,9 @@ factKey("state."   + rest, _, _)       = Ok(StateScope, canonicalPath)
 factKey("global."  + rest, _, _)       = Ok(GlobalScope, canonicalPath)
 ```
 
-`request.*` has exactly the three fields in the core Request. Additional request metadata must be
-a declared `context.*` fact or belong to an interchange profile; an evaluator cannot invent a
-fourth implicit Request field.
+`request.*` has exactly the three scalar fields in the core Request plus the `parameters` map.
+Additional request metadata must be a declared `context.*` fact or belong to an interchange
+profile; an evaluator cannot invent an implicit Request field beyond these four.
 
 The `global` root contains caller-supplied aggregate facts in `GlobalScope`. Computing a seat
 count, active-Agreement set, or other aggregate happens during snapshot assembly. `Eval` applies
@@ -720,14 +754,42 @@ from selecting one of the existing state individuals. Policy RDF contains no ass
 Promise status; every status is derived from the evaluation inputs.
 
 One Duty node denotes one occurrence. A present `dutyWindow` is the finite half-open interval
-`[startInclusive, endExclusive)`; absence is unbounded. The following predicates fix every
-boundary:
+`[start, end)`; absence is unbounded. When either endpoint is `Relative`,
+`resolveWindow` resolves it to a concrete interval once per evaluation, before `before`/`inside`/
+`closed` are applied:
 
 ```
-before(d, now) = d.window ≠ None ∧ now < d.window.startInclusive
-inside(d, t)   = d.window = None ∨
-                 d.window.startInclusive ≤ t < d.window.endExclusive
-closed(d, now) = d.window ≠ None ∧ now ≥ d.window.endExclusive
+resolveEndpoint(Absolute(t), d, U, W, C) = Ok(t)
+resolveEndpoint(Relative(op, dur), d, U, W, C) =
+    case resolve(op, mkStatusEnv(U, d.subject, Some(d.object), W, C), None) of
+        Ok(t : DateTime) → Ok(t + dur)
+        Ok(_)            → failure(Invalid, op, None, "window anchor did not resolve to a DateTime")
+        Err(e)           → Err(e)
+
+resolveWindow(None, d, U, W, C)  = Ok(None)
+resolveWindow(w, d, U, W, C) =
+    case (resolveEndpoint(w.start,d,U,W,C), resolveEndpoint(w.end,d,U,W,C)) of
+        (Ok(s), Ok(e)) | s < e → Ok(Some([s, e)))
+        (Ok(s), Ok(e))         → failure(Invalid, w, None, "resolved window is not start < end")
+        (rs, re)               → Err({ c | Err(c) ∈ {rs, re} })
+```
+
+The anchor resolves through the same `resolveFact`/`resolve` discipline as any other operand:
+`Missing` (the anchor fact is absent) or `Invalid` (it resolves to a non-`DateTime`) both make the
+endpoint — and therefore the whole window — unresolved; a resolved-but-degenerate interval
+(`start ≥ end`, only reachable when at least one endpoint is `Relative`, since materialization
+already excludes it for two `Absolute` endpoints) is likewise `Invalid` and unresolved. `before`,
+`inside`, and `closed` below operate on the window returned by `resolveWindow(d.window, d, U, W,
+C)`, computed once per evaluation and reused for every boundary check on that Duty or Promise
+occurrence. `dutyStatus` and `promiseStatus` (below) check `resolveWindow` first: a window
+resolution failure short-circuits to `IndeterminateStatus` carrying the resolution causes, before
+the `before`/`closed` gates or any body evaluation are attempted. The following predicates then fix
+every boundary over the resolved window `rw`:
+
+```
+before(rw, now) = rw ≠ None ∧ now < rw.start
+inside(rw, t)   = rw = None ∨ rw.start ≤ t < rw.end
+closed(rw, now) = rw ≠ None ∧ now ≥ rw.end
 ```
 
 At the start instant the Duty is assessable. Evidence at the end instant is outside the window;
@@ -752,8 +814,8 @@ selected evidence item is a qualifying witness. If present, it is evaluated at t
 time; later unrelated state cannot retroactively make an action successful:
 
 ```
-achievementCandidates(d, U, W, C) =
-    selectEvidence(actionSelector(d.subject, d.body.action, d.object, d.window, U), W, C)
+achievementCandidates(d, rw, U, W, C) =
+    selectEvidence(actionSelector(d.subject, d.body.action, d.object, rw, U), W, C)
 
 qualifies(d, e, U, W, C) =
     case d.body.postCondition of
@@ -763,36 +825,43 @@ qualifies(d, e, U, W, C) =
 
 `actionSelector(a,x,s,w,U)` selects evidence whose actor is `a`, whose object is `s`, whose action
 is equal to or included in `x` under `U.actionAncestors`, and whose occurrence time is inside `w`
-(or unrestricted when `w=None`). `selectEvidence` then applies the snapshot's attribution rules
-from `RL2_Model.md` §4.3.
+(or unrestricted when `w=None`). `w` here is the *resolved* window (see `resolveWindow` above),
+never an unresolved `Relative` endpoint. `selectEvidence` then applies the snapshot's attribution
+rules from `RL2_Model.md` §4.3.
 
-`achievementStatus` is total:
+`achievementStatus` is total; it takes the already-resolved window `rw` from its caller
+(`dutyStatus`), which performs `resolveWindow` once:
 
 ```
-achievementStatus(d, U, W, C) =
-    if before(d, W.evaluationTime) then Known(Pending)
-    else case achievementCandidates(d, U, W, C) of
+achievementStatus(d, rw, U, W, C) =
+    if before(rw, W.evaluationTime) then Known(Pending)
+    else case achievementCandidates(d, rw, U, W, C) of
         Err(e) → IndeterminateStatus({e})
         Ok(es) →
             let qs = [ qualifies(d,e,U,W,C) | e ∈ es ] in
             if ∃q ∈ qs : q.truth = True then Known(Fulfilled)
             else if ∃q ∈ qs : q.truth = Unknown then
                 IndeterminateStatus(⋃ { q.causes | q ∈ qs, q.truth = Unknown })
-            else if closed(d, W.evaluationTime) then Known(Violated)
+            else if closed(rw, W.evaluationTime) then Known(Violated)
             else Known(Active)
 ```
 
 No matching action evidence is `Ok(∅)`, not `Missing`: it means the Achievement has not yet been
 fulfilled. Relevant malformed, inadmissible, or conflicting evidence remains an error.
 
-For a windowed Maintenance Duty, `elapsed(d,now)` is the set of instants inside its window no
-later than `now`. `throughout` applies the existing three-valued condition semantics to every
-such instant:
+For a windowed Maintenance Duty, `elapsed(rw,now)` is the set of instants inside its resolved
+window no later than `now`:
 
 ```
-throughout(i, d, U, W, C) =
+elapsed(rw, now) = { t | inside(rw, t) ∧ t ≤ now }
+```
+
+`throughout` applies the existing three-valued condition semantics to every such instant:
+
+```
+throughout(i, rw, d, U, W, C) =
     let rs = { evalAt(i,t,U,d.subject,Some(d.object),W,C) |
-               t ∈ elapsed(d,W.evaluationTime) } in
+               t ∈ elapsed(rw,W.evaluationTime) } in
     if ∃r ∈ rs : r.truth = False then { truth: False, causes: ∅ }
     else if ∀r ∈ rs : r.truth = True then { truth: True, causes: ∅ }
     else { truth: Unknown,
@@ -807,18 +876,29 @@ boundaries, retaining singleton boundary cells when equality or inclusivity can 
 evaluates one representative per cell. An uncovered cell resolves the relevant fact as `Missing`
 and therefore yields `Unknown`.
 
+In RL2 0.7, a Maintenance Duty's or Promise's `rl2:invariant` admits only fact-resolving operands
+and clock comparisons (`currentDateTime`); `obligationStateOperand` inside an invariant is
+rejected at canonical projection. This restriction does not reach `rl2:condition`: status
+operands remain permitted in applicability conditions (`sla-credit-clause` relies on exactly
+this), and that placement is unaffected. The boundaries enumerated above — fact-validity
+endpoints, the Duty window, and literal time comparisons — are complete exactly for this operand
+class; an invariant referencing another norm's derived status would also change truth at that
+norm's own evidence and window boundaries, recursively, which the listed boundaries do not cover.
+Lifting the restriction requires the recursive boundary-collection extension over the compiled
+condition/status-dependency DAG, deliberately deferred beyond 0.7.
+
 ```
-maintenanceStatus(d, U, W, C) =
-    if before(d, W.evaluationTime) then Known(Pending)
-    else if d.window = None then
+maintenanceStatus(d, rw, U, W, C) =
+    if before(rw, W.evaluationTime) then Known(Pending)
+    else if rw = None then
         case evalAt(d.body.invariant,W.evaluationTime,U,d.subject,Some(d.object),W,C) of
             { truth: True, _ }       → Known(Active)
             { truth: False, _ }      → Known(Violated)
             { truth: Unknown, causes } → IndeterminateStatus(causes)
-    else let r = throughout(d.body.invariant, d, U, W, C) in
+    else let r = throughout(d.body.invariant, rw, d, U, W, C) in
             if r.truth = False then Known(Violated)
             else if r.truth = Unknown then IndeterminateStatus(r.causes)
-            else if closed(d, W.evaluationTime) then Known(Fulfilled)
+            else if closed(rw, W.evaluationTime) then Known(Fulfilled)
             else Known(Active)
 
 dutyApplicabilityResult(d, U, W, C) =
@@ -827,14 +907,21 @@ dutyApplicabilityResult(d, U, W, C) =
         Some(c) → ⟦c⟧(mkStatusEnv(U,d.subject,Some(d.object),W,C))
 
 dutyStatus(d, U, W, C) =
-    if before(d, W.evaluationTime) then Known(Pending)
-    else case dutyApplicabilityResult(d,U,W,C) of
-        { truth: False, _ }          → Known(Pending)
-        { truth: Unknown, causes }   → IndeterminateStatus(causes)
-        { truth: True, _ } → case d.body of
-            Achieve(_) → achievementStatus(d,U,W,C)
-            Maintain(_) → maintenanceStatus(d,U,W,C)
+    case resolveWindow(d.window, d, U, W, C) of
+        Err(causes) → IndeterminateStatus(causes)
+        Ok(rw) →
+            if before(rw, W.evaluationTime) then Known(Pending)
+            else case dutyApplicabilityResult(d,U,W,C) of
+                { truth: False, _ }          → Known(Pending)
+                { truth: Unknown, causes }   → IndeterminateStatus(causes)
+                { truth: True, _ } → case d.body of
+                    Achieve(_) → achievementStatus(d,rw,U,W,C)
+                    Maintain(_) → maintenanceStatus(d,rw,U,W,C)
 ```
+
+Window resolution happens once, before applicability or body evaluation, so an unresolved
+`Relative` endpoint (a `Missing` or `Invalid` anchor) makes the whole Duty `IndeterminateStatus`
+rather than silently falling through to `Pending` or a body-specific status.
 
 A false applicability guard therefore denotes a Duty that is not currently required and remains
 `Pending`; it is not a fulfilled Duty. A profile that needs a one-way trigger must provide a
@@ -1176,8 +1263,12 @@ shapes. The input is valid only when:
 4. `primaryIds` has domain `PromiseClauses(O) ∪ localNorms(O)`, the optional maps have no other
    keys, and the identity map satisfies the freshness and injectivity rule;
 5. every promised action or state has exactly one object after applying `objectBindings`;
-6. every `dutyWindows[p]` satisfies
-   `dutyWindows[p].startInclusive < dutyWindows[p].endExclusive`;
+6. every `dutyWindows[p]` whose `start` and `end` are both `Absolute` satisfies
+   `dutyWindows[p].start < dutyWindows[p].end`; a `dutyWindows[p]` with a `Relative` endpoint is
+   structurally valid here regardless of ordering, since `materialize` reads no snapshot and
+   cannot resolve an anchor — ordering for a `Relative` endpoint is checked at Eval time by
+   `resolveWindow` (§Declarative Duty and Promise status), which yields `IndeterminateStatus` if
+   the resolved interval is degenerate or the anchor fails to resolve;
 7. every Promise-valued `targetNorm` occurring in the Offer's policy condition, clause conditions,
    Promise content, or attached prerequisite Duties targets a Promise clause of that same Offer;
 8. every reference to a clause of `O` has a corresponding `primaryIds` entry; and

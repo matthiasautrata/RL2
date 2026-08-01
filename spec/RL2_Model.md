@@ -46,7 +46,8 @@ A core request is the proposition being evaluated:
 Request = (
     requestingAgent : Agent,
     requestedAction : Action,
-    requestedAsset  : Asset
+    requestedAsset  : Asset,
+    parameters      : finite map Name -> Value
 )
 ```
 
@@ -54,6 +55,13 @@ Request = (
 `rl2:anyAgent` and `rl2:anyAsset` (used only in norm `rl2:subject`/`rl2:object` to declare an
 attribute-defined population; see `RL2_Semantics.md` §Request Matching) are never valid values
 here. A Request naming a sentinel is invalid and rejected before evaluation.
+
+`parameters` carries request-specific input that the requester itself supplies — a record count,
+a target format, a stated purpose — resolved through `request.parameters.<name>` (see
+`RL2_Semantics.md` §`deref`). It is a finite typed map using the same `Value` universe as every
+other operand; it is immutable input to `Eval`, so purity is unaffected. It is distinct from
+`context.*`/`global.*` snapshot facts, which the assembler supplies rather than the requester, and
+from `agent.*`/`asset.*` facts, which describe the agent or asset rather than this request.
 
 Authentication credentials, transport metadata, request identifiers, submission times, and
 delegation chains may be represented as snapshot facts or by an interchange profile when policy
@@ -120,7 +128,10 @@ Evidence = (
 
 An `AttributedFact` binds one canonical path, in one explicit scope, to a typed value. `Evidence`
 records an observed action used by Duty and Promise status functions. `id` identifies an
-assertion or evidence item, not the real-world entity described by it.
+assertion or evidence item, not the real-world entity described by it. `Attribution.observedAt`
+is the assembler-recorded assertion time (distinct from `validDuring`, which bounds applicability,
+not observation); a profile may expose it as an ordinary resolvable operand for a freshness check
+(see `RL2_ExternalData.md` §5).
 
 The snapshot is a coherent mathematical value. RL2 does not require that it be stored as one
 record, produced by event sourcing, or shared across evaluations. Implementations may assemble it
@@ -173,10 +184,14 @@ The path root determines the fact scope; the root itself remains part of the can
 `state`, `context`, or `global` paths, but every such path resolves through the fact algorithm
 below.
 
-The only core `request.*` paths are `request.requestingAgent`, `request.requestedAction`, and
-`request.requestedAsset`. They resolve directly from Request. Other request metadata uses a
-declared `context.*` fact or a separate interchange profile; arbitrary `request.*` fields are not
-canonical core paths.
+The core `request.*` paths are `request.requestingAgent`, `request.requestedAction`,
+`request.requestedAsset`, and `request.parameters.<name>`. The first three resolve directly from
+the matching Request field. `request.parameters.<name>` resolves directly from `Request.parameters`:
+present under `name` yields `Ok(value)`; absent yields `Missing({site: Path(path), target: None})`.
+Both cases attribute the value to the Request itself, not to a snapshot fact — there is no
+`AttributedFact` or `validDuring` interval for a Request parameter, since it is not part of
+`WorldSnapshot`. Other request metadata uses a declared `context.*` fact or a separate interchange
+profile; no other `request.*` field is a canonical core path.
 
 For a required key `k`, expected value type `τ`, profile `p`, snapshot `W`, and configuration `C`:
 
@@ -264,6 +279,19 @@ evaluation configuration. They perform no network access, credential refresh, or
 Missing or unaccepted required attribution on a relevant fact or evidence item is `Invalid`; the evaluator
 must not silently fall back to another candidate. Credential verification and construction of the
 attribution fields occur before `Eval`.
+
+**Threat model (normative).** `WorldSnapshot` is the output of a single trusted assembler — the
+component, external to `Eval`, that gathers facts and evidence from underlying sources and
+constructs `W` before evaluation runs. `resolveFact`'s poisoning rule (`Invalid` if any candidate
+for a key is inadmissible, never a silent fallback to another candidate) is specified under this
+trust model: the assembler is assumed to have already applied any mixed-trust filtering — excluding,
+per key, facts from sources the deployment does not trust for that key — before `W` is constructed.
+`Eval` and `admissibleFact`/`admissibleEvidence` do not perform source-level trust arbitration; they
+check attribution fields (issuer, profile version, observation time, and similar) already present on
+the snapshot. A deployment that must combine facts from sources of differing trust levels is
+responsible for resolving or filtering that mixture in the assembler, before `Eval` sees the
+snapshot, not by relying on `resolveFact` to arbitrate between trusted and untrusted candidates for
+the same key at evaluation time.
 
 ### 4.5 Closed-world boundary
 
@@ -392,11 +420,22 @@ window. Without a window it is an ongoing requirement assessed at the current sn
 form determines the interpretation; canonical RDF has no separate mode field — `rl2:action` and
 `rl2:invariant` project one-to-one to `Achieve` and `Maintain`.
 
-A `DutyWindow` is one finite half-open interval:
+A `DutyWindow` is one finite half-open interval, and each endpoint is independently `Absolute` (a
+literal instant) or `Relative` (an anchor operand plus a duration offset):
 
 ```text
-DutyWindow = [startInclusive, endExclusive)
+WindowEndpoint ::= Absolute(Time) | Relative(LeftOperand, Duration)
+DutyWindow = [start: WindowEndpoint, end: WindowEndpoint)
 ```
+
+`Absolute` is the literal form (`rl2:startInclusive`/`rl2:endExclusive`). `Relative` (
+`rl2:startRelativeTo`+`rl2:startOffset` / `rl2:endRelativeTo`+`rl2:endOffset`) names an anchor fact
+plus an offset — e.g. "two weeks after receipt" as an anchor of `receivedAt` and an offset of
+`P14D` — resolved once per evaluation via the same fact-resolution discipline as any other
+operand (`RL2_Semantics.md`, `resolveWindow`). A missing or non-`DateTime` anchor, or a resolved
+interval that is not `start < end`, leaves the window unresolved and the Duty's or Promise's
+status is `IndeterminateStatus`. This removes the need to precompute an absolute expiry into a
+snapshot fact purely to express a relative deadline; both styles remain valid.
 
 At the start instant the Duty becomes eligible for assessment when its applicability guard holds.
 Evidence at the end instant is outside the window, and at that instant the window is closed. A Duty with no window is unbounded: an Achievement Duty can
@@ -404,7 +443,11 @@ be fulfilled but does not become violated merely because time passes; a Maintena
 ongoing snapshot requirement that can be active or violated but cannot be declared fulfilled.
 
 There is no implicit reset or recurrence. A later period or repeated access requires another
-canonical Duty occurrence.
+canonical Duty occurrence. A `DutyWindow` denotes exactly one such occurrence; recurring
+commitments (e.g. a weekly delivery) are out of scope for 0.7 — the deployment pattern is a
+snapshot assembler that instantiates the current period's window, or a profile-defined operand
+that carries the schedule. A fixed period-and-count form, expanded at compile time into finitely
+many `DutyWindow` occurrences, is the candidate future extension.
 
 ### 7.2 Duty ownership and access interaction
 

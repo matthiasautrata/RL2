@@ -306,13 +306,20 @@ rl2:invariant a owl:ObjectProperty ;
     Without a dutyWindow it is an ongoing condition assessed at the current snapshot. A Duty
     with an invariant has no action or postCondition. Complete temporal coverage, not a point
     observation at evaluation time, is required to fulfill a windowed Maintenance Duty. On a
-    Promise, the promised state, which crystallizes to a Maintenance Duty's invariant.""" .
+    Promise, the promised state, which crystallizes to a Maintenance Duty's invariant. 0.7
+    restriction: an invariant admits only fact-resolving operands and currentDateTime;
+    obligationStateOperand is rejected here (still permitted in rl2:condition) — see
+    RL2_Semantics.md and rl2:InvariantOperandRestrictionShape.""" .
 
 rl2:DutyWindow a owl:Class ;
     rdfs:label "Duty Window" ;
     rdfs:comment """A finite half-open interval [startInclusive, endExclusive) during
     which one Duty occurrence is assessed. Recurrence is represented by distinct Duty
-    occurrences, not by resetting a status or repeating this interval inside Eval.""" .
+    occurrences, not by resetting a status or repeating this interval inside Eval. A
+    DutyWindow denotes exactly ONE such interval; recurring obligations (e.g. "every Monday at
+    8am") are out of scope for 0.7 — see RL2_Semantics.md. Each endpoint (start, end) is
+    independently either Absolute (a literal instant: startInclusive/endExclusive) or Relative
+    (an anchor operand plus an offset: startRelativeTo+startOffset, endRelativeTo+endOffset).""" .
 
 rl2:dutyWindow a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Duty rl2:Promise) ] ;
@@ -328,13 +335,47 @@ rl2:startInclusive a owl:DatatypeProperty ;
     rdfs:domain rl2:DutyWindow ;
     rdfs:range xsd:dateTimeStamp ;
     rdfs:label "Start Inclusive" ;
-    rdfs:comment "Inclusive start instant of a DutyWindow." .
+    rdfs:comment """Inclusive start instant of a DutyWindow, when the start endpoint is
+    Absolute. Mutually exclusive with startRelativeTo/startOffset.""" .
 
 rl2:endExclusive a owl:DatatypeProperty ;
     rdfs:domain rl2:DutyWindow ;
     rdfs:range xsd:dateTimeStamp ;
     rdfs:label "End Exclusive" ;
-    rdfs:comment "Exclusive end instant of a DutyWindow." .
+    rdfs:comment """Exclusive end instant of a DutyWindow, when the end endpoint is
+    Absolute. Mutually exclusive with endRelativeTo/endOffset.""" .
+
+rl2:startRelativeTo a owl:ObjectProperty ;
+    rdfs:domain rl2:DutyWindow ;
+    rdfs:range rl2:LeftOperand ;
+    rdfs:label "Start Relative To" ;
+    rdfs:comment """Anchor operand for a Relative start endpoint, paired with startOffset.
+    The anchor resolves once per evaluation via resolveFact and must resolve to a DateTime; the
+    resolved window start is the anchor's value plus startOffset. Mutually exclusive with
+    startInclusive. A Missing or non-DateTime anchor leaves the window unresolved, and the
+    Duty's/Promise's status is IndeterminateStatus (see RL2_Semantics.md resolveWindow).""" .
+
+rl2:startOffset a owl:DatatypeProperty ;
+    rdfs:domain rl2:DutyWindow ;
+    rdfs:range xsd:dayTimeDuration ;
+    rdfs:label "Start Offset" ;
+    rdfs:comment "Duration added to startRelativeTo's resolved instant. Requires startRelativeTo." .
+
+rl2:endRelativeTo a owl:ObjectProperty ;
+    rdfs:domain rl2:DutyWindow ;
+    rdfs:range rl2:LeftOperand ;
+    rdfs:label "End Relative To" ;
+    rdfs:comment """Anchor operand for a Relative end endpoint, paired with endOffset. The
+    anchor resolves once per evaluation via resolveFact and must resolve to a DateTime; the
+    resolved window end is the anchor's value plus endOffset. Mutually exclusive with
+    endExclusive. A Missing or non-DateTime anchor leaves the window unresolved, and the
+    Duty's/Promise's status is IndeterminateStatus (see RL2_Semantics.md resolveWindow).""" .
+
+rl2:endOffset a owl:DatatypeProperty ;
+    rdfs:domain rl2:DutyWindow ;
+    rdfs:range xsd:dayTimeDuration ;
+    rdfs:label "End Offset" ;
+    rdfs:comment "Duration added to endRelativeTo's resolved instant. Requires endRelativeTo." .
 
 rl2:LeftOperand a owl:Class ;
     rdfs:label "Left Operand" ;
@@ -362,7 +403,7 @@ rl2:resolutionPath a owl:DatatypeProperty ;
     - asset.*    : facts scoped to Request.requestedAsset
     - state.*    : StateScope facts; state.Clock has a fixed core meaning
     - context.*  : EvaluationScope facts (purpose, jurisdiction, etc.)
-    - request.*  : exactly requestingAgent, requestedAction, or requestedAsset in core
+    - request.*  : requestingAgent, requestedAction, requestedAsset, or parameters.<name> in core
     - global.*   : caller-supplied aggregate facts in GlobalScope
 
     Examples:
