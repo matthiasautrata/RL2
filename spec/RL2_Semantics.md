@@ -246,9 +246,15 @@ We define semantic domains to interpret expressions.
 
 ### Values
 
-`Value` includes typed scalar values, `VURI(IRI)`, and finite `VSet(Value)` values. A `ValueSet`
-projects to `VSet` after semantic duplicate removal and canonical member ordering. Its members
-must be homogeneous when used by a comparison operator.
+`Value` includes typed scalar values, `VURI(IRI)`, and finite `VSet(Value)` values. `Numeric` is
+the sole numeric scalar type: `xsd:integer` and `xsd:decimal` literals both denote `Numeric`, with
+exact decimal arithmetic and comparison — no floating-point representation. `xsd:float` and
+`xsd:double` are not RL2 value types: a policy literal so typed is rejected at compile time, and a
+float- or double-typed snapshot fact value resolves `Invalid`. A bare `xsd:duration` literal is
+classified at canonicalization into one of two disjoint scalar types, `DayTimeDuration` (pure
+day/time components) or `YearMonthDuration` (pure year/month components); mixed components are
+rejected. A `ValueSet` projects to `VSet` after semantic duplicate removal and canonical member
+ordering. Its members must be homogeneous when used by a comparison operator.
 
 ### World Snapshot
 
@@ -440,7 +446,7 @@ typeCompatible(operator, l, r) =
         isNoneOf             → isSet(r) ∧ compatibleValueSet(l, r)
 
 sameDomain(l, r) = valueType(l) = valueType(r)
-ordered(v)       = valueType(v) ∈ {Int, Decimal, DateTime, Duration}
+ordered(v)       = valueType(v) ∈ {Numeric, DateTime, DayTimeDuration, YearMonthDuration}
 isURI(VURI(_))   = true;   isURI(_) = false
 isSet(VSet(_))   = true;   isSet(_) = false
 

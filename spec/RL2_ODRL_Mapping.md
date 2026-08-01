@@ -37,6 +37,7 @@ UnsupportedPolicyType
 UnsupportedRuleRelation
 UnsupportedPartyFunction
 UnsupportedConstraintOperand
+UnsupportedDatatype
 UnsupportedOperator
 UnsupportedOrderedConstraint
 UnsupportedFailureRelation
@@ -155,6 +156,13 @@ operator, and resolution rule are supported by the selected profile.
 | `odrl:rightOperandReference` | `rl2:rightOperandRef` | clarified; the referenced runtime value must have a declared RL2 resolution rule |
 | action, asset, or party `odrl:refinement` | component condition | profile-dependent |
 | `odrl:unit`, datatype, or status annotations | typed RL2 value or metadata | clarified |
+
+ODRL `xsd:integer` and `xsd:decimal` constraint values normalize into the single RL2 `Numeric`
+value type, so the comparison operators above are exact regardless of the source literal's
+declared datatype. A bare `xsd:duration` right-operand value is classified at canonicalization
+into `xsd:dayTimeDuration` or `xsd:yearMonthDuration` per the rule in `RL2_Semantics.md`; a value
+mixing day/time and year/month components is rejected with `UnsupportedDatatype`. An `xsd:float`
+or `xsd:double` constraint value has no RL2 value type and is rejected with `UnsupportedDatatype`.
 
 Several ODRL Common Vocabulary operands—such as purpose, spatial location, count, elapsed time,
 and industry—are not magic core variables in RL2. A profile declares their value type and

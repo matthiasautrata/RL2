@@ -63,6 +63,14 @@ with the soundness theorem stated normatively:
 
 Residual `Missing`/`Conflict` causes remain — correctly, as properties of the data.
 
+**Design principle (owner-endorsed 2026-08-01): authoring forms compile down; `Eval`'s kernel
+never grows.** Ergonomics live in expansion (refinements → conditions, recurrence → finite
+windows, profiles → vocabulary bindings, transpiler → ODRL conveniences); semantics and proofs
+live on the kernel only. This is the macro discipline of Rust/Elixir applied to a policy
+language, and it is simultaneously the verification strategy — the mechanized model covers the
+kernel, and every convenience is correct by construction of its expansion. State it in
+`RL2_Scope.md` when P1 lands.
+
 Module shape (merging [O]'s flat-AST and [G]'s CompiledPolicyModule, which agree on everything
 material): flat arrays with integer indices, no blank-node identity, bytewise-diffable; every
 condition node carries its resolved `ValueType`; every operand its resolved
@@ -233,36 +241,85 @@ The compile stage (P1) must verify signature compatibility exactly as it does fo
 and a profile operator over unbounded computation should be rejected at module admission, which is
 one more reason bounds belong in the normative set (§2.1).
 
-### P5 · Decide and state the ODRL 2.2 coverage position
+### P5 · ODRL 2.2 coverage position — DECIDED 2026-08-01: "ODRL ±"
 
 **Origin:** [O] §6.1, [G] C3-4, [A] — all three flag the remedy/consequence gap; [G] frames the
-release decision most sharply.
+release decision most sharply. **Decided with the project owner; record below is normative for
+subsequent sweeps.**
 
-**Problem.** The mapping is admirably explicit, but RL2 is not an ODRL 2.2 semantic superset, and
-the surrounding prose implies more preservation than the mapping delivers. Rejected or incomplete:
-`odrl:remedy`/`consequence`/`failure` (heavily used in IDSA/dataspace deployments);
-PartyCollection and source-based AssetCollection (→ P2); `odrl:rightOperandReference` (mapped to a
-runtime-reference mechanism SHACL restricts to `rl2:currentAgent` alone [G]);
-`odrl:refinement` (a component-scoped condition RL2 has no scope for); `odrl:unit` (no value type
-carries a unit); `hasPolicy` target inference; per-term Common Vocabulary dispositions.
+**Strategic frame (owner-stated).** RL2's purpose is twofold: candidate spec work toward an
+eventual ODRL 3, *and* a practical, verified engine deployable in real contract/permission
+practice now — dataspaces, data services, market-data contracts, secured pods — covering what is
+actually needed from ODRL 2.2, filling its holes, and unlikely to break outright when ODRL 3
+arrives. Consequences for prioritization: the compile contract (P1), executable vectors (P3), and
+the verified-evaluator path (§5 formalization note) are the assurance artifacts that make internal
+adoption defensible; forward-compatibility means tracking the W3C Formal Semantics draft
+(crosswalk + P11 Behaviour) and keeping core small rather than chasing vocabulary breadth.
 
-**Recommendation.**
-1. **Publication position** [G]: define a *supported ODRL 2.2 migration profile* and scope every
-   preservation claim to it. Do not chase full superset coverage for 0.7.
-2. **Consequences are cheaper than the rejection implies** [O]: RL2 can already express
-   "on violation of D, duty D′ applies" as a Duty whose applicability condition is
-   `obligationStateOperand(targetNorm: D) = Violated`. Nothing new is needed except the mapping
-   rule; adopt `profile-dependent` with this defined shape instead of wholesale rejection. This
-   single change removes the largest class of real-world unmigratable policies.
-3. Specific reclassifications [G]: ODRL `invalid` voids the whole policy while RL2 returns a
+**The decision rule — three tests.** A construct earns its place by passing all three; *which*
+test it fails determines where it lands:
+
+1. **Demand**: written into real contracts (IDSA/dataspace agreements, market-data licensing,
+   data-service terms, pod/consent policies) — not merely proposed.
+2. **Determinism**: exact, total, three-valued semantics as a pure function of
+   (policy, request, snapshot). Fails even in principle → **eliminated** (the ODRL−).
+3. **Runtime independence**: evaluating it needs nothing beyond `Eval`. Demanded and deterministic
+   but operationally heavy → **shipped profile**, not core (the ODRL+).
+
+**The three layers.**
+
+*Core (sharpened ODRL−):* Set/Offer/Agreement; the three norm classes; conditions;
+`rl2:includedIn` action subsumption — **retained deliberately**: real vocabularies are
+hierarchical (the W3C AI vocab, market-data action families), the closure is finite and
+precomputed, and a Prohibition on a broad action catching an unanticipated narrow one is a safety
+property, with the discipline that inclusion stays a curated profile-declared DAG, never inferred
+from `rdfs:subClassOf`; collections including the P2 population extensions (demand-confirmed:
+subscriber classes, pod user groups); priority + conflict strategies; windows; Duty status.
+*Eliminated:* `odrl:implies` (hidden permissions — the archetype of the fuzz being removed;
+distinct from `includedIn`, which stays), `andSequence`, ordered/sequence constraints, `Ticket`,
+general `rightOperandReference` (pre-resolve into attributed snapshot facts).
+
+*Shipped profiles (ODRL+):*
+1. **Remedies/Contracts — expression only (decided).** `remedy`/`consequence` map to a Duty whose
+   applicability condition is `obligationStateOperand(targetNorm: D) = Violated`. Core and
+   evaluator untouched — the remedy Duty surfaces as Pending→Active in the status map once
+   violation is derivable. *Operating* remedies (issuing credits, terminating, feeding violation
+   events forward) stays behind the enforcement boundary, where it already was. Honest cost to
+   document in `RL2_ExternalData.md`: the snapshot assembler must supply the non-performance
+   evidence for `Violated` to be derivable. A standardized violation-evidence vocabulary is
+   **deferred** (owner decision) — revisit when interop between independent parties is live.
+2. **Privacy/Consent** — exists; align with pod/Solid practice (Esteves et al. as reference).
+3. **AI Vocabulary** — adopt the W3C draft actions.
+4. **Commercial/Market-Data** — `Quantity(Decimal, Unit)` value type with unit-equality in
+   `sameDomain` (this resolves the previously open `odrl:unit` question: demand-confirmed by
+   market-data practice — fees per user, device counts, currency — but profile-scoped, not core);
+   metering via P13 `request.parameters`.
+
+*Migration transpiler:* `odrl:refinement` is **compiled down** (decided) — component-scoped
+refinements canonicalize into rule-level conditions during ODRL→RL2 translation; the refinement
+form does not exist in RL2 authoring. This makes the transpiler the home of ODRL's authoring
+conveniences generally: accepted on input, normalized away, never round-tripped.
+
+*Multi-party depth (decided):* per-norm subject + counterparty suffices for 0.7 (covers
+exchange/vendor/subscriber patterns when each obligation names its pair); assignment chains,
+beneficiary-distinct-from-counterparty, and delegation go to `future/` normative instruments.
+
+**Publication claim** (scoped to the migration profile, per [G]):
+
+> RL2 defines a deterministic, bounded core for request evaluation, Duty interpretation, and
+> Offer materialization, plus a specified ODRL 2.2 migration profile. It does not replace every
+> ODRL 2.2 processing mode.
+
+**Remaining execution items** (unchanged from the reviews):
+1. Specific reclassifications [G]: ODRL `invalid` voids the whole policy while RL2 returns a
    request-scoped `Indeterminate` — mark `clarified`, not exact, unless equivalence is proved for
    the supported fragment. A Set rule's discarded assigner: do not claim full preservation where
-   issuer interpretation depends on it. `rightOperandReference`: pre-resolve into an attributed
-   snapshot fact, or reject.
-4. Publish the full term-by-term compatibility matrix with a fixture per row ([G] §6 has the
-   skeleton), plus migration fixtures for `xone`, `inheritFrom` (multiple parents, missing parent,
-   cycle), `ConflictingCompactValue` — none currently exist [O].
-5. Add the crosswalk to the W3C ODRL Formal Semantics draft and its report model — including the
+   issuer interpretation depends on it.
+2. Publish the full term-by-term compatibility matrix with a fixture per row ([G] §6 has the
+   skeleton), each row carrying its three-test verdict; plus migration fixtures for `xone`,
+   `inheritFrom` (multiple parents, missing parent, cycle), `ConflictingCompactValue` — none
+   currently exist [O].
+3. Add the crosswalk to the W3C ODRL Formal Semantics draft and its report model — including the
    open/closed **Behaviour** parameter (→ P11) — and stop implying Request/State-of-World is novel
    to RL2; the draft has both [G].
 
@@ -296,9 +353,29 @@ two; no overlap conflicts. All can land immediately, independent of everything e
    being part of the atom key. Fix the justification (the conclusion stands). [G, nuanced]
 10. `rl2.ttl` section numbering jumps 4 → 6 → 6a. [O F10][G §5.3]
 
-### P7 · Repair the value-type algebra
+### P7 · Repair the value-type algebra — DECIDED 2026-08-01
 
-**Origin:** [O] F6/F7, unique but verified; corroborated by the corpus.
+**Origin:** [O] F6/F7, unique but verified; corroborated by the corpus. **Decided with the
+project owner:**
+
+1. **Single exact `Numeric`** replaces Int/Decimal: exact decimal semantics, integer and decimal
+   literals unify, `sameDomain` stays plain type equality. `xsd:float`/`xsd:double` are rejected
+   in core — policy literals fail at compile (`UnsupportedDatatype` diagnostic); float-typed
+   snapshot facts resolve `Invalid`.
+2. **`xsd:duration` splits** into `xsd:dayTimeDuration` and `xsd:yearMonthDuration` — two
+   disjoint, totally ordered value types. Pure literals are auto-classified at compile/transpile
+   (`PT6H` → dayTime, `P1Y2M` → yearMonth); mixed literals (`P1Y3D`) are a compile error. Bare
+   `xsd:duration` disappears from `ordered`.
+3. **`Quantity(Numeric, Unit)`** lives in the Commercial/Market-Data profile, not core:
+   comparison requires identical units (compile error when statically known, `Unknown`
+   otherwise); **no conversion** in 0.7 — exact-scale conversion deferred, currency conversion
+   excluded permanently (rates are world data, not units). Implemented when the profile lands
+   (P4/P5), not before.
+
+Note: `rl2:OperandRangeTypeShape`'s syntactic integer-vs-decimal warning becomes over-strict
+under (1); it is superseded by the P1 typing pass and is not patched in the interim.
+
+Original findings for the record:
 
 1. **`ordered(Duration)` is unsound** (`RL2_Semantics.md:422`): `xsd:duration` is only partially
    ordered (`P1M` vs `P30D` is indeterminate in XSD), so `lt/lte/gt/gte` over it is not total —
@@ -465,7 +542,8 @@ strengths).
    named clause IRIs; use RDFC-1.0 only if identity must survive independent RDF-level ingestion
    (with resource limits, §3.5). Enumerate `copyMetadata` explicitly. Include profile digests in
    the materialization result.
-2. **Share structure between Promise and Duty; keep the class disjointness.** All three reviews
+2. **Share structure between Promise and Duty; keep the class disjointness — DECIDED
+   2026-08-01 (adopt as specified below).** All three reviews
    see the duplication (parallel status lattice, parallel state operand, the documented
    `promiseStateOperand`→`obligationStateOperand` rewrite in `sla-credit-clause.md`). [A] proposes
    eliminating `Promise` entirely (a Duty inside an Offer is non-operative); **rejected on
@@ -493,9 +571,12 @@ strengths).
 
 ### 2.1 Structure ([O] unless noted)
 
-- **Unify the Duty constructor**: `DutyBody ::= Achieve(Action, Condition?) | Maintain(Condition)`
-  — one constructor, two-case matches, and "form is structural" becomes a projection fact instead
-  of a running proof obligation. Do this before freezing the P1 module format, which encodes it.
+- **Unify the Duty constructor — DECIDED 2026-08-01**:
+  `DutyBody ::= Achieve(Action, Condition?) | Maintain(Condition)` — one constructor, two-case
+  matches, and "form is structural" becomes a projection fact instead of a running proof
+  obligation. Formal grammar only; the RDF surface (`rl2:action` xor `rl2:invariant`) is
+  unchanged, so no policy is affected. Land before freezing the P1 module format, which encodes
+  it.
 - **One action property**: `rl2:prohibitedAction` duplicates `rl2:action` (modality is already
   carried by the class; `actionMatches` treats them identically), held apart only by a SHACL
   message. Unify on `rl2:action`, or document why import fidelity requires the split.
@@ -715,8 +796,9 @@ pleasant reference interpreter.
 
 ## 6. Work order
 
-1. **P6 + §2.3** — mechanical corrections; land now.
-2. **P5.1** — decide the ODRL publication position (a scope decision that words everything else).
+1. **P6 + §2.3** — mechanical corrections; ~~land now~~ **done, committed 0ca83bd**.
+2. **P5.1** — ~~decide the ODRL publication position~~ **decided: "ODRL ±" three-layer structure
+   with the three-test rule; see P5.** Execution (matrix, fixtures, crosswalk) remains.
 3. **P7, P15.2, §2.1 Duty constructor** — value-type and structure decisions that the module
    format will freeze.
 4. **P1 + P4** — compile contract and ProfileModule (the core work; P4 is a P1 stage).
