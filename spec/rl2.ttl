@@ -278,15 +278,17 @@ rl2:condition a owl:ObjectProperty ;
     rl2:postCondition. Maintenance content uses rl2:invariant.""" .
 
 rl2:prerequisiteDuty a owl:ObjectProperty ;
-    rdfs:domain rl2:Privilege ;
+    rdfs:domain [ owl:unionOf (rl2:Privilege rl2:Policy) ] ;
     rdfs:range rl2:Duty ;
     rdfs:label "Prerequisite Duty" ;
-    rdfs:comment """Associates a Privilege with a Duty that, when applicable, must be
-    Fulfilled before that Privilege can contribute a permit. An attached Duty is referenced by
-    one or more Privileges and is not also an independent rl2:clause of a Policy. Sharing one
-    Duty node means one fulfillment result gates every owner, matching ODRL 2.2. Multiple
-    prerequisiteDuty values on one Privilege are conjunctive. Ongoing or post-use enforcement
-    is outside core Eval.""" .
+    rdfs:comment """Associates a Privilege or a Policy with a Duty that, when applicable, must
+    be Fulfilled before an access decision can grant a permit. On a Privilege, the Duty gates
+    that Privilege. On a Policy, the Duty gates every Privilege clause of that Policy. Sharing
+    one Duty node means one fulfillment result gates every owner, matching ODRL 2.2. Multiple
+    prerequisiteDuty values (on one Privilege, on one Policy, or across both) are conjunctive. A
+    prerequisite Duty may simultaneously be an independent rl2:clause of a Policy: it then also
+    contributes its obligation atom independently, in addition to gating its referencing
+    owner(s). Ongoing or post-use enforcement is outside core Eval.""" .
 
 rl2:postCondition a owl:ObjectProperty ;
     rdfs:domain rl2:Duty ;

@@ -1,6 +1,6 @@
 # RL2 0.7 Use Cases
 
-The 47 use cases are concise, self-contained policy scenarios. They demonstrate constructs whose
+The 48 use cases are concise, self-contained policy scenarios. They demonstrate constructs whose
 meaning is defined by the canonical projection, pure evaluation contract, and ODRL migration
 rules. Profile-defined operands identify their WorldSnapshot dependencies with resolution paths.
 
@@ -13,7 +13,7 @@ rules. Profile-defined operands identify their WorldSnapshot dependencies with r
 | [Ethics Approval](ethics-approval.md) | [Data Stewardship](data-stewardship.md) | [GDPR Erasure](gdpr-erasure.md) |
 | [Audit Trail](audit-trail.md) | [Data Freshness Promise](data-freshness-promise.md) | [Schema Evolution](schema-evolution.md) |
 | [Quality Circuit Breaker](quality-circuit-breaker.md) | [Step-Up Authentication](step-up-auth.md) | [Chinese Wall](chinese-wall.md) |
-| [Concurrent Seats](concurrent-seats.md) | [Trial Period](trial-period.md) | |
+| [Concurrent Seats](concurrent-seats.md) | [Trial Period](trial-period.md) | [Attestation Gating](attestation-gating.md) |
 
 ## Data-governance patterns
 

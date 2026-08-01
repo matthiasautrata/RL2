@@ -209,16 +209,19 @@ Without a finite window it may be Active or Violated, but cannot be Fulfilled.
 
 ## 7. Prerequisite Duties
 
-A Privilege may refer to one or more `rl2:prerequisiteDuty` values. Each applicable prerequisite
-must already be Fulfilled before that Privilege contributes a permit. Multiple prerequisites are
-conjunctive.
+A Privilege may refer to one or more `rl2:prerequisiteDuty` values; a Policy may too, in which case
+the reference gates every Privilege clause of that Policy at once. Each applicable prerequisite
+must already be Fulfilled before the gated Privilege contributes a permit. Multiple prerequisites
+are conjunctive.
 
-The attached Duty is not also a top-level policy clause. One shared Duty node may gate several
-Privileges, so one fulfillment result is reused in the same way as a shared ODRL Duty.
+An attached Duty may also be a top-level policy clause: it is then a standing obligation that also
+gates access, contributing its own obligation atom independently of the gating effect. One shared
+Duty node may gate several Privileges (directly, or through a shared owning Policy), so one
+fulfillment result is reused in the same way as a shared ODRL Duty.
 
-RL2 deliberately does not make every Duty block every request. An independent Duty is reported in
-the normative result but does not change the access decision. Ongoing enforcement and post-use
-scheduling are outside pure evaluation.
+RL2 deliberately does not make every Duty block every request. A Duty that is only a policy clause
+(never referenced by `prerequisiteDuty`) is reported in the normative result but does not change
+the access decision. Ongoing enforcement and post-use scheduling are outside pure evaluation.
 
 ## 8. Conflict Resolution and Explanation
 

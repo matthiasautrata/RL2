@@ -65,9 +65,12 @@ World snapshot: `asset.classification = ex:HomeLoan` for `LoanBook2026`.
 
 ## Expected result
 
-The decision is `Permit`, together with the independent Duty's obligation atom (`ex:logAccess` on
-`LoanBook2026`) — both clauses match on subject and object via the sentinels, and the shared
-classification condition holds. A request for an asset classified other than `ex:HomeLoan` makes
-the condition false on both clauses, so the decision is `NotApplicable`. A missing
-`asset.classification` fact makes the condition `Unknown`, so the result is `Indeterminate`, not
-`Permit` or `NotApplicable`.
+The decision for the `read` request is `Permit` — the Privilege matches on subject and object via
+the sentinels, and the classification condition holds. The independent logging Duty matches the
+same population, but an independent Duty contributes its `obligate` atom only to a request for its
+own action: a request for `ex:logAccess` on `LoanBook2026` yields that atom, and the Duty's
+derived status is queryable for any request. The `read` envelope therefore carries the Permit
+alone (see `attestation-gating.md` for the same locality in the gating direction). A request for
+an asset classified other than `ex:HomeLoan` makes the condition false on both clauses, so the
+decision is `NotApplicable`. A missing `asset.classification` fact makes the condition `Unknown`,
+so the result is `Indeterminate`, not `Permit` or `NotApplicable`.

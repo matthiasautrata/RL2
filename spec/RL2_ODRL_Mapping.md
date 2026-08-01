@@ -197,6 +197,18 @@ If several translated policies declare incompatible ODRL conflict strategies, tr
 combined PolicyUniverse is rejected unless `TranslationConfiguration` supplies and records one
 explicit combining interpretation.
 
+`strategy` resolves conflicts among *matching* norms at the top priority stratum; it says nothing
+about requests no declared norm addresses at all. RL2 separates that second question into
+`EvaluationConfiguration.defaultDecision`, substituted only when `resolveDecision` would otherwise
+report `NotApplicable`. Two existing access-control formalisms draw the same distinction:
+
+- The ODRL Formal Semantics' `Behaviour` parameter, which fixes what an ODRL evaluator reports when
+  no rule matches a request, corresponds to `defaultDecision`, not to `odrl:conflict`/`strategy`.
+- XACML's `deny-unless-permit` and `permit-unless-deny` combining algorithms correspond to
+  `defaultDecision = Deny` and `defaultDecision = Permit` respectively; XACML's `deny-overrides` and
+  `permit-overrides` correspond instead to RL2's `strategy` (`ProhibitOverrides`/`PermitOverrides`),
+  which resolves conflicts among matching rules rather than the no-match case.
+
 ## 9. Offer and Agreement
 
 An ODRL Offer maps to an RL2 Offer, but translation does not make it operative and does not infer

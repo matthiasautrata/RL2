@@ -35,6 +35,11 @@ rl2:PolicyShape a sh:NodeShape ;
         sh:maxCount 1 ;
         sh:class rl2:Condition ;
         sh:message "A policy may have at most one activation condition."
+    ] ;
+    sh:property [
+        sh:path rl2:prerequisiteDuty ;
+        sh:class rl2:Duty ;
+        sh:message "Each prerequisiteDuty of a Policy must be a Duty."
     ] .
 
 rl2:PolicyKindShape a sh:NodeShape ;
@@ -108,23 +113,21 @@ rl2:PrivilegeShape a sh:NodeShape ;
     sh:property [ sh:path rl2:prerequisiteDuty ; sh:class rl2:Duty ;
         sh:message "Each prerequisiteDuty of a Privilege must be a Duty." ] .
 
-# A prerequisite Duty is referenced by one or more Privileges. Its policy provenance is derived
-# through those owners, so declaring it independently with rl2:clause would encode two roles.
-# Unattached Duty nodes remain valid fragments; when used by Eval they enter a Policy directly
-# through rl2:clause and are independent obligations.
+# A prerequisite Duty is referenced by one or more Privileges, or by a Policy directly (gating
+# every Privilege clause of that Policy). Its policy provenance is derived through those owners.
+# A Duty may simultaneously be an independent rl2:clause of a Policy: it then keeps its own
+# clause-derived obligation atom, and the prerequisiteDuty reference additionally gates its
+# owner(s) — one derived status, reported once (see RL2_Semantics.md). Unattached Duty nodes
+# remain valid fragments; when used by Eval they enter a Policy directly through rl2:clause and
+# are independent obligations.
 rl2:PrerequisiteDutyShape a sh:NodeShape ;
     sh:targetObjectsOf rl2:prerequisiteDuty ;
     sh:class rl2:Duty ;
     sh:property [
         sh:path [ sh:inversePath rl2:prerequisiteDuty ] ;
         sh:minCount 1 ;
-        sh:class rl2:Privilege ;
-        sh:message "A prerequisite Duty must be referenced only by Privileges."
-    ] ;
-    sh:property [
-        sh:path [ sh:inversePath rl2:clause ] ;
-        sh:maxCount 0 ;
-        sh:message "An attached prerequisite Duty must not also be an independent Policy clause."
+        sh:or ( [ sh:class rl2:Privilege ] [ sh:class rl2:Policy ] ) ;
+        sh:message "A prerequisite Duty must be referenced only by Privileges or Policies."
     ] ;
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -132,8 +135,9 @@ rl2:PrerequisiteDutyShape a sh:NodeShape ;
         sh:select """
             PREFIX rl2: <https://rl2.example/ontology#>
             SELECT $this WHERE {
-                ?privilege rl2:prerequisiteDuty $this .
-                FILTER NOT EXISTS { ?policy rl2:clause ?privilege . }
+                ?referencer rl2:prerequisiteDuty $this .
+                FILTER NOT EXISTS { ?referencer a rl2:Policy . }
+                FILTER NOT EXISTS { ?policy rl2:clause ?referencer . }
             }
         """
     ] .

@@ -66,11 +66,19 @@ additionally require a `postCondition`; `Maintain` requires its `invariant` thro
 `rl2:invariant` to `Maintain`; the two forms are mutually exclusive in canonical RDF, and no
 separate mode field exists — `Duty.body` is the single formal locus of that structural dispatch.
 
-`Privilege.prerequisiteDuties` is projected from zero or more `rl2:prerequisiteDuty` values.
-The set is conjunctive: every applicable member must be Fulfilled before the Privilege can
-contribute a permit. An attached Duty is referenced by one or more Privileges and is not also a
-top-level Policy clause. Sharing one Duty node shares its one status result across those
-Privileges. A top-level Duty is independent and never gates an access decision.
+`Privilege.prerequisiteDuties` is projected from zero or more `rl2:prerequisiteDuty` values
+declared on the Privilege itself or on its owning Policy (§Policies). The set is conjunctive:
+every applicable member must be Fulfilled before the Privilege can contribute a permit. An
+attached Duty is referenced by one or more Privileges or Policies. It may also independently be a
+top-level Policy clause — a Duty is not restricted to one structural role. Sharing one Duty node
+shares its one status result across those owners. A Duty referenced only as a top-level clause
+(never via `prerequisiteDuty`) is independent and never gates an access decision by itself.
+
+When a Duty is both a top-level clause and a prerequisite, it contributes its independent
+`obligate` atom (from being a clause) **and** gates its referencing Privilege(s) (from being a
+prerequisite); these are two effects of one Duty occurrence, not two Duties. The Duty still has
+exactly one derived status (§Duty Status Derivation), which is read once and reported once,
+regardless of how many roles or owners consult it.
 
 ```
 DutyWindow = [startInclusive: Time, endExclusive: Time)
@@ -124,12 +132,14 @@ Clause ::= Norm | Promise      -- mirrors rl2:Clause; only an Offer admits a Pro
 PolicyKind ::= Set | Offer | Agreement
 
 Policy ::= Policy {
-  kind      : PolicyKind,
-  grantor   : Agent?,       -- required for Agreement; optional for Offer; absent for Set
-  grantee   : Agent?,       -- required for Agreement; optional for Offer; absent for Set
-  condition : Condition?,   -- optional policy-level activation condition
-  clauses   : Clause+,      -- non-empty, matching PolicyShape
-  meta      : Metadata
+  kind             : PolicyKind,
+  grantor          : Agent?,       -- required for Agreement; optional for Offer; absent for Set
+  grantee          : Agent?,       -- required for Agreement; optional for Offer; absent for Set
+  condition        : Condition?,   -- optional policy-level activation condition
+  prerequisiteDuty : finite set of Duty,  -- optional policy-level prerequisite set, folded into
+                                           -- every Privilege clause like `condition` below
+  clauses          : Clause+,      -- non-empty, matching PolicyShape
+  meta             : Metadata
 }
 ```
 
@@ -152,17 +162,37 @@ effectiveCondition(P, clause) =
 The canonical AST therefore contains a total condition for every clause while
 preserving the logical-operator arities enforced by SHACL.
 
+A Policy's `prerequisiteDuty` set is folded into every Privilege clause's own prerequisite set the
+same way `P.condition` is folded into every clause's effective condition — one assertion at the
+Policy gates every Privilege clause, instead of repeating it per Privilege. Because prerequisites
+are already conjunctive (§Denotational Semantics for Norms), the fold is set union, not an `And`
+node:
+
+```
+effectivePrerequisites(P, n : Privilege) = n.prerequisiteDuties ∪ P.prerequisiteDuty
+```
+
+Both the Privilege-declared and the Policy-declared members of this set are read by the same
+`prerequisiteResult` machinery (§Pre-Resolution Normative Envelope below) — a Policy-level
+prerequisite has no separate evaluation rule.
+
 The Duties reachable from a Policy are:
 
 ```
 independentDuties(P) = { d : Duty | d ∈ P.clauses }
-attachedDuties(P)    = ⋃ { n.prerequisiteDuties | n : Privilege ∈ P.clauses }
+attachedDuties(P)    = ⋃ { effectivePrerequisites(P,n) | n : Privilege ∈ P.clauses }
 allDuties(P)         = independentDuties(P) ∪ attachedDuties(P)
 ```
 
-SHACL rejects a Duty that occurs in both sets. An attached Duty's policy provenance is the set of
-Policies containing Privileges that reference it; one `obligate(d,P)` atom is derived per such
-Policy when at least one matching owner makes the Duty applicable.
+A Duty may occur in both sets: it may be an independent clause of a Policy while also being
+referenced — directly on a Privilege or via that Privilege's owning Policy's `prerequisiteDuty` —
+as a prerequisite of one or more Privileges, in the same or a different Policy. The independent
+obligation and the prerequisite-gating role are two effects of one Duty occurrence, not two
+Duties: atom identity is `(obligate,d,P)` regardless of which route derives it (§Provenance
+below), so `Out`'s set union deduplicates automatically and the Duty's one derived status is
+reported once. An attached Duty's gating provenance is the set of Policies whose Privilege clauses
+reference it (through either mechanism); one `obligate(d,P)` atom is derived per such Policy when
+at least one matching owner makes the Duty applicable.
 
 ---
 
@@ -307,7 +337,7 @@ A named six-field record (not a bare product), used for evaluating matching and 
 - `Agent`   — the requesting agent (`Request.requestingAgent`; what `rl2:currentAgent` resolves to)
 - `Asset`   — the requested asset
 - `Snapshot` — the immutable `WorldSnapshot`
-- `Configuration` — profiles, bounds, trust parameters, and conflict strategy
+- `Configuration` — profiles, bounds, trust parameters, conflict strategy, and default decision
 
 When `Request` is absent, every `request.*` path resolves to
 `Invalid({ site: Path(path), target: None })` (§`requestField`), consistent with the status
@@ -936,7 +966,13 @@ mkEnv(U, R, W, C) = (U, R, a_req, s_req, W, C)
 
 The environment retains the full Request so `request.*` paths resolve. All other dynamic values
 come from `W`; `U` supplies canonical action and collection indexes; `C` supplies profiles,
-declared bounds, trust parameters, and the combining strategy.
+declared bounds, trust parameters, the combining strategy, and the default decision.
+
+`EvaluationConfiguration` also declares
+`defaultDecision : Permit | Deny | NotApplicable` (default `NotApplicable`). It is applied only to
+substitute for what `resolveDecision` would otherwise report as `NotApplicable` (§Conflict
+Resolution, §Composition); it never substitutes for `Indeterminate`, which is a distinct outcome
+reporting genuine ambiguity, not the absence of a matching rule.
 
 ### Request Matching
 
@@ -1277,7 +1313,24 @@ prerequisiteResult(d, Env) =
     -- not applicable OR fulfilled
 
 notResult(r) = { truth: ¬ᴷ r.truth, causes: r.causes }
+```
 
+**Divergence from the status-condition encoding.** `prerequisiteResult` gives an inapplicable Duty
+a vacuous pass: `dutyConditionResult(d,Env).truth = False` makes `notResult(...) = True`, and the
+`kOr` fold short-circuits to `True` regardless of `fulfilledResult`. The alternative encoding —
+an explicit condition testing `obligationStateOperand eq Fulfilled` against the same Duty via
+`targetNorm` — does not get this vacuous pass: on an inapplicable Duty its status is `Pending`
+(§Duty Status Derivation), so the equality test yields `False`, not `True`. The two encodings
+therefore diverge exactly on an inapplicable prerequisite: `prerequisiteDuty` reads "not applicable
+or fulfilled" (vacuously satisfied when inapplicable), while a status-condition equality test reads
+"conclusively fulfilled" (false when inapplicable, regardless of applicability). This is why
+`prerequisiteDuty` is the canonical form for ordinary gating: it expresses the intended reading —
+an inapplicable prerequisite does not block. A status-condition equality test remains appropriate
+only when a policy genuinely means to observe another norm's status as cross-norm data — e.g.
+distinguishing "fulfilled" from "not yet fulfilled for any reason including inapplicability" — not
+as a substitute for gating.
+
+```
 allResults(rs) =
     if rs = [] then { truth: True, causes: ∅ } else foldK(kAnd, rs)
 
@@ -1290,7 +1343,7 @@ canonicalPrivilegeOrder(ns) = sort ns by privilegeId
 accessResult(P, n : Privilege, Env) =
     allResults([⟦effectiveCondition(P,n)⟧(Env)] ++
                [ prerequisiteResult(d,Env) |
-                 d ∈ canonicalDutyOrder(n.prerequisiteDuties) ])
+                 d ∈ canonicalDutyOrder(effectivePrerequisites(P,n)) ])
 
 accessResult(P, n : Prohibition, Env) = ⟦effectiveCondition(P,n)⟧(Env)
 
@@ -1301,8 +1354,14 @@ ownerScopeResult(P, n, d, Env) =
 attachedDutyResult(P, d, Env) =
     anyResults([ ownerScopeResult(P,n,d,Env) |
                  n ∈ canonicalPrivilegeOrder({ n : Privilege ∈ P.clauses |
-                                               d ∈ n.prerequisiteDuties }) ])
+                                               d ∈ effectivePrerequisites(P,n) }) ])
 ```
+
+A Policy-level prerequisite therefore reaches `accessResult` and `attachedDutyResult` through
+`effectivePrerequisites(P,n)` exactly like a Privilege-level one: every Privilege clause `n` of `P`
+picks up `P.prerequisiteDuty` as if it had been declared on `n` directly, so `d ∈ P.prerequisiteDuty`
+makes every `n : Privilege ∈ P.clauses` a qualifying owner in `attachedDutyResult`, i.e. `d` gates
+every Privilege clause of `P`.
 
 `allResults` gives an empty prerequisite set the identity value `True`; it does not construct an
 authored zero-arity `And`. `prerequisiteResult` masks irrelevant errors in the usual Kleene way:
@@ -1360,8 +1419,11 @@ definite atoms and `(indeterminate,n,P,causes)` for Unknown atoms. `causes` is i
 set, so its enumeration order cannot create a second atom. Two policies granting the same
 `(a,x,s)` shape remain distinct atoms with independent provenance because atom equality includes
 `P`: even the same Norm `n` — SHACL permits one Norm to be a clause of multiple Policies — still
-yields one distinct atom per owning Policy. For an attached Duty, `P` contains at least one
-Privilege that references it; the Duty itself is not in `P.clauses`. Resolution consumes this
+yields one distinct atom per owning Policy. For an attached Duty that is not also an independent
+clause, `P` contains at least one Privilege that references it (directly or through `P`'s own
+`prerequisiteDuty`) while the Duty itself is not in `P.clauses`. A Duty that IS also an independent
+clause of `P` keeps that clause's `obligate(d,P)` atom — attachment adds a gating effect on its
+referencing Privilege(s), not a second atom or a second provenance. Resolution consumes this
 attributed envelope.
 
 ### Monotonicity of Derivation
@@ -1414,7 +1476,8 @@ Eval(U, R, W, C) =
         let promiseStatuses = derivePromiseStatuses(U, W, C)
         let Env = mkEnv(U, R, W, C)
         let envelope = Out(U, Env)
-        let decision = resolveDecision(envelope, C.strategy)
+        let resolved = resolveDecision(envelope, C.strategy)
+        let decision = if resolved = NotApplicable then C.defaultDecision else resolved
         in EvaluationResult(decision,
                             envelope,
                             dutyStatuses,
@@ -1583,6 +1646,14 @@ Normative boundary consequences include:
 enforcement adapter may map it to `Deny`, but that mapping is not part of `resolveDecision`.
 
 Note: `NotApplicable` (no matching rule) is distinct from `Deny` (explicit prohibition). This allows policy composition where a higher-level policy can provide defaults.
+
+`resolveDecision` itself never returns anything but the three values above; substituting
+`EvaluationConfiguration.defaultDecision` for a `NotApplicable` outcome is a separate step performed
+by `Eval` (§Composition), not by `resolveDecision`. `defaultDecision` is an explicit,
+evaluator-level open/closed-system parameter, analogous in kind to `strategy`: `Deny` encodes a
+closed (deny-unless-permitted) system, `Permit` encodes an open (permit-unless-denied) system, and
+`NotApplicable` (the default) leaves the no-matching-rule outcome unresolved and delegates the
+choice to the PEP as pure reporting.
 
 ### Duty Status Derivation
 

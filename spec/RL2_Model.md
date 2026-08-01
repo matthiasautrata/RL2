@@ -279,6 +279,8 @@ becomes Violated.
 deployments and therefore must be explicit inputs, including:
 
 - the conflict-resolution strategy;
+- the default decision (`defaultDecision : Permit | Deny | NotApplicable`, default `NotApplicable`),
+  substituted for a resolved `NotApplicable` outcome only — never for `Indeterminate`;
 - the supported profile identifiers and versions;
 - one total finite evidence-admissibility rule, which may explicitly be `AllowAllEvidence`;
 - declared conformance bounds, including maximum policy-universe size, condition/path depth,
@@ -303,9 +305,10 @@ validateConfiguration(U, C) : finite set of EvalError =
         or an absent/non-positive conformance bound }
 ```
 
-The set is empty exactly when configuration is valid. There is no default strategy. Configuration
-validation happens before policy derivation and uses canonical `Invalid(ConfigurationSite(field))`
-diagnostics.
+The set is empty exactly when configuration is valid. There is no default strategy — unlike
+`strategy`, `defaultDecision` does have a stated default (`NotApplicable`), matching current
+behavior for deployments that do not set it explicitly. Configuration validation happens before
+policy derivation and uses canonical `Invalid(ConfigurationSite(field))` diagnostics.
 
 ## 6. Evaluation Result
 
@@ -336,8 +339,9 @@ The two status maps expose the declarative results for Duties and Promises in th
 universe: `dutyStatuses` covers every independent or attached Duty reachable from any supplied
 policy, including an Offer, and `promiseStatuses` covers every Promise clause. A status reported
 for an Offer is descriptive only; it does not make the Offer or any of its clauses operative. A
-Duty status participates in access derivation only through an owning Privilege's
-`prerequisiteDuty` relation; independent Duties never change the access decision. `diagnostics`
+Duty status participates in access derivation only through a `prerequisiteDuty` relation — declared
+on an owning Privilege or on its owning Policy; a Duty that is a Policy clause only, and never the
+object of `prerequisiteDuty`, never changes the access decision. `diagnostics`
 uses the causal error algebra defined by the Semantics. Explanatory labels, localized
 messages, traces, timestamps, signatures, and persistence identifiers are optional interchange or
 implementation metadata unless a profile gives them policy meaning.
@@ -404,29 +408,37 @@ canonical Duty occurrence.
 
 ### 7.2 Duty ownership and access interaction
 
-A Duty has one of two structural roles:
+A Duty has one or both of two structural roles, and both may hold at once:
 
-- **prerequisite** — it is the object of one or more Privileges' `rl2:prerequisiteDuty` and is not
-  also a Policy clause; or
-- **independent** — it is a Policy clause and is not the object of `rl2:prerequisiteDuty`.
+- **prerequisite** — it is the object of one or more Privileges' `rl2:prerequisiteDuty`, or of a
+  Policy's `rl2:prerequisiteDuty` (gating every Privilege clause of that Policy); or
+- **independent** — it is a Policy clause.
 
-Multiple prerequisites on one Privilege are conjunctive. For each prerequisite, a false
-applicability `condition` means that the Duty is `Pending` and not required for this evaluation.
-When applicable,
+A Duty that is both a Policy clause and a prerequisite is a standing obligation that also gates
+access: it contributes its own `obligate` atom as an independent clause, and independently gates
+every Privilege that references it (directly, or through its owning Policy). These are two effects
+of one Duty occurrence; the Duty still has exactly one derived status, read once and reported once
+(§7.1). A Duty referenced only via `prerequisiteDuty` (never a Policy clause) gates without
+contributing an independent obligation atom of its own.
+
+Multiple prerequisites — on one Privilege, on one Policy, or on both at once — are conjunctive. For
+each prerequisite, a false applicability `condition` means that the Duty is `Pending` and not
+required for this evaluation. When applicable,
 only `Known(Fulfilled)` satisfies the prerequisite. `Known(Pending)`, `Known(Active)`, and
 `Known(Violated)` prevent that Privilege from contributing a permit; an outcome-sensitive
 `IndeterminateStatus` makes the Privilege indeterminate. These effects are local to the owning
-Privilege. They do not create a global Deny and do not affect a different Privilege that can grant
-the same request.
+Privilege(s) — for a Policy-level prerequisite, every Privilege clause of that Policy. They do not
+create a global Deny and do not affect a different Privilege that can grant the same request.
 
-One prerequisite Duty may be shared by several Privileges. It still denotes one Duty occurrence:
-the same derived status is read by every owner, so one qualifying fulfillment can satisfy all of
-them. This is distinct from separate Duty nodes, which denote separate occurrences even when
-their content is otherwise equal.
+One prerequisite Duty may be shared by several Privileges, whether referenced individually or
+through a shared owning Policy. It still denotes one Duty occurrence: the same derived status is
+read by every owner, so one qualifying fulfillment can satisfy all of them. This is distinct from
+separate Duty nodes, which denote separate occurrences even when their content is otherwise equal.
 
-An independent Duty contributes normative and status information but never changes an access
-decision. Core has no concurrent or post-use attachment mode and no `PermitWithObligations`
-decision. Applications may use the returned decision and Duty information for enforcement or
+An independent Duty that is not also a prerequisite contributes normative and status information
+but never changes an access decision. Core has no concurrent or post-use attachment mode and no
+`PermitWithObligations` decision. Applications may use the returned decision and Duty information
+for enforcement or
 scheduling without changing core semantics.
 
 ### 7.3 Status meaning
