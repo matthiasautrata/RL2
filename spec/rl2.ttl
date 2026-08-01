@@ -238,12 +238,7 @@ rl2:includedIn a owl:ObjectProperty, owl:TransitiveProperty ;
 rl2:action a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
     rdfs:range rl2:Action ;
-    rdfs:comment "Action specified in a norm; on a Promise, the promised action, which crystallizes to an Achievement Duty." .
-
-rl2:prohibitedAction a owl:ObjectProperty ;
-    rdfs:domain rl2:Prohibition ;
-    rdfs:range rl2:Action ;
-    rdfs:comment "Action prohibited by the norm." .
+    rdfs:comment "Action specified in a norm — the authorized action for a Privilege, the prohibited action for a Prohibition, or the required action for an Achievement Duty; on a Promise, the promised action, which crystallizes to an Achievement Duty." .
 
 rl2:object a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;

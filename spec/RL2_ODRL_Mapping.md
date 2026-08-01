@@ -101,7 +101,7 @@ The common fields map as follows:
 | ODRL field | RL2 field | Rule |
 |---|---|---|
 | `odrl:target` | `rl2:object` | Exactly one target after atomization. |
-| `odrl:action` | `rl2:action` or `rl2:prohibitedAction` | The action is an `rl2:Action`. |
+| `odrl:action` | `rl2:action` | The action is an `rl2:Action`; RL2 uses `rl2:action` uniformly for Privilege, Duty, and Prohibition. |
 | Rule `odrl:assignee` | `rl2:subject` | The party whose requested conduct or performance is governed. |
 | Rule `odrl:assigner` | Offer or Agreement `rl2:grantor`; Set provenance metadata | A Rule-local assigner must agree with the containing policy after normalization. A Set has no operative grantor field. |
 | Duty beneficiary | `rl2:counterparty` | Defaults to the Permission assigner only when the ODRL functional-role inheritance rule applies unambiguously. |

@@ -37,7 +37,7 @@ ex:seatAvailablePrivilege a rl2:Privilege ;
 
 ex:capacityProhibition a rl2:Prohibition ;
     rl2:subject ex:LicensedUser ;
-    rl2:prohibitedAction ex:startSession ;
+    rl2:action ex:startSession ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;

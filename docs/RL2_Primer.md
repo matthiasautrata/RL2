@@ -223,6 +223,13 @@ RL2 deliberately does not make every Duty block every request. A Duty that is on
 (never referenced by `prerequisiteDuty`) is reported in the normative result but does not change
 the access decision. Ongoing enforcement and post-use scheduling are outside pure evaluation.
 
+`rl2:prerequisiteDuty` is the canonical way to author ordinary pre-duty gating. An
+`obligationStateOperand eq Fulfilled` condition on the gated Privilege looks equivalent but is not:
+it reads a Duty's status as data and gives a `Pending`, not a vacuous pass, when the Duty does not
+currently apply. Reserve that spelling for the rarer case where a policy genuinely means to observe
+another norm's status, not to gate this one — `RL2_Semantics.md`'s Canonicalization rules subsection
+works through the difference.
+
 ## 8. Conflict Resolution and Explanation
 
 Derivation first produces an attributed envelope containing applicable permits, prohibitions,
@@ -235,6 +242,12 @@ obligations, and indeterminate clauses. Resolution then applies an explicit stra
 Integer priorities are considered before the strategy. The result records the determining
 clauses, Duty and Promise statuses, and causal diagnostics. Resolution never depends on RDF
 statement order.
+
+An "everywhere except..." policy has more than one correct shape, and the right one depends on
+what the exception means: a single Privilege carrying a `neq`/complement condition, a scoped
+Prohibition combined with the chosen strategy, a priority-ranked override for break-glass access,
+or a non-default `defaultDecision` for a closed-world deployment. `RL2_Semantics.md`'s Exception
+patterns subsection works through all four and how each behaves when a fact is missing.
 
 ## 9. Offers and Promises
 

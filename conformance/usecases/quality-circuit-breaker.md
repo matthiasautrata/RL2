@@ -40,7 +40,7 @@ ex:readFeedPrivilege a rl2:Privilege ;
 
 ex:poorQualityProhibition a rl2:Prohibition ;
     rl2:subject ex:Subscriber ;
-    rl2:prohibitedAction ex:read ;
+    rl2:action ex:read ;
     rl2:object ex:MarketDataFeed ;
     rl2:condition [
         a rl2:AtomicConstraint ;

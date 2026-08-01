@@ -9,7 +9,7 @@ version is 0.7.
 
 - Prefer a smaller orthogonal language to speculative completeness.
 - Give every core construct deterministic, bounded, testable semantics.
-- Require one canonical RDF form for each expressible proposition.
+- Require one admitted structural encoding per primitive relation; do not normalize arbitrary semantically equivalent Boolean policies.
 - Treat missing, invalid, conflicting, and unknown inputs explicitly.
 - Keep persistence, protocols, enforcement, and implementation architecture outside the core.
 - Check authoritative sources before making claims about ODRL or related standards.

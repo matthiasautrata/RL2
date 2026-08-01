@@ -6,7 +6,10 @@ An administrator must pay for a team licence before a named team member may acce
 
 ## Why it matters
 
-The access condition depends on fulfilment of an organizational obligation, not on the identity of the payer.
+The access condition depends on fulfilment of an organizational obligation, not on the identity of
+the payer. The gate is ordinary pre-duty gating — `memberAccessPrivilege` requires
+`teamPaymentDuty` to be met and is canonically expressed with `rl2:prerequisiteDuty`, not a
+status-condition equality test.
 
 ## Canonical policy
 
@@ -30,13 +33,7 @@ ex:memberAccessPrivilege a rl2:Privilege ;
     rl2:subject ex:Alice ;
     rl2:action ex:access ;
     rl2:object ex:PremiumService ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:teamPaymentDuty ;
-        rl2:leftOperand rl2:obligationStateOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:Fulfilled
-    ] .
+    rl2:prerequisiteDuty ex:teamPaymentDuty .
 
 ex:teamPolicy a rl2:Set ;
     rl2:clause ex:teamPaymentDuty, ex:memberAccessPrivilege .

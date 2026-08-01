@@ -27,7 +27,7 @@ ex:reportPublished a rl2:LeftOperand ;
 
 ex:unpublishedReportProhibition a rl2:Prohibition ;
     rl2:subject ex:InvestmentBanker ;
-    rl2:prohibitedAction ex:read ;
+    rl2:action ex:read ;
     rl2:object ex:ResearchReport ;
     rl2:condition [
         a rl2:AtomicConstraint ;

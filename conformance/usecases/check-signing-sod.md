@@ -7,7 +7,9 @@ Bob may sign a particular check only if Alice prepared that check.
 ## Why it matters
 
 The policy is instance-specific: the Duty subject, Privilege subject, and check are explicit. A
-generator may create analogous policies for other authorized pairs and checks.
+generator may create analogous policies for other authorized pairs and checks. The gate is ordinary
+pre-duty gating — `signPrivilege` requires `preparationDuty` to be met and is canonically expressed
+with `rl2:prerequisiteDuty`, not a status-condition equality test.
 
 ## Canonical policy
 
@@ -30,13 +32,7 @@ ex:signPrivilege a rl2:Privilege ;
     rl2:subject ex:Bob ;
     rl2:action ex:sign ;
     rl2:object ex:Check123 ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:preparationDuty ;
-        rl2:leftOperand rl2:obligationStateOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:Fulfilled
-    ] .
+    rl2:prerequisiteDuty ex:preparationDuty .
 
 ex:checkPolicy a rl2:Set ;
     rl2:clause ex:preparationDuty, ex:signPrivilege .

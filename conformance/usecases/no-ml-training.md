@@ -23,7 +23,7 @@ ex:trainModel a rl2:Action .
 ex:searchCorpus a rl2:Privilege ;
     rl2:subject ex:Licensee ; rl2:action ex:search ; rl2:object ex:TextCorpus .
 ex:noTraining a rl2:Prohibition ;
-    rl2:subject ex:Licensee ; rl2:prohibitedAction ex:trainModel ; rl2:object ex:TextCorpus .
+    rl2:subject ex:Licensee ; rl2:action ex:trainModel ; rl2:object ex:TextCorpus .
 
 ex:corpusLicence a rl2:Agreement ;
     rl2:grantor ex:Publisher ; rl2:grantee ex:Licensee ;

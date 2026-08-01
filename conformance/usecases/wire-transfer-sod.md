@@ -7,7 +7,9 @@ Alice may execute a wire transfer only after Bob has approved that transfer.
 ## Why it matters
 
 The policy expresses an instance-specific four-eyes control. Role expansion may generate one such
-policy instance for each authorized pair.
+policy instance for each authorized pair. The gate is ordinary pre-duty gating —
+`executePrivilege` requires `approvalDuty` to be met and is canonically expressed with
+`rl2:prerequisiteDuty`, not a status-condition equality test.
 
 ## Canonical policy
 
@@ -30,13 +32,7 @@ ex:executePrivilege a rl2:Privilege ;
     rl2:subject ex:Alice ;
     rl2:action ex:execute ;
     rl2:object ex:WireTransfer ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:approvalDuty ;
-        rl2:leftOperand rl2:obligationStateOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:Fulfilled
-    ] .
+    rl2:prerequisiteDuty ex:approvalDuty .
 
 ex:wirePolicy a rl2:Set ;
     rl2:clause ex:approvalDuty, ex:executePrivilege .

@@ -23,7 +23,7 @@ ex:automatedTrade a rl2:Action .
 ex:displayQuotation a rl2:Privilege ;
     rl2:subject ex:Subscriber ; rl2:action ex:display ; rl2:object ex:QuotationFeed .
 ex:noAutomatedTrading a rl2:Prohibition ;
-    rl2:subject ex:Subscriber ; rl2:prohibitedAction ex:automatedTrade ; rl2:object ex:QuotationFeed .
+    rl2:subject ex:Subscriber ; rl2:action ex:automatedTrade ; rl2:object ex:QuotationFeed .
 
 ex:displayLicence a rl2:Agreement ;
     rl2:grantor ex:Vendor ; rl2:grantee ex:Subscriber ;

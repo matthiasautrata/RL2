@@ -33,7 +33,7 @@ ex:trialExecutePrivilege a rl2:Privilege ;
 
 ex:expiredTrialProhibition a rl2:Prohibition ;
     rl2:subject ex:TrialUser ;
-    rl2:prohibitedAction ex:execute ;
+    rl2:action ex:execute ;
     rl2:object ex:Application ;
     rl2:condition [
         a rl2:AtomicConstraint ;

@@ -7,7 +7,8 @@ A customer may view premium content only after that customer has paid for the li
 ## Why it matters
 
 The Duty and Privilege name the same customer, so another customer's payment cannot satisfy this
-policy instance.
+policy instance. The gate is ordinary pre-duty gating — `viewPrivilege` requires `paymentDuty` to be
+met and is canonically expressed with `rl2:prerequisiteDuty`, not a status-condition equality test.
 
 ## Canonical policy
 
@@ -30,13 +31,7 @@ ex:viewPrivilege a rl2:Privilege ;
     rl2:subject ex:Alice ;
     rl2:action ex:view ;
     rl2:object ex:PremiumPhoto ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:paymentDuty ;
-        rl2:leftOperand rl2:obligationStateOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:Fulfilled
-    ] .
+    rl2:prerequisiteDuty ex:paymentDuty .
 
 ex:photoPolicy a rl2:Set ;
     rl2:clause ex:paymentDuty, ex:viewPrivilege .

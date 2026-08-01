@@ -47,8 +47,7 @@ neither. A Policy requires at least one clause and has at most one policy-level 
 |---|---|
 | `rl2:subject` | Agent bearing a Norm; on a Promise, the promisor. |
 | `rl2:counterparty` | Beneficiary or other Agent to whom a Duty is owed; required on a Promise, where it is the promisee. |
-| `rl2:action` | Action of a Privilege or Achievement Duty; on a Promise, the promised action. |
-| `rl2:prohibitedAction` | Action of a Prohibition. |
+| `rl2:action` | Action of a Privilege, Achievement Duty, or Prohibition; on a Promise, the promised action. |
 | `rl2:object` | Asset or resource governed by a Norm or Promise. |
 | `rl2:priority` | Integer on a Privilege or Prohibition, used before conflict-strategy resolution; default `0`. |
 | `rl2:prerequisiteDuty` | Duty that must be Fulfilled before its owning Privilege contributes a permit. |

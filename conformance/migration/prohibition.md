@@ -35,7 +35,7 @@ ex:redistribute a rl2:Action .
 
 ex:prohibition_1 a rl2:Prohibition ;
     rl2:subject ex:subscriber ;
-    rl2:prohibitedAction ex:redistribute ;
+    rl2:action ex:redistribute ;
     rl2:object ex:dataset .
 
 ex:translated a rl2:Set ; rl2:clause ex:prohibition_1 .

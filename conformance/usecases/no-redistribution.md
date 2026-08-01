@@ -25,7 +25,7 @@ ex:requiredDisclosure a rl2:LeftOperand ;
     rl2:resolutionPath "context.requiredDisclosure" .
 
 ex:noRedistribution a rl2:Prohibition ;
-    rl2:subject ex:Bank ; rl2:prohibitedAction ex:redistribute ; rl2:object ex:MarketData ;
+    rl2:subject ex:Bank ; rl2:action ex:redistribute ; rl2:object ex:MarketData ;
     rl2:condition [ a rl2:AtomicConstraint ; rl2:leftOperand ex:requiredDisclosure ;
         rl2:constraintOperator rl2:eq ; rl2:rightOperand false ] .
 

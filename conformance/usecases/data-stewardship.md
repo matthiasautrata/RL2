@@ -6,7 +6,12 @@ A data owner offers access to a researcher who promises to perform a stewardship
 
 ## Why it matters
 
-The example demonstrates the core Offer-to-Agreement transformation without prescribing a workflow or a persistent case model.
+The example demonstrates the core Offer-to-Agreement transformation without prescribing a workflow
+or a persistent case model. `offeredAccess`'s condition targets `stewardshipPromise` — a Promise,
+not a Duty — so it cannot use `rl2:prerequisiteDuty` (`rl2:PrerequisiteDutyShape` requires a
+`rl2:Duty` object); it is also inert before Acceptance, since an Offer's clauses contribute no
+normative atoms. `acceptedAccess`, by contrast, gates on the materialized `stewardshipDuty` purely
+as ordinary pre-duty gating, and is canonically expressed with `rl2:prerequisiteDuty`.
 
 ## Canonical policy
 
@@ -53,13 +58,7 @@ ex:acceptedAccess a rl2:Privilege ;
     rl2:subject ex:Researcher ;
     rl2:action ex:access ;
     rl2:object ex:SensitiveData ;
-    rl2:condition [
-        a rl2:AtomicConstraint ;
-        rl2:targetNorm ex:stewardshipDuty ;
-        rl2:leftOperand rl2:obligationStateOperand ;
-        rl2:constraintOperator rl2:eq ;
-        rl2:rightOperandRef rl2:Fulfilled
-    ] .
+    rl2:prerequisiteDuty ex:stewardshipDuty .
 
 ex:stewardshipAgreement a rl2:Agreement ;
     rl2:grantor ex:DataOwner ;

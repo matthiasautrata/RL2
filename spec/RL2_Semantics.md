@@ -1517,6 +1517,59 @@ clause of `P` keeps that clause's `obligate(d,P)` atom — attachment adds a gat
 referencing Privilege(s), not a second atom or a second provenance. Resolution consumes this
 attributed envelope.
 
+### Canonicalization rules
+
+Every primitive RL2 relation has one admitted structural encoding. Canonical projection removes
+RDF-level, lexical, ordering, and enumerated local syntactic alternatives; it does not attempt
+general logical normalization of arbitrary semantically equivalent Boolean policies, which is
+exponential in policy size. The following are the complete set of admitted local normalizations
+and authoring preferences:
+
+**(a) `prerequisiteDuty` is the canonical form for ordinary pre-duty gating.** As shown above
+("Divergence from the status-condition encoding"), `prerequisiteResult` and an
+`obligationStateOperand eq Fulfilled` condition targeting the same Duty diverge exactly on an
+inapplicable Duty: `prerequisiteResult` gives it a vacuous pass, while the status-condition
+equality test yields `False` (an inapplicable Duty's status is `Pending`, never `Fulfilled`). A
+Privilege gated on a Duty's completion is authored with `prerequisiteDuty`, not with a
+status-condition equality test, whenever the intent is ordinary gating — "this Privilege requires
+that Duty to be met, and does not block on an inapplicable Duty." An `obligationStateOperand`
+condition remains appropriate only when a policy genuinely means to observe another norm's derived
+status as cross-norm data — e.g. a Duty or Privilege reporting on a *different* norm's fulfillment
+for informational, auditing, or cross-policy purposes — not as a substitute for gating its own
+applicability. Because this is a distinction of authorial intent (is the observation about *this*
+Privilege's own gate, or about another norm's status as data?), it is not one canonical projection
+can decide mechanically from RDF shape alone; it is a normative authoring rule, not an automatic
+rewrite.
+
+**(b) Atomic complement operators are the preferred authoring form — not a projection-time
+rewrite.** `neq` and `isNoneOf` read more directly than `Not(eq(...))` and `Not(isAnyOf(...))`.
+Their `Truth` values coincide in every case: `apply` computes `left ≠ right` for `neq` exactly
+where `Not(eq(...))` flips `left = right`, and `valuesOf(left) ∩ elements(right) = ∅` for
+`isNoneOf` exactly where `Not(isAnyOf(...))` flips `valuesOf(left) ∩ elements(right) ≠ ∅` (see
+`apply`, §Helper Function Specifications). However, the two spellings are **not** identical once
+`causes` is considered, so projection does **not** rewrite one into the other as a
+semantics-preserving normalization. `mkTypeMismatch(operator, targetNorm, l, r)` embeds the
+operator itself in `ComparisonSite(operator, ValueType, ValueType)` (§Result and Truth Algebra,
+"Canonical error identity"); a type mismatch under `Not(eq(...))` therefore produces a cause
+tagged `ComparisonSite(eq, ...)`, while the same mismatch under `neq` produces
+`ComparisonSite(neq, ...)` — distinct `EvalError` values under RL2's structural error identity,
+even though both resolve to `Unknown`. The divergence is confined to the type-mismatch path: a
+missing or invalid operand produces `causes = nonOk(leftEV) ∪ nonOk(rightEV)`, which does not
+depend on the operator at all, so `Not(eq(...))` and `neq` (and likewise `Not(isAnyOf(...))` and
+`isNoneOf`) produce identical causes when the divergence is a missing fact rather than a type
+mismatch. Because a difference exists in at least one case, `neq`/`isNoneOf` are stated only as
+the preferred authoring spelling for new policies, not as a required canonical rewrite of
+`Not(eq(...))`/`Not(isAnyOf(...))`.
+
+**(c) A policy-level condition is shared factoring, not a distinct proposition.**
+`effectiveCondition(P, clause)` (§Abstract Syntax, Policies) conjoins `P.condition` into every
+clause's own condition; asserting a condition at the policy level denotes the same set of
+effective conditions as asserting `And(P.condition, clause.condition)` on every clause of `P` — it
+is not a separate expressible proposition with independent meaning. `P.prerequisiteDuty` is folded
+the same way, via `effectivePrerequisites`. Canonical projection does not rewrite one spelling into
+the other: the policy-level spelling is retained as authored because it states a condition shared
+by every clause exactly once, instead of repeating it per clause.
+
 ### Monotonicity of Derivation
 
 For one fixed immutable environment, `Out` is monotone in the selected subset of that
@@ -1745,6 +1798,100 @@ evaluator-level open/closed-system parameter, analogous in kind to `strategy`: `
 closed (deny-unless-permitted) system, `Permit` encodes an open (permit-unless-denied) system, and
 `NotApplicable` (the default) leaves the no-matching-rule outcome unresolved and delegates the
 choice to the PEP as pure reporting.
+
+### Exception patterns
+
+"Everywhere except X" is not one construct in RL2; it is a family of encodings with two distinct
+*meanings* — "no permit at X" (the request is simply unmatched, `NotApplicable`) versus "an
+explicit prohibition at X" (the request is affirmatively denied, `Deny`) — and the encodings are
+not interchangeable once an operand is missing. The four forms below are derived directly from
+`accessResult`, `resolveDecision`, and `choiceFold` above; none is guessed.
+
+**(1) Single Privilege with a `neq`/`not`-condition.** One Privilege whose condition reads
+`location neq ExcludedPlace` (or `Not(location eq ExcludedPlace)`, equivalent per rule 8b above)
+matches broadly and denies itself at the excluded place by the condition going `False`, never by a
+Prohibition. At the excluded place the condition is `False`, so `accessResult` is `False` and
+`deriveNorms` contributes no atom at all — not even `indeterminate` — for that Privilege.
+
+| Case | `accessResult` | Envelope contribution | `resolveDecision` | `Eval` decision (`defaultDecision = NotApplicable`) |
+|---|---|---|---|---|
+| At the excluded place | `False` | none | `NotApplicable` (empty envelope) | `NotApplicable` |
+| Missing `location` fact | `Unknown` | one `indeterminate(Privilege)` atom | `Indeterminate` (only reachable summaries are `NotApplicable` or `Permit`, `\|decisions\|=2`) | `Indeterminate` |
+| Elsewhere | `True` | `permit(Privilege)` | `Permit` | `Permit` |
+
+A single indeterminate atom and no competing norm makes the missing-fact outcome `Indeterminate`
+under every strategy — there is nothing for a Prohibition to contest.
+
+**(2) Broad Privilege plus a scoped Prohibition, under a conflict-resolution strategy.** An
+unconditional Privilege (matches everywhere) is joined by a Prohibition scoped to `location eq
+ExcludedPlace`, both at the default priority `0`. Unlike (1), the excluded place now produces an
+affirmative `forbid` atom, not merely the absence of a `permit` — "explicit prohibition there,"
+not "no permit there." Outcomes are strategy-dependent because both norms occupy the same
+priority stratum (`addAccess` keeps both flags set when priorities tie):
+
+| Case | Envelope | `ProhibitOverrides` | `PermitOverrides` | `Invalid` |
+|---|---|---|---|---|
+| At the excluded place | `{permit(Privilege), forbid(Prohibition)}` | `Deny` | `Permit` | `Indeterminate` |
+| Missing `location` fact | `{permit(Privilege), indeterminate(Prohibition)}` | `Indeterminate` | `Permit` | `Indeterminate` |
+| Elsewhere | `{permit(Privilege)}` | `Permit` | `Permit` | `Permit` |
+
+Derivation for the missing-fact row (`resolveDecision`, `choiceFold`, lines under "Conflict
+Resolution" above): `known = {permit(Privilege, priority 0)}` gives `initial =
+{{topPriority:0, hasPrivilege:true, hasProhibition:false}}`. Folding the one Unknown
+(`indeterminate(Prohibition)`, priority 0) adds the "activated" summary
+`{topPriority:0, hasPrivilege:true, hasProhibition:true}`, so `summaries` holds both. Under
+`ProhibitOverrides`, `decisionOf` yields `Permit` for the retained summary and `Deny` for the
+activated one — two decisions, hence `Indeterminate`. Under `PermitOverrides`, `hasPrivilege` is
+`true` in both summaries, so both yield `Permit` — one decision, hence deterministic `Permit`
+despite the missing fact: the broad Privilege dominates regardless of whether the Unknown
+Prohibition would have activated. Under `Invalid`, the retained summary has `hasProhibition =
+false` (`baseDecision → Permit`) and the activated summary has both flags `true` (`→
+Indeterminate`) — again two decisions, hence `Indeterminate`.
+
+**(3) Priority-based break-glass.** A broad, unconditional Prohibition at priority `0` ("no access,
+ever") is overridden by a narrow, conditional Privilege at priority `10` (the break-glass
+condition, e.g. `emergencyDeclared eq true`). Because `addAccess` discards atoms strictly below the
+current top priority, the lower-priority Prohibition never reaches the summary once the
+higher-priority Privilege is present, and the outcome does not depend on `strategy`:
+
+| Case | Envelope | Decision (all three strategies) |
+|---|---|---|
+| Break-glass condition `True` | `{permit(Privilege,10), forbid(Prohibition,0)}` — Prohibition dropped, `topPriority = 10` | `Permit` |
+| Break-glass condition `False` | `{forbid(Prohibition,0)}` only | `Deny` |
+| Break-glass condition `Unknown` | `{indeterminate(Privilege,10), forbid(Prohibition,0)}` | `Indeterminate` (retained summary at priority 0 is `Deny`; activated summary at priority 10 is `Permit`) |
+
+This survives changes to the evaluator's configured `strategy` because priority elimination in
+`addAccess` happens before `decisionOf` ever branches on `strategy` — the two mechanisms are
+independent, and (3) never reaches the tie-breaking case that (2) depends on.
+
+**(4) `defaultDecision`-based ("never, except C").** A single Privilege carries the exception
+condition `C`; no Prohibition is authored at all. `EvaluationConfiguration.defaultDecision = Deny`
+supplies the closed-world default for every request the Privilege does not affirmatively match.
+
+| Case | `resolveDecision` | `Eval` decision |
+|---|---|---|
+| Condition `C` holds | `Permit` | `Permit` |
+| No matching norm (`C` false / request out of scope) | `NotApplicable` (empty envelope) | `Deny` (`defaultDecision` substituted) |
+| Operand for `C` missing | `Indeterminate` (one `indeterminate(Privilege)` atom; reachable summaries are `NotApplicable` and `Permit`) | `Indeterminate` — **not** `Deny` |
+
+The last row is the sharp edge of this pattern: `defaultDecision` substitutes only for a resolved
+`NotApplicable`, never for `Indeterminate` (§Derivation vs Resolution, `Eval`'s composition). A
+missing fact does not fall back to the closed-world default; it still surfaces as `Indeterminate`
+for the PEP or a fail-closed adapter to handle explicitly.
+
+**Which form is canonical.** For a plain exception with no need for its own explanation or
+attached duties, (1) — single Privilege with `neq`/`not` — is canonical: it is the smallest
+encoding and its missing-fact behavior does not depend on `strategy`. When the exception must
+carry its own priority, condition, and independent provenance distinguishable from "no permit
+here" — for example when the exception needs to be independently attributable in the resolved
+envelope, or reported to audit as its own denied norm rather than an absent permit — (2), the
+Privilege/Prohibition pair, is canonical, with the same-priority default reserved for cases where
+the deployment accepts strategy-dependent resolution of the missing-fact case. For break-glass —
+an exception meant to survive whatever `strategy` the evaluator is configured with — (3), the
+priority-separated pair, is canonical. For closed-world deployments where every unmatched request
+should default to `Deny` (or `Permit`) rather than reporting `NotApplicable`, (4),
+`defaultDecision`, is canonical, with the caveat above that it does not paper over a missing-fact
+`Indeterminate`.
 
 ### Duty Status Derivation
 
