@@ -122,13 +122,22 @@ occur.
 | ODRL source | RL2 result | Disposition |
 |---|---|---|
 | `odrl:Party` | `rl2:Agent` | normalized |
-| `odrl:PartyCollection` | profile-defined agent-set fact or expansion | profile-dependent |
+| `odrl:PartyCollection` with explicit members | `rl2:AgentCollection` and direct `rl2:agentMember` | normalized |
+| Party refinement on a collection | profile-defined agent-set fact or expansion | profile-dependent |
 | `odrl:Asset` | `rl2:Asset` | normalized |
 | `odrl:AssetCollection` with explicit members | `rl2:AssetCollection` and direct `rl2:member` | normalized |
 | Collection `odrl:source` | profile resolver input | profile-dependent |
 | `odrl:Action` | `rl2:Action` | normalized |
 | `odrl:includedIn` | `rl2:includedIn` | exact |
 | `odrl:implies` | none | rejected |
+
+`odrl:PartyCollection`/`odrl:AssetCollection` cover closed, enumerated groups. Classification- or
+tag-driven targeting — "any party/asset with attribute X", which ODRL expresses only informally
+through `odrl:source`-based collection refinement — has no direct ODRL source construct; the
+canonical RL2 pattern is a norm with `rl2:subject rl2:anyAgent` or `rl2:object rl2:anyAsset` and an
+`agent.*`/`asset.*` condition delimiting the population (see `RL2_Semantics.md` §Request
+Matching). A translation profile that imports a source-based collection refinement should target
+this pattern rather than expanding an unbounded membership list.
 
 ODRL functions other than the core assigner/assignee roles—including attributing, consenting,
 compensating, informing, and tracking parties—require a profile mapping to explicit RL2 parties,

@@ -99,14 +99,20 @@ and are not consulted before acceptance. Its derived states are `Pending`, `Fulf
 | Term | Meaning |
 |---|---|
 | `rl2:Agent` | Person, organization, service, or other policy party. |
+| `rl2:AgentCollection` | Agent whose direct members may be matched; a closed, enumerated group. |
+| `rl2:agentMember` | Direct agent-collection membership; core matching does not recursively flatten nested collections. |
+| `rl2:anyAgent` | Sentinel individual: a norm's `rl2:subject rl2:anyAgent` matches every requesting agent, with the population delimited by conditions over `agent.*` facts. Not valid as a Request's `requestingAgent` or as a collection member. |
 | `rl2:Action` | Profile-defined action individual. |
 | `rl2:includedIn` | Transitive relation from a narrower action to a broader action. |
 | `rl2:Asset` | Resource governed by a policy. |
 | `rl2:AssetCollection` | Asset whose direct members may be matched. |
 | `rl2:member` | Direct collection membership; core matching does not recursively flatten nested collections. |
+| `rl2:anyAsset` | Sentinel individual: a norm's `rl2:object rl2:anyAsset` matches every requested asset, with the population delimited by conditions over `asset.*` facts. Not valid as a Request's `requestedAsset` or as a collection member. |
 
-Agent matching is exact in the core. Group, role, and organizational relationships are expressed
-by profile-defined facts and conditions.
+Subject and object matching are each one of three forms: exact identifier equality, direct
+membership in an `AgentCollection`/`AssetCollection`, or the `rl2:anyAgent`/`rl2:anyAsset` sentinel
+with an attribute-defined population. Group, role, and other organizational relationships not
+captured by a collection or sentinel are expressed by profile-defined facts and conditions.
 
 ## 7. Conditions
 

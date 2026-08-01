@@ -31,6 +31,8 @@ interpreted.
 Canonical projection also computes the finite action-inclusion, collection-membership, and
 `rdf:type`/`rdfs:subClassOf` indexes referenced by those policies and their required profiles.
 Those indexes are part of PolicyUniverse identity; an evaluator does not consult an ambient graph.
+Collection-membership indexes cover both `rl2:AssetCollection` (direct `rl2:member`) and
+`rl2:AgentCollection` (direct `rl2:agentMember`); neither is transitively closed.
 
 Canonical RDF ingestion maps the universe to the normalized abstract syntax defined by the
 Semantics. Canonical projection, including defaults and supported ODRL translations, is part of
@@ -47,6 +49,11 @@ Request = (
     requestedAsset  : Asset
 )
 ```
+
+`requestingAgent` and `requestedAsset` name a concrete Agent and Asset; the sentinel individuals
+`rl2:anyAgent` and `rl2:anyAsset` (used only in norm `rl2:subject`/`rl2:object` to declare an
+attribute-defined population; see `RL2_Semantics.md` §Request Matching) are never valid values
+here. A Request naming a sentinel is invalid and rejected before evaluation.
 
 Authentication credentials, transport metadata, request identifiers, submission times, and
 delegation chains may be represented as snapshot facts or by an interchange profile when policy

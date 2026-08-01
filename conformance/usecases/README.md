@@ -1,6 +1,6 @@
 # RL2 0.7 Use Cases
 
-The 46 use cases are concise, self-contained policy scenarios. They demonstrate constructs whose
+The 47 use cases are concise, self-contained policy scenarios. They demonstrate constructs whose
 meaning is defined by the canonical projection, pure evaluation contract, and ODRL migration
 rules. Profile-defined operands identify their WorldSnapshot dependencies with resolution paths.
 
@@ -25,7 +25,7 @@ rules. Profile-defined operands identify their WorldSnapshot dependencies with r
 | [Data Retention Limit](data-retention-limit.md) | [Anonymization Required](anonymization-required.md) | [No ML Training](no-ml-training.md) |
 | [Multi-Level Approval](multi-level-approval.md) | [Connector Certification](connector-certification.md) | [Data Sovereignty](data-sovereignty.md) |
 | [Volume Limit](volume-limit.md) | [Logging and Notification](logging-notification.md) | [Deletion After Use](deletion-after-use.md) |
-| [Time Window Access](time-window-access.md) | [Owner Access](owner-access.md) | |
+| [Time Window Access](time-window-access.md) | [Owner Access](owner-access.md) | [Classification-Based Targeting](classification-targeting.md) |
 
 ## Conditions, collections, and materialization
 

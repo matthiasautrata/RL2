@@ -416,6 +416,14 @@ rl2:AssetCollectionShape a sh:NodeShape ;
         sh:class rl2:Asset
     ] .
 
+# Agent collection shape
+rl2:AgentCollectionShape a sh:NodeShape ;
+    sh:targetClass rl2:AgentCollection ;
+    sh:property [
+        sh:path rl2:agentMember ;
+        sh:class rl2:Agent
+    ] .
+
 # Access priority validation
 rl2:AccessPriorityShape a sh:NodeShape ;
     sh:targetSubjectsOf rl2:priority ;

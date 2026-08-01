@@ -84,6 +84,19 @@ rl2:Agent a owl:Class ;
     rdfs:label "Agent" ;
     rdfs:comment "Any party participating in a normative or functional role." .
 
+rl2:AgentCollection a owl:Class ;
+    rdfs:subClassOf rl2:Agent ;
+    rdfs:label "Agent Collection" ;
+    rdfs:comment """A collection that may itself be the subject of a norm or a member of
+    another collection. Core request matching uses direct membership only.""" .
+
+rl2:anyAgent a rl2:Agent ;
+    rdfs:label "Any Agent" ;
+    rdfs:comment """Distinguished sentinel individual. A norm's rl2:subject rl2:anyAgent
+    matches every requesting agent; the population is delimited by conditions over
+    agent.* facts, not by matching. It may not appear as a member of an AgentCollection
+    and may not be a Request's requestingAgent.""" .
+
 # Normative roles (core semantic roles)
 rl2:subject a owl:ObjectProperty ;
     rdfs:domain [ owl:unionOf (rl2:Norm rl2:Promise) ] ;
@@ -129,6 +142,13 @@ rl2:AssetCollection a owl:Class ;
     rdfs:label "Asset Collection" ;
     rdfs:comment """A collection that may itself be the object of a norm or a member of
     another collection. Core request matching uses direct membership only.""" .
+
+rl2:anyAsset a rl2:Asset ;
+    rdfs:label "Any Asset" ;
+    rdfs:comment """Distinguished sentinel individual. A norm's rl2:object rl2:anyAsset
+    matches every requested asset; the population is delimited by conditions over
+    asset.* facts, not by matching. It may not appear as a member of an AssetCollection
+    and may not be a Request's requestedAsset.""" .
 
 rl2:Condition a owl:Class ;
     rdfs:label "Condition" ;
@@ -236,6 +256,15 @@ rl2:member a owl:ObjectProperty ;
     rdfs:comment """Direct membership relation for asset collections. Core semantics
     read rl2:member links directly (not transitively closed); because the range is
     rl2:Asset and AssetCollection ⊑ Asset, a member may itself be a collection, but
+    core matching does NOT auto-flatten such nesting — that is a profile/derived
+    concern. Membership is read from the canonical PolicyUniverse.""" .
+
+rl2:agentMember a owl:ObjectProperty ;
+    rdfs:domain rl2:AgentCollection ;
+    rdfs:range rl2:Agent ;
+    rdfs:comment """Direct membership relation for agent collections. Core semantics
+    read rl2:agentMember links directly (not transitively closed); because the range is
+    rl2:Agent and AgentCollection ⊑ Agent, a member may itself be a collection, but
     core matching does NOT auto-flatten such nesting — that is a profile/derived
     concern. Membership is read from the canonical PolicyUniverse.""" .
 

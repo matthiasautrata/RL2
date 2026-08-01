@@ -104,3 +104,8 @@ coordination, and formal-verification toolchains are outside the language specif
 companion specification may address them without changing core policy meaning.
 `../spec/RL2_Scope.md` §Out of Scope is the normative enumeration of what a conforming evaluator
 does not have to do; this section only summarizes its architectural consequences.
+
+An evaluator is free to hash-index candidate norms by `(subject, action, object)` for the common
+bound-norm case; `rl2:anyAgent`/`rl2:anyAsset` sentinel-subject or sentinel-object norms cannot key
+into that index and are implemented as a separate, always-scanned bucket without changing
+observable results.

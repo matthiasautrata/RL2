@@ -940,44 +940,85 @@ declared bounds, trust parameters, and the combining strategy.
 
 ### Request Matching
 
-A norm applies to a request only if the norm's subject, action, and object match the request:
+A norm applies to a request only if the norm's subject, action, and object match the request. A
+Request whose `requestingAgent` or `requestedAsset` is a sentinel individual (`rl2:anyAgent` or
+`rl2:anyAsset`) is invalid and is rejected before evaluation — a sentinel names a population, not
+a requester.
+
+All three request axes share one parameterized matching rule with a per-axis declared preorder:
 
 ```
-matchesRequest(n, Env) =
-    let R = Env.Request in
-    subjectMatches(n.subject, R.requestingAgent, Env) ∧
-    objectMatches(n.object, R.requestedAsset, Env.Universe) ∧
-    actionMatches(n, R.requestedAction, Env.Universe)
+matchesComponent(declared, requested, ⊑, U) =
+    declared = requested ∨ ⊑(requested, declared, U)
+```
 
-subjectMatches(a, requested, Env) =
-    a = requested
+| axis | sentinel | preorder `⊑` | transitive? |
+|---|---|---|---|
+| subject | `rl2:anyAgent` matches every requesting agent | `requested ∈ agentMembers(declared, U)` (direct `rl2:agentMember`) | no |
+| object | `rl2:anyAsset` matches every requested asset | `requested ∈ members(declared, U)` (direct `rl2:member`) | no |
+| action | none (deliberate: no `rl2:anyAction` sentinel in 0.7) | `includedInAction(requested, declared, U)` | yes |
+
+The asymmetry is deliberate, not an oversight. Action vocabularies are curated, profile-declared
+DAGs (§5's `rl2:includedIn`) — finite, precomputed, and safe to close transitively: a Prohibition
+on a broad action correctly catches an unanticipated narrower one. Collection membership is
+bounded and author-controlled — a collection lists exactly the agents or assets its author
+enumerated, and closing it transitively would let an author's grant silently reach members of a
+member's member they never enumerated. Attribute-defined populations (any agent, any asset)
+therefore use the sentinel + condition mechanism instead of a third membership relation.
+
+```
+subjectMatches(a, requested, U) =
+    a = rl2:anyAgent ∨ matchesComponent(a, requested, agentPreorder, U)
+  where agentPreorder(requested, declared, U) = requested ∈ agentMembers(declared, U)
 
 objectMatches(s, requested, U) =
-    s = requested ∨ requested ∈ members(s,U)
+    s = rl2:anyAsset ∨ matchesComponent(s, requested, assetPreorder, U)
+  where assetPreorder(requested, declared, U) = requested ∈ members(declared, U)
 
 actionMatches(Duty(_,_,_,_,_,Achieve(x,_)), requested, U) =
-    x = requested ∨ includedInAction(requested,x,U)
+    matchesComponent(x, requested, actionPreorder, U)
 actionMatches(Privilege(_,x,_,_,_), requested, U) =
-    x = requested ∨ includedInAction(requested,x,U)
+    matchesComponent(x, requested, actionPreorder, U)
 actionMatches(Prohibition(_,x,_,_), requested, U) =
-    x = requested ∨ includedInAction(requested,x,U)
+    matchesComponent(x, requested, actionPreorder, U)
 actionMatches(Duty(_,_,_,_,_,Maintain(_)), _, _) = true
+  where actionPreorder(requested, declared, U) = includedInAction(requested, declared, U)
+
+matchesRequest(n, Env) =
+    let R = Env.Request in
+    subjectMatches(n.subject, R.requestingAgent, Env.Universe) ∧
+    objectMatches(n.object, R.requestedAsset, Env.Universe) ∧
+    actionMatches(n, R.requestedAction, Env.Universe)
 ```
 
 Where:
 - `includedInAction(x_req, x, U)` tests the finite canonical action-inclusion index
 - `members(s, U)` returns the **direct** `rl2:member` individuals of `s` in the canonical policy
   universe when `s` is an `AssetCollection` (empty otherwise)
+- `agentMembers(c, U)` returns the **direct** `rl2:agentMember` individuals of `c` in the canonical
+  policy universe when `c` is an `AgentCollection` (empty otherwise); parallel to `members(s, U)`
+  and, like it, not transitively closed — membership in a nested sub-collection does not match the
+  outer collection
 
 A Maintenance Duty has no requested action to match. The `true` action component above makes an
 independent Maintenance Duty a candidate on its subject and object only. An attached Duty is
 reached through its owning Privilege and therefore uses the Privilege's request match; its own
 subject and object still determine performance evidence, not access matching.
 
-`AssetCollection ⊑ Asset`, so a norm may target a collection directly and a collection may itself
-be a member of another collection. Core `members(s,U)` is not transitively closed: membership in
-a nested sub-collection does not match the outer collection. Membership is read from the fixed
-canonical PolicyUniverse.
+`AssetCollection ⊑ Asset` and `AgentCollection ⊑ Agent`, so a norm may target a collection
+directly and a collection may itself be a member of another collection. Neither `members(s,U)` nor
+`agentMembers(c,U)` is transitively closed: membership in a nested sub-collection does not match
+the outer collection. Membership is read from the fixed canonical PolicyUniverse.
+
+`rl2:anyAgent` and `rl2:anyAsset` are the sole unbound-population mechanism: matching against them
+is unconditionally true on that axis, and the actual population is defined entirely by conditions
+over `agent.*` / `asset.*` facts (§Conditions). SHACL's `sh:minCount 1` on `rl2:subject` and
+`rl2:object` is unaffected — a sentinel value still satisfies that cardinality, so an unbound norm
+is always an explicit authoring act, never a forgotten property silently becoming a universal
+grant. A sentinel-subject or sentinel-object norm whose population-delimiting condition cannot be
+evaluated (a `Missing` fact) yields `Unknown` and therefore an attributed `indeterminate` atom
+through the ordinary truth algebra — an unknown population member is never silently permitted or
+denied.
 
 Action subsumption is defined by the transitive closure of `rl2:includedIn`:
 
@@ -994,8 +1035,12 @@ immutable evidence set.
 
 **RDF grounding**: Actions are individuals of `rl2:Action`. Action subsumption (`x' ⊑ x`)
 follows the transitive closure of `rl2:includedIn`; `members(s)` is the set of direct `rl2:member`
-links when `s` is an `rl2:AssetCollection`. A conduct norm's subject matches the requesting Agent
-exactly. Role-based authorization uses an explicit condition over a profile-defined agent fact.
+links when `s` is an `rl2:AssetCollection`; `agentMembers(c)` is the set of direct
+`rl2:agentMember` links when `c` is an `rl2:AgentCollection`. A conduct norm's subject matches the
+requesting Agent exactly, matches a declared `AgentCollection`'s direct members, or — when the
+subject is `rl2:anyAgent` — matches unconditionally with the population left to a condition.
+Role-based authorization not expressed via a collection or a sentinel uses an explicit condition
+over a profile-defined agent fact.
 
 Policy and clause conditions are combined by `effectiveCondition`. During derivation, `True`
 activates a matching clause, `False` leaves it inactive, and `Unknown` produces an attributed
@@ -1680,7 +1725,9 @@ Given these constraints:
 
 `F`, `E`, and `h` are bounded by the snapshot and hierarchy conformance parameters. The bound
 includes Duty and Promise status derivation. Indexes may reduce lookup cost without changing
-meaning.
+meaning. Implementations may hash-index candidate norms by `(subject, action, object)` for the
+fast bound-norm path; `rl2:anyAgent`/`rl2:anyAsset` sentinel-subject or sentinel-object norms
+cannot key into that index and form a separate, always-scanned bucket.
 
 ### Totality Guarantees
 

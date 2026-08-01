@@ -2,12 +2,15 @@
 
 ## Scenario
 
-A researcher may access a sensitive dataset only when an ethics-board approval in the snapshot identifies that researcher and remains in force.
+Any agent may access a sensitive dataset only when an ethics-board approval in the snapshot
+identifies that agent and remains in force. The policy names no specific researcher; the
+population is delimited entirely by the approval fact.
 
 ## Why it matters
 
-Approval is external state, not a mutable property of a policy. Agent scoping binds the verified
-approval to the requester.
+Approval is external state, not a mutable property of a policy. `rl2:subject rl2:anyAgent`
+matches every requesting agent; the `agent.ethicsApprovalValid` condition, scoped to the
+requester, correctly delimits the population to approved agents only.
 
 ## Canonical policy
 
@@ -16,7 +19,6 @@ approval to the requester.
 @prefix rl2: <https://rl2.example/ontology#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-ex:Researcher a rl2:Agent .
 ex:SensitiveDataset a rl2:Asset .
 ex:access a rl2:Action .
 
@@ -25,7 +27,7 @@ ex:approvalValid a rl2:LeftOperand ;
     rl2:resolutionPath "agent.ethicsApprovalValid" .
 
 ex:datasetAccessPrivilege a rl2:Privilege ;
-    rl2:subject ex:Researcher ;
+    rl2:subject rl2:anyAgent ;
     rl2:action ex:access ;
     rl2:object ex:SensitiveDataset ;
     rl2:condition [
@@ -48,5 +50,9 @@ required board attribution and validity interval.
 
 ## Expected result
 
-Alice’s request is `Permit`. Another researcher's facts occupy a different scope. Expired or
-missing approval data produces `Indeterminate`.
+Alice’s request is `Permit` — `rl2:anyAgent` matches her as subject, and her scoped approval fact
+satisfies the condition. An agent whose scoped `agent.ethicsApprovalValid` fact is `false` or
+absent-but-defaulted does not satisfy the condition, so the Privilege does not grant and the
+request is `NotApplicable` (no other clause applies). Were the approval fact missing from the
+snapshot entirely, the condition would be `Unknown`, and the result would be `Indeterminate`, not
+`Permit` or `NotApplicable`.

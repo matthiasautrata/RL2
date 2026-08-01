@@ -405,7 +405,12 @@ Original findings for the record:
 
 Both decisions feed the P1 typing pass; land the decisions before freezing the module format.
 
-### P8 · Complete the windowed-Maintenance boundary algorithm
+### P8 · Complete the windowed-Maintenance boundary algorithm — DECIDED 2026-08-01: option (b)
+
+**Decision:** 0.7 Maintenance invariants admit fact and clock operands only; a status operand
+inside an invariant is a compile rejection. Status operands in *applicability conditions* remain
+allowed (that is what `sla-credit-clause` uses; verified no corpus invariant contains one). The
+recursive boundary-collection algorithm (§3.3) is the documented lift if a need appears.
 
 **Origin:** [G] C3-5. This *corrects* [O], whose claim that `elapsed` was "not pinned down" was
 overstated — the spec does define a finite cell partition (`RL2_Semantics.md:737-743`, verified).
@@ -457,7 +462,7 @@ and nothing documents this or covers it with a vector.
    for the missing-operand case — including `permit + indeterminate` resolution under each
    strategy, which no vector currently exercises. [O]
 
-### P10 · Regularize Duty gating
+### P10 · Regularize Duty gating — DECIDED 2026-08-01 (all three items)
 
 **Origin:** [O] G5/G6 + R2; interacts with P9's canonicalization choice.
 
@@ -474,7 +479,7 @@ and nothing documents this or covers it with a vector.
    *inapplicable* Duty (vacuous pass vs `False`) and add the vector — `duty-attachment.md` D5 does
    not cover it. This divergence is why P9 rule 2 must name `prerequisiteDuty` canonical.
 
-### P11 · Add `defaultDecision` to EvaluationConfiguration
+### P11 · Add `defaultDecision` to EvaluationConfiguration — DECIDED 2026-08-01
 
 **Origin:** [O] G4; [G] independently requires the Behaviour crosswalk; [A]'s "default behavior in
 policy engines is deny" answer implicitly assumes it exists.
@@ -488,7 +493,7 @@ envelope contains no atom. Three lines of semantics; record the FS and XACML cor
 mapping. With it, RL2's three strategies + priority + defaultDecision cover all XACML combining
 algorithms except the order-dependent ones RL2 correctly rejects [O].
 
-### P12 · Relative Duty deadlines
+### P12 · Relative Duty deadlines — DECIDED 2026-08-01 (incl. recurrence stance)
 
 **Origin:** [O] G3; independently identified as an ODRL gap by Cimmino & Fornara (P4b) and by the
 Fornara et al. deadline work already in RL2's bibliography.
@@ -511,7 +516,7 @@ recurrence form — a fixed period and count, expanding at compile time to finit
 as the candidate extension. Expansion at compile keeps `Eval` untouched and the cell-partition
 proof intact.
 
-### P13 · Request parameters
+### P13 · Request parameters — DECIDED 2026-08-01
 
 **Origin:** [O] O4; corroborated by [G] §5.6 (multi-level-approval binds approval to "project P"
 that the Request cannot carry) and by both metering use cases whose prose invents Request fields
@@ -524,15 +529,15 @@ Request, resolved through the same `resolveFact` discipline, `Attribution = Requ
 unaffected. Makes `purpose`/`count`/`format` — among ODRL's most-used operands — expressible
 without snapshot contortions, and fixes both metering use cases properly.
 
-### P14 · Snapshot semantics decisions
+### P14 · Snapshot semantics decisions — DECIDED 2026-08-01
 
 **Origin:** [G] C2-3 (unique) + [O] E4 + [G] 10.3 (convergent).
 
-1. **Poisoning rule** [G C2-3]: `resolveFact` returns `Invalid` if *any* candidate assertion for a
-   key is inadmissible, even when an admissible assertion yields one unambiguous value. Fail-closed
-   is right only under a trusted closed assembler; under mixed-trust assembly one injected junk
-   assertion suppresses a good fact. Decide and state the threat model: keep strict + require
-   trusted assembler, or filter inadmissible candidates with diagnostics and resolve over the rest.
+1. **Poisoning rule — DECIDED: strict + trusted assembler.** `resolveFact` keeps its fail-closed
+   rule (`Invalid` if any candidate for a key is inadmissible). The threat model is stated
+   normatively: the WorldSnapshot is the output of a trusted assembler; mixed-trust filtering is
+   the assembler's job, before the snapshot exists. This matches the intended deployment shape
+   (the assembler is the integration layer).
 2. **Dependency manifest + fetch loop** ([O] E4 and [G] 10.3 are two halves of one feature):
    compile-time, the module exports `RequiredInputs` (fact keys with type/cardinality/trust,
    evidence selectors, time requirements) so the assembler can prefetch; runtime, a structured
