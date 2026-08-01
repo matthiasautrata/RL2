@@ -49,6 +49,11 @@ UnsupportedProfile
 NonCanonicalSource
 ```
 
+These are a separate, pre-compile diagnostic family from the `CompileDiagnostic` registry of
+`RL2_Compilation.md` §6: they describe `translate`'s partial function from ODRL to canonical RL2,
+not `compile`'s function from canonical RL2 to a `CompiledPolicyModule`, and the two sets are never
+merged.
+
 ## 3. Canonicalization
 
 An ODRL expression is normalized before term mapping:

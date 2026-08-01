@@ -30,6 +30,7 @@ enforcement. Given equal canonical inputs, conforming evaluators return equal re
 | Vocabulary | `../spec/rl2.ttl` | RDF terms and relationships |
 | Validation | `../spec/rl2-shacl.ttl` | Canonical authored structures |
 | Semantics | `../spec/RL2_Semantics.md` | Conditions, status, derivation, and resolution |
+| Compilation | `../spec/RL2_Compilation.md` | RDF-to-`CompiledPolicyModule` contract, diagnostics, and interchange schemas |
 | Migration | `../spec/RL2_ODRL_Mapping.md` | Deterministic ODRL 2.2 translation |
 | Conformance | `../conformance/` | Examples and expected observable behavior |
 
@@ -37,11 +38,23 @@ Reader documentation is informative. Follow-on ideas in `../future/` do not affe
 
 ## 3. Semantic Pipeline
 
-### 3.1 Validate and project
+Authored RDF reaches `Eval` through three ordered phases: SHACL structural validation, compilation
+to a `CompiledPolicyModule`, and evaluation. `../spec/RL2_Compilation.md` is the normative artifact
+for the first two; this section summarizes their architectural consequences and elaborates the
+third.
 
-SHACL rejects non-canonical or structurally incomplete authored RDF. Canonical projection maps the
-validated graph to one normalized AST, resolves defaults, and checks supported profiles. An
-implementation may use any internal representation after this boundary.
+```text
+RDF dataset --SHACL--> validated RDF --compile--> CompiledPolicyModule --Eval--> EvaluationResult
+```
+
+### 3.1 Validate and compile
+
+SHACL rejects non-canonical or structurally incomplete authored RDF. `compile` then maps the
+validated graph to one normalized, closed `CompiledPolicyModule` — resolving profiles, projecting
+canonical structure, linking and type-checking operands and operators, and checking for
+dependency cycles and declared bounds — or returns a diagnostic set. An implementation may use any
+internal representation after this boundary, provided its externally observable
+`CompiledPolicyModule` and diagnostics match another conforming compiler's for the same input.
 
 ### 3.2 Match and evaluate conditions
 
@@ -109,3 +122,10 @@ An evaluator is free to hash-index candidate norms by `(subject, action, object)
 bound-norm case; `rl2:anyAgent`/`rl2:anyAsset` sentinel-subject or sentinel-object norms cannot key
 into that index and are implemented as a separate, always-scanned bucket without changing
 observable results.
+
+The canonical `CompiledPolicyModule` serialization (`../spec/RL2_Compilation.md` §5.1) is the
+interchange and conformance form, not a mandated execution structure: it is what two
+implementations compare to check they compiled the same input the same way, and what a
+conformance vector or replay tool reads. A private in-process representation — bytecode, a
+relational plan, a graph index — remains free behind that interface, exactly as this section
+describes for `Eval` itself.

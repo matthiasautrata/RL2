@@ -473,8 +473,11 @@ rl2:LogicalOperator a owl:Class ;
 rl2:ComparisonOperator a owl:Class ;
     rdfs:subClassOf rl2:Operator ;
     rdfs:label "Comparison Operator" ;
-    rdfs:comment "Operators for comparing values (eq, neq, lt, lte, gt, gte, isA, isAnyOf, isAllOf, isNoneOf)." ;
-    owl:oneOf (rl2:eq rl2:neq rl2:lt rl2:lte rl2:gt rl2:gte rl2:isA rl2:isAnyOf rl2:isAllOf rl2:isNoneOf) .
+    rdfs:comment """Operators for comparing values. Core defines ten individuals (eq, neq, lt,
+    lte, gt, gte, isA, isAnyOf, isAllOf, isNoneOf); a profile may add rl2:ProfileOperator
+    individuals. Deliberately NOT an owl:oneOf enumeration: the closed-operator check is owned
+    by the compile phase (RL2_Compilation.md, UnknownOperator), and a closed nominal class
+    would contradict profile-declared operators.""" .
 
 # Logical Operators
 rl2:and a rl2:LogicalOperator ;
@@ -533,6 +536,35 @@ rl2:isAllOf a rl2:ComparisonOperator ;
 rl2:isNoneOf a rl2:ComparisonOperator ;
     rdfs:label "isNoneOf" ;
     rdfs:comment "Value is none of a specified set." .
+
+# Profile Operators (RL2_Compilation.md §9.1)
+#
+# A profile may declare its own comparison operator instead of being limited to the ten operators
+# above. rl2:ProfileOperator is a subclass of rl2:ComparisonOperator (the class every core
+# comparison operator individual is typed as), so a declared profile operator individual is usable
+# anywhere rl2:constraintOperator admits a rl2:ComparisonOperator. Conformance for a profile's
+# operators is established by that profile's own vectors, per RL2_Compilation.md.
+rl2:ProfileOperator a owl:Class ;
+    rdfs:subClassOf rl2:ComparisonOperator ;
+    rdfs:label "Profile Operator" ;
+    rdfs:comment "Profile-declared comparison operator with a typed binary signature (leftParamType, rightParamType). Distinct from the fixed, enumerated core comparison operators: a profile may declare any number of these, each compiled and digest-bound with the rest of its profile." .
+
+rl2:leftParamType a owl:ObjectProperty ;
+    rdfs:domain rl2:ProfileOperator ;
+    rdfs:label "Left Parameter Type" ;
+    rdfs:comment """Declares the value type (a datatype IRI or profile value class) admitted as
+    a rl2:ProfileOperator's left-hand operand. No rdfs:range is declared for rl2:leftParamType
+    itself, because its values are heterogeneous — datatype IRIs and classes both occur, and
+    neither alone is the range (the same rationale as rl2:valueType). Every rl2:ProfileOperator
+    declares exactly one.""" .
+
+rl2:rightParamType a owl:ObjectProperty ;
+    rdfs:domain rl2:ProfileOperator ;
+    rdfs:label "Right Parameter Type" ;
+    rdfs:comment """Declares the value type (a datatype IRI or profile value class) admitted as
+    a rl2:ProfileOperator's right-hand operand. No rdfs:range is declared for rl2:rightParamType
+    itself, for the same reason as rl2:leftParamType and rl2:valueType. Every rl2:ProfileOperator
+    declares exactly one.""" .
 
 # Obligation States (enumeration pattern)
 rl2:ObligationState a owl:Class ;

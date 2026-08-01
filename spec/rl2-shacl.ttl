@@ -265,7 +265,7 @@ rl2:AtomicConstraintShape a sh:NodeShape ;
     sh:property [ sh:path rl2:leftOperand ; sh:minCount 1 ; sh:maxCount 1 ] ;
     sh:property [ sh:path rl2:constraintOperator ; sh:minCount 1 ; sh:maxCount 1 ;
         sh:class rl2:ComparisonOperator ;
-        sh:in (rl2:eq rl2:neq rl2:lt rl2:lte rl2:gt rl2:gte rl2:isA rl2:isAnyOf rl2:isAllOf rl2:isNoneOf) ] ;
+        sh:message "constraintOperator must be a rl2:ComparisonOperator individual (a core comparison operator or a declared rl2:ProfileOperator, RL2_Compilation.md §9.1); resolving it to a supported, in-scope operator is a compile-time check (RL2_Compilation.md §2.2), not a SHACL structural one." ] ;
     sh:property [
         sh:path rl2:targetNorm ;
         sh:maxCount 1 ;
@@ -577,6 +577,23 @@ rl2:RequiresProfileShape a sh:NodeShape ;
         sh:path rl2:requiresProfile ;
         sh:class rl2:Profile ;
         sh:message "rl2:requiresProfile must reference a declared rl2:Profile (with a version), so the evaluator can run the unknown-profile / version-negotiation check."
+    ] .
+
+# A profile-declared comparison operator (RL2_Compilation.md §9.1) must carry a complete typed
+# binary signature so the compile-time type stage can check operand compatibility against it.
+rl2:ProfileOperatorShape a sh:NodeShape ;
+    sh:targetClass rl2:ProfileOperator ;
+    sh:property [
+        sh:path rl2:leftParamType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "A rl2:ProfileOperator must declare exactly one rl2:leftParamType."
+    ] ;
+    sh:property [
+        sh:path rl2:rightParamType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "A rl2:ProfileOperator must declare exactly one rl2:rightParamType."
     ] .
 
 # ----------------------------------------------------------------------------

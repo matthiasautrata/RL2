@@ -1609,6 +1609,11 @@ data-level negation and comparison over the fixed environment.
 | Conflict-handling | None (contradiction is data) | Strategy-based |
 | Output | Set of atoms (dedup by canonical identity) | Single decision |
 
+`Eval`'s policy-universe input `U` is a `CompiledPolicyModule` — the closed, typed output of the
+compilation contract in `RL2_Compilation.md`, not raw policy RDF. This document defines what `Eval`
+does with that module; `RL2_Compilation.md` defines how a validated RDF dataset becomes one, the
+diagnostics that process can produce, and the soundness guarantee relating the two phases.
+
 The `Eval` function composes snapshot validation, declarative status derivation, `Out`, and
 access-conflict resolution. Status derivation precedes `Out` because Privilege prerequisites read
 Duty status; it remains a pure interpretation of the same immutable inputs:

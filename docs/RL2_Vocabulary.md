@@ -142,6 +142,16 @@ operand; `and`, `or`, and `xone` have at least two.
 Comparison operators are `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `isA`, `isAnyOf`, `isAllOf`, and
 `isNoneOf`. Logical operators are `and`, `or`, `xone`, and `not`.
 
+| Term | Meaning |
+|---|---|
+| `rl2:ProfileOperator` | Profile-declared comparison operator; `rdfs:subClassOf rl2:ComparisonOperator`, so it is usable wherever a core comparison operator is. |
+| `rl2:leftParamType` | The `rl2:ProfileOperator`'s admitted left-hand operand value type (datatype IRI or profile value class); no `rdfs:range` (heterogeneous values, as with `rl2:valueType`). |
+| `rl2:rightParamType` | The `rl2:ProfileOperator`'s admitted right-hand operand value type; same no-`rdfs:range` rationale. |
+
+A `rl2:ProfileOperator` declares exactly one `leftParamType` and one `rightParamType`. Resolving it
+to a supported, in-scope operator and checking it against its declared signature are compile-time
+checks (`../spec/RL2_Compilation.md` §9.1), not SHACL structural ones.
+
 ## 8. Snapshot Operands
 
 | Term | Meaning |

@@ -22,7 +22,10 @@ independently found by multiple reviews. Items 1–5 are release stoppers; 6–1
 correctness; the rest is structure and hygiene (§2).
 
 ### P1 · Specify the end-to-end compilation contract (SHACL → typed module → Eval) — DESIGN
-DECISIONS 2026-08-01 (D1–D8 below; execution = the final document sweep)
+DECISIONS 2026-08-01 (D1–D8 below); **EXECUTED same day**: sweep pass 1 (namespace, valueType,
+shape changes) + pass 2 (`spec/RL2_Compilation.md`, ProfileOperator vocabulary, integration
+edits). Remaining from P1/P4: the machine-readable JSON Schema files themselves (ship with the
+P3 conformance suite) and the w3id.org registration PR.
 
 **D1 · Check ownership — single ownership.** Every validation check is normatively owned by
 exactly one phase. SHACL (①) keeps only graph-structural checks (classes, cardinalities, xone,

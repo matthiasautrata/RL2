@@ -21,9 +21,10 @@ When artifacts conflict, use this order:
 1. `spec/rl2.ttl` and `spec/rl2-shacl.ttl`
 2. `spec/RL2_Model.md`
 3. `spec/RL2_Semantics.md`
-4. `spec/RL2_ODRL_Mapping.md`
-5. `conformance/`
-6. informative material under `docs/`
+4. `spec/RL2_Compilation.md`
+5. `spec/RL2_ODRL_Mapping.md`
+6. `conformance/`
+7. informative material under `docs/`
 
 The core norm classes are `Privilege`, `Duty`, and `Prohibition`. `Promise` is Offer content that
 materializes into a Duty. Do not add vocabulary without showing that existing constructs cannot

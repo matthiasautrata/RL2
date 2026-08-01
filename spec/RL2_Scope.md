@@ -42,6 +42,14 @@ RL2 defines:
 The evaluation contract may consume histories or externally derived values as finite snapshot
 data. It does not prescribe how those inputs are collected or stored.
 
+**Authoring forms compile down; `Eval`'s kernel never grows.** Between validated RDF and `Eval`
+sits one normative compilation contract (`RL2_Compilation.md`): SHACL structural validation,
+followed by a total, deterministic `compile` step that produces a closed `CompiledPolicyModule` or
+a reproducible diagnostic set. Ergonomics — refinements, recurrence windows, profile vocabulary,
+ODRL conveniences — live in that compile-down expansion; semantics and proof obligations live on
+the evaluation kernel alone, so every authoring convenience is correct by construction of its
+expansion into the kernel `compile` produces.
+
 ## Normative Positions
 
 RL2 standardizes conduct norms with observable evaluator behavior:
@@ -66,7 +74,9 @@ The following are not requirements on a conforming RL2 evaluator:
 - request transport and authentication protocols;
 - persistent workflow or case management;
 - event-log storage, scheduling, and re-evaluation triggers;
-- database layout, indexing, caching, or an optimized intermediate representation;
+- database layout, indexing, caching, or an optimized *internal* intermediate representation
+  (distinct from the normative `CompiledPolicyModule` interchange form of `RL2_Compilation.md`,
+  which fixes an interchange and conformance shape, not an execution strategy);
 - locking, retry, transaction, replica-consistency, consensus, or distributed-commit protocols;
 - audit-log storage and retention;
 - enforcement, provisioning, masking, throttling, or resource reservation;
@@ -98,9 +108,11 @@ meanings.
 The RL2 proposal consists of:
 
 1. the information model, ontology, SHACL shapes, and profiles;
-2. formal evaluation semantics;
-3. ODRL 2.2 migration rules; and
-4. structural and semantic conformance material.
+2. the compilation contract from validated RDF to a `CompiledPolicyModule`, with its diagnostics
+   and interchange schemas;
+3. formal evaluation semantics;
+4. ODRL 2.2 migration rules; and
+5. structural and semantic conformance material.
 
 The Primer, architecture overview, external-data guidance, vocabulary reference, and bibliography
 are informative.

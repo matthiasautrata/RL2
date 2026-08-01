@@ -31,10 +31,11 @@ the same evaluator semantics as any other policy.
 1. [Scope](spec/RL2_Scope.md)
 2. [Information model](spec/RL2_Model.md)
 3. [Formal semantics](spec/RL2_Semantics.md)
-4. [ODRL 2.2 migration](spec/RL2_ODRL_Mapping.md)
-5. [Ontology](spec/rl2.ttl) and [SHACL shapes](spec/rl2-shacl.ttl)
-6. [Primer](docs/RL2_Primer.md)
-7. [Use cases and conformance material](conformance/)
+4. [Compilation contract](spec/RL2_Compilation.md)
+5. [ODRL 2.2 migration](spec/RL2_ODRL_Mapping.md)
+6. [Ontology](spec/rl2.ttl) and [SHACL shapes](spec/rl2-shacl.ttl)
+7. [Primer](docs/RL2_Primer.md)
+8. [Use cases and conformance material](conformance/)
 
 ## Repository Structure
 
