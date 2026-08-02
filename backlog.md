@@ -48,6 +48,20 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
   Occurrence window resolved at grant time — an occurrence's `window` is `resolveWindow`'s output
   computed once against the granting evaluation's own snapshot, so a later evaluation supplying a
   different snapshot does not re-anchor a relative window to the new snapshot's clock.
+- R-07 occurrence-identity interchange repair: `occurrenceId` begins with `sourceIdentity(d)`,
+  which may be a module-scoped `SourceRef` for a valid blank-node Duty, while
+  `Evidence.dischargeOf` currently admits only an IRI in that position. Align the abstract type and
+  canonical wire encoding (or require an authored IRI for a PER-GRANT template), then add a
+  blank-node template plus correlated-evidence vector.
+- R-08 prerequisite status-map scope: `boundOccurrenceStatuses` must include a bound prerequisite
+  only when its Privilege is in the request's prerequisite-gating domain (at least
+  `matchesRequest(n, Env)`), or the result model must explicitly become an eager universe-wide
+  report. Add an unmatched-Privilege vector that asserts no irrelevant `BoundIdentity` entry or
+  diagnostic from its template.
+- `conformance/vectors/README.md` overclaims: these documents are evaluator-independent *boundary
+  expectations* that specify selected parts of the input tuple, not machine-readable vectors, and
+  they do not by themselves establish evaluator conformance. Correct the framing when the
+  executable suite lands and the two artifact kinds need distinguishing.
 - F-05 materialization vectors — action Promise with postCondition crystallizes into an
   Achievement Duty carrying it (positive); state Promise with postCondition rejected by
   `PromiseShape` (negative).
@@ -70,6 +84,12 @@ diffs → commit. Gate: `uv run tools/validate.py` stays `FAIL 0` and warning-fr
   already exists in core).
 - New migration fixtures: `odrl:xone`; `odrl:inheritFrom` (multiple parents, missing parent,
   cycle); `ConflictingCompactValue`.
+- `conformance/migration/attached-duty.md` is stale against the committed mapping table: it is
+  marked `normalized` and asserts that an attached `odrl:duty` *becomes* a prerequisite Duty,
+  whereas `RL2_ODRL_Mapping.md` now maps `odrl:duty` to `rl2:prerequisiteDuty` **or**
+  `rl2:consequentDuty` with disposition `clarified`. Restate the fixture as recording one
+  explicitly declared prerequisite interpretation, and say that it does not establish that
+  interpretation as ODRL's default. Same correction in `conformance/migration/README.md`.
 - Reclassifications: ODRL `invalid` conflict → `clarified` (whole-policy void vs request-scoped
   Indeterminate); Set-rule assigner preservation caveat; `rightOperandReference` → pre-resolve
   into an attributed snapshot fact or reject.
