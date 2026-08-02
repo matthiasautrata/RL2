@@ -77,7 +77,10 @@ the party whose access it gates — an administrator pays, a team member gains a
 
 **R-4 Collections and hierarchies.** Collections of assets and of agents must be addressable as
 norm targets, and subsumption over roles, types, and actions must be decidable.
-*Witnesses:* asset-collection-access, role-hierarchy, display-vs-nondisplay.
+*Witnesses:* asset-collection-access (asset collections), role-hierarchy (type subsumption).
+*Evidence gap (§7):* agent collections and action subsumption are both unevidenced.
+display-vs-nondisplay is **not** evidence for action subsumption — it declares two sibling actions
+precisely to avoid a hierarchy, and is closer to an argument that the deployment does not need one.
 
 ### 3.2 Obligation structure
 
@@ -162,6 +165,22 @@ attribute-based authorization systems do not address at all.
 **R-20 Replayable policy selection.** Which policies were in force is the caller's decision, and
 the evaluation record must make that decision reproducible.
 *Witnesses:* universe-selection.
+
+### 3.6 Composition
+
+**R-21 Composable policy layers.** Policies written by different authorities at different times —
+enterprise standard, line-of-business rule, product terms, individual agreement — must compose
+without any of them being rewritten, and the composition must resolve deterministically where the
+layers disagree.
+*Witnesses:* **none.** Owner-asserted 2026-08-02 ("for scalability, we want composable policies");
+no use case in the corpus exercises layered composition or an override between layers.
+*Existing mechanism:* universe union (`RL2_Semantics.md` §Policy Composition Semantics), plus
+`rl2:priority` and the configured conflict strategy for disagreement. Composition is set union of
+clauses; there is no policy inheritance, no parameterized or reusable clause library, and no
+reference from one policy into another beyond sharing a Duty by IRI within one universe.
+*Open (§8):* this requirement is the missing justification for `rl2:priority` (§7), and it is the
+one place where the authoring-scalability question and the evaluation-scalability question must be
+separated before anything is designed.
 
 ## 4. Corpus classification
 
@@ -265,8 +284,9 @@ counts evidence surviving if every candidate is removed.
 | **R-18** Exceptions | break-glass, no-redistribution | 2 | 2 |
 | **R-19** Derived and downstream assets | derived-data-restriction, pass-through-terms | 2 | 2 |
 | **R-20** Replayable policy selection | universe-selection | 1 | **1** |
+| **R-21** Composable policy layers | *none* | 0 | **0** |
 
-Three readings of this table matter.
+Four readings of this table matter.
 
 **The proposed cut is safe.** No requirement loses all of its evidence, and none is left relying
 solely on borrowed scenarios. R-10 is the most exposed — seven witnesses down to three — but the
@@ -287,7 +307,13 @@ requirement with the largest architectural consequence has the thinnest evidence
 **Evidence density is not importance.** R-5 has seven witnesses; R-19 has two, and R-19 is one of
 the two requirements §5 says an entitlement engine cannot address at all. Density reflects how
 easy a capability is to illustrate, not how much of the deployment depends on it. Do not use this
-column to prioritize work.
+column to prioritize work. R-6 makes the same point from the other side: three witnesses for the
+requirement §3.2 calls the strongest single reason RL2 is not a Cedar policy set.
+
+**R-21 has no evidence at all, and that is the correct state to record.** It is asserted by the
+owner and unwitnessed by the corpus. A requirement in this condition is not yet a property of the
+language; it is a decision to design one. It appears here so that the gap is visible rather than
+implicit — and so that §7's unbacked composition machinery is not mistaken for its fulfilment.
 
 ### 4.3 Consequence for the vector suite
 
@@ -326,7 +352,70 @@ RL2 does not do these, and a proposal to add one is out of scope unless this doc
 - negotiate agreements or establish acceptance authority;
 - select which policies are in force (R-20 makes that the caller's recorded decision).
 
-## 7. Open questions
+## 7. Vocabulary audit
+
+§3 and §4 ask whether every requirement has evidence. This section asks the reverse: whether every
+shipped vocabulary term has a requirement. It was produced by counting each `rl2:` term's
+occurrences across the 49 use cases and reading the semantics for every term at or near zero.
+
+Terms never written directly because they are type-hierarchy positions — `Norm`, `Policy`,
+`Clause`, `Condition`, `Operator`, `ComparisonOperator`, `LogicalOperator`, `ObligationState` —
+are excluded. Their absence from instance data is correct.
+
+| Term | Corpus uses | Requirement | Finding |
+|---|---|---|---|
+| `rl2:priority` | 0 | none | A complete second conflict-resolution mechanism |
+| `rl2:includedIn` | 0 | R-4 (over-claimed) | Action subsumption, with precomputed closures, never exercised |
+| `rl2:AgentCollection`, `rl2:agentMember` | 0 | R-4 (over-claimed) | Agent collections indexed in universe identity, never used |
+| `rl2:postCondition` | 0 | none | Added by review (F-05); no requirement, no use case |
+| `rl2:Profile`, `ProfileOperator`, `requiresProfile`, `profileVersion`, `leftParamType`, `rightParamType` | 0 | none | Whole extensibility subsystem unbacked |
+| `rl2:RuntimeReference` | 0 (`rightOperandRef` 12) | R-10 | Feature used; the class is never asserted on instances |
+| `rl2:consequentDuty` | 3 | R-6 | Backed, but thin for its architectural weight |
+
+**`rl2:priority` is the significant finding.** It is fully specified — integer, higher overrides
+lower, default 0, resolved *before* the configured strategy applies (`RL2_Semantics.md`
+§Conflict Resolution) — SHACL-validated, and present in the compile check table. It is used by no
+use case, and `RL2_Semantics.md` explicitly records that it, together with strategy, is what
+breaks monotonicity. RL2 therefore carries two conflict mechanisms, one of which has no stated
+reason to exist.
+
+The resolution is R-21. Per-norm priority is exactly the mechanism a layered composition needs to
+let an enterprise standard override a product term. **If R-21 is adopted, `priority` is its
+implementation and needs a use case; if R-21 is declined, `priority` is the largest single
+simplification available to the semantics.** The two questions cannot be decided separately.
+
+**Two requirement over-claims.** R-4 asserts agent collections and action subsumption; neither is
+witnessed, and `display-vs-nondisplay` is evidence against needing the latter. Either write the
+use cases or narrow R-4 — but note that the compilation contract already pays for both, in
+materialized closures and in universe identity, so narrowing R-4 means deleting machinery.
+
+**Extensibility has no requirement.** Profiles carry a normative denotation obligation, a
+conformance quarantine, and their own compile phase, and §3 never says why RL2 needs them. This is
+the largest unbacked subsystem in the specification. It is very likely genuinely required — a
+market-data or privacy vocabulary has to live somewhere — but the requirement must be written
+before the subsystem can be judged.
+
+### 7.1 Capabilities the vocabulary does not have
+
+Two gaps found by asking what the audited terms *cannot* express.
+
+**Threshold and quorum are inexpressible.** `admitsEvidence` tests
+`issuer ∈ evidenceSigners(d)` — one evidence item, one issuer, membership in an allowed set. That
+states *which* signers are acceptable, never *how many* are required. "Two of these three
+signatories" has no vocabulary, no semantics, and no use case. Conjunction over named facts
+(multi-level-approval, multi-certification) is not a substitute: it expresses N-of-N over
+individually named approvals, not M-of-N over an interchangeable set. For a financial deployment
+this is a conventional control, and its absence should be a deliberate decision rather than an
+oversight.
+
+**Third-party roles are partly implicit.** The vocabulary carries `subject`, `object`,
+`counterparty` (23 uses), `grantor` and `grantee` (30 each), so a duty owed *to* a party other
+than the grantor is expressible. No requirement states this: R-3 covers a duty whose subject
+differs from the gated privilege's subject, but not to whom the duty is owed. Any further party —
+a risk team, a supervisor, an approver — exists only as a fact in the snapshot, which may be the
+right answer, but it is currently an accident rather than a decision.
+
+## 8. Open questions
 
 1. Are the §1 deployment assumptions right? Assumption 3 (non-engineer authors) is the one that
    most affects the authoring-surface decision.
@@ -336,3 +425,18 @@ RL2 does not do these, and a proposal to add one is out of scope unless this doc
    ODRL migration coverage only? Its only witness is sla-credit-clause.
 4. Does the deployment need R-19 (derived assets and pass-through) at evaluation time, or is
    lineage handled upstream and delivered as a fact?
+
+Forced by §7, in the order they have to be answered:
+
+5. **Is R-21 adopted?** If yes, `rl2:priority` is its mechanism and needs use cases, and the
+   composition story (union only, no inheritance, no clause library) has to be judged against it.
+   If no, `priority` and one of the two conflict mechanisms should be removed.
+6. **Is extensibility a requirement?** Write it, or retire the profile subsystem. It cannot stay
+   unbacked at its current size.
+7. **Does R-4 keep agent collections and action subsumption?** Either write the use cases or narrow
+   R-4 and delete the corresponding closure and universe-identity machinery.
+8. **Is M-of-N approval required?** If yes it needs vocabulary and semantics, since `admitsEvidence`
+   cannot express it. If no, record the decision so the gap is deliberate.
+9. **Is `rl2:postCondition` kept?** It arrived from review, not from a requirement.
+10. Should R-3 be extended to say to whom a duty is owed, making `counterparty` deliberate rather
+    than incidental?
