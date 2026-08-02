@@ -78,9 +78,31 @@ the party whose access it gates — an administrator pays, a team member gains a
 **R-4 Collections and hierarchies.** Collections of assets and of agents must be addressable as
 norm targets, and subsumption over roles, types, and actions must be decidable.
 *Witnesses:* asset-collection-access (asset collections), role-hierarchy (type subsumption).
-*Evidence gap (§7):* agent collections and action subsumption are both unevidenced.
-display-vs-nondisplay is **not** evidence for action subsumption — it declares two sibling actions
-precisely to avoid a hierarchy, and is closer to an argument that the deployment does not need one.
+*Owner-asserted 2026-08-02:* both are needed — "a policy might well apply to all data with PII, and
+it might apply to all parties in the risk-team."
+*Distinction this forces:* those two examples are satisfied by **R-1** if membership is decided from
+a fact (`asset.classification = PII`, `agent.team = risk`). The collection machinery is only
+required where membership is **enumerated** — a curated list that no fact identifies. Which of the
+two the deployment actually has decides whether `AssetCollection`/`AgentCollection` survive as
+machinery or reduce to conditions (§7, open question 7).
+*Evidence gap:* action subsumption remains unevidenced. display-vs-nondisplay is **not** evidence
+for it — it declares two sibling actions precisely to avoid a hierarchy, and is closer to an
+argument that the deployment does not need one.
+
+**R-23 An asset is a collection of properties.** A norm must be able to target components of an
+asset — columns, fields, attributes — and not only the asset as a whole. "You may use this data
+for xyz, but not the gender, sex, and birthday columns" must be one policy, not a policy plus an
+out-of-band data contract.
+*Witnesses:* **none.** Owner-asserted 2026-08-02.
+*Demands:* two things, and the second is the harder one. Assets need addressable components, so a
+prohibition over a component and a privilege over the whole compose under R-17. And the *result*
+must be able to say **permitted-except**: a decision that carries the excluded components, rather
+than collapsing to a denial because part of the request was refused. RL2 still decides and reports
+(§6) — the enforcement point applies the exclusion — but the report must carry a structured
+restriction, not merely permit/deny plus duties.
+*Open:* whether a request for a whole asset with one prohibited component is `Deny` or
+`Permit`-with-exclusion is a semantic choice, not a detail. Entitlement engines answer `Deny`;
+data-use agreements want the exclusion. This belongs in the §5 partition.
 
 ### 3.2 Obligation structure
 
@@ -130,6 +152,17 @@ explicit, recorded configuration choice.
 *Witnesses:* negated-condition, and the missing-fact path of every other use case.
 *Demands:* three-valued evaluation with cause attribution; this is a hard constraint on any
 execution target (§5).
+
+**R-22 Deployment context is introduced dynamically, and typed.** A deployment must be able to
+name facts the core language does not know about, without any change to the language, and every
+such name must carry a declared type. Two things follow from the type and neither is optional: a
+condition can be checked before it is evaluated, so a misspelled or mistyped reference is an
+authoring-time error rather than a runtime `Missing`; and a comparison has a defined domain, so
+type mismatch is a reportable outcome rather than an arbitrary one.
+*Witnesses:* 34 of 49 use cases declare their own operands — the broadest evidence in the corpus.
+*Demands:* the snapshot has a declared, typed key space, and left operands resolve against it.
+Note this is a schema over the *snapshot*, not a vocabulary of norms; it is what makes `deref`
+total and comparison well-founded, and it is independent of the syntax that carries it.
 
 ### 3.4 Conditions
 
@@ -196,54 +229,54 @@ illustration.
 
 | Use case | Requirements | Cap | Scen |
 |---|---|---|---|
-| anonymization-required | R-10 | Cov | Bor |
+| anonymization-required | R-10, R-22 | Cov | Bor |
 | asset-collection-access | R-4 | Req | Bor |
 | attestation-gating | R-3, R-5 | Req | Dom |
 | audit-trail | R-5, R-12 | Cov | Dom |
-| break-glass | R-18 | Req | Dom |
+| break-glass | R-18, R-22 | Req | Dom |
 | check-signing-sod | R-2 | Cov | Dom |
-| chinese-wall | R-17 | Req | Dom |
-| classification-targeting | R-1 | Req | Dom |
-| compliance-attestation | R-11 | Req | Dom |
-| concurrent-seats | R-15, R-17 | Cov | Dom |
-| connector-certification | R-7, R-11 | Cov | Bor |
-| data-freshness-promise | R-7, R-9 | Req | Dom |
-| data-product-offer | R-7, R-9 | Req | Dom |
+| chinese-wall | R-17, R-22 | Req | Dom |
+| classification-targeting | R-1, R-22 | Req | Dom |
+| compliance-attestation | R-11, R-22 | Req | Dom |
+| concurrent-seats | R-15, R-17, R-22 | Cov | Dom |
+| connector-certification | R-7, R-11, R-22 | Cov | Bor |
+| data-freshness-promise | R-7, R-9, R-22 | Req | Dom |
+| data-product-offer | R-7, R-9, R-22 | Req | Dom |
 | data-retention-limit | R-6, R-14 | Req | Dom |
-| data-sovereignty | R-10 (narrative) | Cov | Bor |
+| data-sovereignty | R-10 (narrative), R-22 | Cov | Bor |
 | data-stewardship | R-5, R-9 | Cov | Dom |
-| deletion-after-use | R-6, R-12 | Cov | Bor |
-| derived-data-restriction | R-10, R-19 | Req | Dom |
+| deletion-after-use | R-6, R-12, R-22 | Cov | Bor |
+| derived-data-restriction | R-10, R-19, R-22 | Req | Dom |
 | display-vs-nondisplay | R-4 | Req | Dom |
-| ethics-approval | R-1, R-10 | Cov | Bor |
-| exclusive-use-category | R-16 | Req | Bor |
-| fire-alarm | R-10 (global state) | Cov | Bor |
+| ethics-approval | R-1, R-10, R-22 | Cov | Bor |
+| exclusive-use-category | R-16, R-22 | Req | Bor |
+| fire-alarm | R-10 (global state), R-22 | Cov | Bor |
 | fulfillment-evidence | R-12, R-14 | Req | Dom |
-| gdpr-erasure | R-6 | Cov | Dom |
-| geo-restriction | R-10 | Cov | Dom |
-| internal-use-only | R-16, R-17 | Cov | Dom |
-| legal-review-gate | R-5 | Cov | Dom |
-| logging-notification | R-6 | Req | Dom |
-| multi-certification | R-11, R-16 | Cov | Bor |
-| multi-level-approval | R-5, R-11 | Req | Dom |
-| negated-condition | R-13, R-16 | Req | Dom |
+| gdpr-erasure | R-6, R-22 | Cov | Dom |
+| geo-restriction | R-10, R-22 | Cov | Dom |
+| internal-use-only | R-16, R-17, R-22 | Cov | Dom |
+| legal-review-gate | R-5, R-22 | Cov | Dom |
+| logging-notification | R-6, R-22 | Req | Dom |
+| multi-certification | R-11, R-16, R-22 | Cov | Bor |
+| multi-level-approval | R-5, R-11, R-22 | Req | Dom |
+| negated-condition | R-13, R-16, R-22 | Req | Dom |
 | no-ml-training | R-17 | Req | Dom |
-| no-redistribution | R-17, R-18 | Req | Dom |
-| owner-access | R-1, R-2 | Req | Dom |
-| pass-through-terms | R-7, R-19 | Req | Dom |
+| no-redistribution | R-17, R-18, R-22 | Req | Dom |
+| owner-access | R-1, R-2, R-22 | Req | Dom |
+| pass-through-terms | R-7, R-19, R-22 | Req | Dom |
 | pay-to-play | R-2, R-5 | Req | Dom |
-| purpose-restriction | R-10 | Req | Dom |
-| quality-circuit-breaker | R-17 | Cov | Dom |
-| role-hierarchy | R-1, R-4 | Req | Dom |
-| schema-evolution | R-12, R-14 | Cov | Dom |
-| sla-credit-clause | R-7, R-8, R-9 | Req | Dom |
-| step-up-auth | R-6, R-11 | Req | Dom |
+| purpose-restriction | R-10, R-22 | Req | Dom |
+| quality-circuit-breaker | R-17, R-22 | Cov | Dom |
+| role-hierarchy | R-1, R-4, R-22 | Req | Dom |
+| schema-evolution | R-12, R-14, R-22 | Cov | Dom |
+| sla-credit-clause | R-7, R-8, R-9, R-22 | Req | Dom |
+| step-up-auth | R-6, R-11, R-22 | Req | Dom |
 | team-license | R-3, R-5 | Req | Bor |
 | time-window-access | R-14 | Req | Bor |
 | trial-period | R-14 | Cov | Bor |
 | universe-selection | R-20 | Req | Dom |
-| usage-metering | R-15 | Req | Dom |
-| volume-limit | R-15 | Req | Dom |
+| usage-metering | R-15, R-22 | Req | Dom |
+| volume-limit | R-15, R-22 | Req | Dom |
 | wire-transfer-sod | R-2 | Req | Dom |
 
 **Candidates for removal or merge** (`Cov` and `Bor` — capability preserved elsewhere, scenario
@@ -284,7 +317,9 @@ counts evidence surviving if every candidate is removed.
 | **R-18** Exceptions | break-glass, no-redistribution | 2 | 2 |
 | **R-19** Derived and downstream assets | derived-data-restriction, pass-through-terms | 2 | 2 |
 | **R-20** Replayable policy selection | universe-selection | 1 | **1** |
-| **R-21** Composable policy layers | *none* | 0 | **0** |
+| **R-21** Composable policy layers | *none* | 0 | 0 |
+| **R-22** Deployment context is introduced dynamically, and typed | 34 of 49 — every use case that declares its own operands | 34 | 27 |
+| **R-23** Assets as collections of properties | *none* | 0 | 0 |
 
 Four readings of this table matter.
 
@@ -310,10 +345,17 @@ easy a capability is to illustrate, not how much of the deployment depends on it
 column to prioritize work. R-6 makes the same point from the other side: three witnesses for the
 requirement §3.2 calls the strongest single reason RL2 is not a Cedar policy set.
 
-**R-21 has no evidence at all, and that is the correct state to record.** It is asserted by the
-owner and unwitnessed by the corpus. A requirement in this condition is not yet a property of the
-language; it is a decision to design one. It appears here so that the gap is visible rather than
-implicit — and so that §7's unbacked composition machinery is not mistaken for its fulfilment.
+**R-21 and R-23 have no evidence at all, and that is the correct state to record.** Both are
+asserted by the owner and unwitnessed by the corpus. A requirement in this condition is not yet a
+property of the language; it is a decision to design one. They appear here so the gaps are visible
+rather than implicit — and, for R-21, so that §7's unbacked composition machinery is not mistaken
+for its fulfilment. R-23 is the more consequential of the two: it is the only requirement in this
+document that changes the *shape of the answer*, and it has neither vocabulary nor semantics today.
+
+**R-22 inverts the usual concern.** At 34 of 49 it is the best-evidenced requirement here, and it
+was unwritten until this revision — the corpus had been exercising it in every second use case
+while §3 said nothing about it. Requirements can be missing from a specification precisely because
+they are ubiquitous enough to look like background.
 
 ### 4.3 Consequence for the vector suite
 
@@ -368,7 +410,9 @@ are excluded. Their absence from instance data is correct.
 | `rl2:includedIn` | 0 | R-4 (over-claimed) | Action subsumption, with precomputed closures, never exercised |
 | `rl2:AgentCollection`, `rl2:agentMember` | 0 | R-4 (over-claimed) | Agent collections indexed in universe identity, never used |
 | `rl2:postCondition` | 0 | none | Added by review (F-05); no requirement, no use case |
-| `rl2:Profile`, `ProfileOperator`, `requiresProfile`, `profileVersion`, `leftParamType`, `rightParamType` | 0 | none | Whole extensibility subsystem unbacked |
+| `rl2:Profile`, `profileVersion`, `requiresProfile` | 0 | none | The profile *container*; unused even by RL2's own shipped profile |
+| `rl2:ProfileOperator`, `leftParamType`, `rightParamType` | 0 | none | **Withdrawn 2026-08-02** (owner decision) |
+| `rl2:LeftOperand`, `resolutionPath`, `valueType` | **39** | R-22 (new) | Heavily used; requirement was simply unwritten |
 | `rl2:RuntimeReference` | 0 (`rightOperandRef` 12) | R-10 | Feature used; the class is never asserted on instances |
 | `rl2:consequentDuty` | 3 | R-6 | Backed, but thin for its architectural weight |
 
@@ -389,15 +433,47 @@ witnessed, and `display-vs-nondisplay` is evidence against needing the latter. E
 use cases or narrow R-4 — but note that the compilation contract already pays for both, in
 materialized closures and in universe identity, so narrowing R-4 means deleting machinery.
 
-**Extensibility has no requirement.** Profiles carry a normative denotation obligation, a
-conformance quarantine, and their own compile phase, and §3 never says why RL2 needs them. This is
-the largest unbacked subsystem in the specification. It is very likely genuinely required — a
-market-data or privacy vocabulary has to live somewhere — but the requirement must be written
-before the subsystem can be judged.
+**"Profiles" was one label over three separable things.** Reading them as one subsystem was the
+error in the first pass of this audit; separated, they have three different dispositions.
+
+*Operand naming* — `LeftOperand` + `resolutionPath` + `valueType` — is not extensibility at all.
+It is a typed schema over the snapshot's key space, and it is the most-used feature in the
+language: 34 of 49 use cases declare their own operands, and all 39 declarations pair a path with
+a type. The typing is load-bearing rather than documentary — `sameDomain`, `ordered`, and the
+`ComparisonSite` error all key off `valueType`, so it is what makes a comparison well-founded and
+a type mismatch reportable. This is now **R-22**, and it is a semantics-level obligation
+independent of the syntax that carries it: RDF is one way to write a field-and-type declaration,
+not the only one.
+
+*The profile container* — `Profile`, `profileVersion`, `requiresProfile` — is unused by the corpus
+and by RL2's own privacy profile, which declares 16 operands and no `Profile` individual. What it
+does provide is SemVer negotiation and rejection-at-ingestion of unsupported vocabulary, which is
+the machinery for sharing a *published* vocabulary across organizations — the problem §1
+assumption 5 explicitly defers. It is not needed for R-22, because deployment-local context is
+introduced dynamically and checked against the deployment's own snapshot schema at compile time,
+not negotiated by version. **Disposition: demote to the ODRL adapter**, where an ingestion-time
+compatibility check belongs by its own definition.
+
+*Profile operators* — `ProfileOperator`, `leftParamType`, `rightParamType` — **withdrawn by owner
+decision, 2026-08-02.** Zero usage anywhere including the shipped profile, and the capability is
+reachable without them: a predicate over the world can be computed upstream and delivered as an
+attributed fact, which §6 already establishes as how facts reach RL2. An operator is the kernel
+computing something about the world, which cuts against that doctrine.
+
+ODRL parity is not an argument for retaining any of this in core. ODRL needs profiles because ODRL
+has no evaluation semantics — profiles are how an ODRL policy means anything. RL2 has semantics in
+core and so inherits no such need; what it inherits is an *input obligation*, which is adapter
+work, the same conclusion the RDF front-end reaches.
 
 ### 7.1 Capabilities the vocabulary does not have
 
-Two gaps found by asking what the audited terms *cannot* express.
+Three gaps found by asking what the audited terms *cannot* express.
+
+**An asset has no interior.** Assets are addressable only whole. There is no vocabulary for a
+column, field, or attribute of an asset, and no way for a decision to report a partial grant, so
+"use this data but not the gender, sex, and birthday columns" cannot be written. This is **R-23**,
+and it is the one gap in this section that needs new semantics rather than new vocabulary: the
+evaluation result currently has no shape that can carry *permitted-except*.
 
 **Threshold and quorum are inexpressible.** `admitsEvidence` tests
 `issuer ∈ evidenceSigners(d)` — one evidence item, one issuer, membership in an allowed set. That
@@ -431,12 +507,20 @@ Forced by §7, in the order they have to be answered:
 5. **Is R-21 adopted?** If yes, `rl2:priority` is its mechanism and needs use cases, and the
    composition story (union only, no inheritance, no clause library) has to be judged against it.
    If no, `priority` and one of the two conflict mechanisms should be removed.
-6. **Is extensibility a requirement?** Write it, or retire the profile subsystem. It cannot stay
-   unbacked at its current size.
-7. **Does R-4 keep agent collections and action subsumption?** Either write the use cases or narrow
-   R-4 and delete the corresponding closure and universe-identity machinery.
+6. **Does the profile container move to the adapter?** R-22 answers the operand half and profile
+   operators are withdrawn, so `Profile`/`profileVersion`/`requiresProfile` are all that remain,
+   serving a cross-org sharing problem §1 defers.
+7. **Is collection membership enumerated or attribute-defined?** R-4's owner-asserted examples
+   ("all data with PII", "all parties in the risk-team") are both satisfiable by R-1 conditions. If
+   the deployment has no curated, fact-underivable lists, `AssetCollection`/`AgentCollection` and
+   their universe-identity indexes reduce to conditions and can go. Action subsumption
+   (`includedIn`) is a separate and still unevidenced question.
 8. **Is M-of-N approval required?** If yes it needs vocabulary and semantics, since `admitsEvidence`
    cannot express it. If no, record the decision so the gap is deliberate.
 9. **Is `rl2:postCondition` kept?** It arrived from review, not from a requirement.
 10. Should R-3 be extended to say to whom a duty is owed, making `counterparty` deliberate rather
     than incidental?
+11. **For R-23, is a partly-prohibited request `Deny` or `Permit`-with-exclusion?** This decides
+    whether the evaluation result grows a restriction shape, and it is the only question here that
+    changes the output type rather than the vocabulary. It should be answered before the vector
+    suite is written, because the vectors encode the answer.
