@@ -165,6 +165,12 @@ the evaluation record must make that decision reproducible.
 
 ## 4. Corpus classification
 
+The same classification is presented twice. §4.1 is keyed by use case and answers *what is this
+document for?*; §4.2 is keyed by requirement and answers *is this requirement actually witnessed?*
+§4.2 is derived from §4.1 and must be regenerated with it — the two are one table, not two claims.
+
+### 4.1 By use case
+
 Capability: **Req** = sole or near-sole witness of a §3 requirement · **Cov** = capability
 witnessed elsewhere. Scenario: **Dom** = deployment-representative · **Bor** = borrowed
 illustration.
@@ -188,7 +194,7 @@ illustration.
 | data-sovereignty | R-10 (narrative) | Cov | Bor |
 | data-stewardship | R-5, R-9 | Cov | Dom |
 | deletion-after-use | R-6, R-12 | Cov | Bor |
-| derived-data-restriction | R-19 | Req | Dom |
+| derived-data-restriction | R-10, R-19 | Req | Dom |
 | display-vs-nondisplay | R-4 | Req | Dom |
 | ethics-approval | R-1, R-10 | Cov | Bor |
 | exclusive-use-category | R-16 | Req | Bor |
@@ -231,6 +237,63 @@ is the only agent-independent global-state example, deletion-after-use is the on
 evidence-*activated* obligation, multi-certification is the only conjunction over a certification
 set — and the owner decides whether the corpus keeps them as pedagogy after the requirement is
 witnessed elsewhere.
+
+### 4.2 By requirement
+
+Evidence marked `*` is a removal candidate from §4.1. **N** counts all evidence; **After cut**
+counts evidence surviving if every candidate is removed.
+
+| Requirement | Evidence | N | After cut |
+|---|---|---|---|
+| **R-1** Attribute-defined populations | classification-targeting, ethics-approval*, owner-access, role-hierarchy | 4 | 3 |
+| **R-2** Instance coupling across norms | check-signing-sod, owner-access, pay-to-play, wire-transfer-sod | 4 | 4 |
+| **R-3** Obligation subject distinct from privilege subject | attestation-gating, team-license | 2 | 2 |
+| **R-4** Collections and hierarchies | asset-collection-access, display-vs-nondisplay, role-hierarchy | 3 | 3 |
+| **R-5** Prerequisite gating | attestation-gating, audit-trail, data-stewardship, legal-review-gate, multi-level-approval, pay-to-play, team-license | 7 | 7 |
+| **R-6** Post-use commitments | data-retention-limit, deletion-after-use*, gdpr-erasure, logging-notification, step-up-auth | 5 | 4 |
+| **R-7** Maintenance obligations | connector-certification*, data-freshness-promise, data-product-offer, pass-through-terms, sla-credit-clause | 5 | 4 |
+| **R-8** Status-triggered obligations | sla-credit-clause | 1 | **1** |
+| **R-9** Proposal and acceptance | data-freshness-promise, data-product-offer, data-stewardship, sla-credit-clause | 4 | 4 |
+| **R-10** Facts are external and attributed | anonymization-required*, data-sovereignty*, derived-data-restriction, ethics-approval*, fire-alarm*, geo-restriction, purpose-restriction | 7 | 3 |
+| **R-11** Admissibility | compliance-attestation, connector-certification*, multi-certification*, multi-level-approval, step-up-auth | 5 | 3 |
+| **R-12** Status from evidence, not workflow state | audit-trail, deletion-after-use*, fulfillment-evidence, schema-evolution | 4 | 3 |
+| **R-13** Indeterminacy is a first-class outcome | negated-condition | 1 | **1** |
+| **R-14** Temporal conditions | data-retention-limit, fulfillment-evidence, schema-evolution, time-window-access, trial-period* | 5 | 4 |
+| **R-15** Quantitative limits | concurrent-seats, usage-metering, volume-limit | 3 | 3 |
+| **R-16** Logical composition | exclusive-use-category, internal-use-only, multi-certification*, negated-condition | 4 | 3 |
+| **R-17** Independent prohibitions with a declared conflict strategy | chinese-wall, concurrent-seats, internal-use-only, no-ml-training, no-redistribution, quality-circuit-breaker | 6 | 6 |
+| **R-18** Exceptions | break-glass, no-redistribution | 2 | 2 |
+| **R-19** Derived and downstream assets | derived-data-restriction, pass-through-terms | 2 | 2 |
+| **R-20** Replayable policy selection | universe-selection | 1 | **1** |
+
+Three readings of this table matter.
+
+**The proposed cut is safe.** No requirement loses all of its evidence, and none is left relying
+solely on borrowed scenarios. R-10 is the most exposed — seven witnesses down to three — but the
+three that remain are all deployment-representative. That is the strongest argument available for
+the §4.1 candidate set, and it is the reason the removal question is decidable at all.
+
+**Three requirements rest on a single use case: R-8, R-13, R-20.** A single-witness requirement is
+fragile in both directions — remove the use case and the requirement is unevidenced; change the
+requirement and there is only one place to check the consequence.
+
+**R-13 is the serious one.** §5 identifies indeterminacy as the constraint that decides whether a
+fast execution target is possible at all, and its only evidence is `negated-condition`, which
+tests that *one operator* preserves indeterminacy. There is no use case exercising indeterminacy
+across obligation status, admissibility filtering, prerequisite gating, or conflict resolution —
+the places where a two-valued target would silently disagree with the reference engine. The
+requirement with the largest architectural consequence has the thinnest evidence in the corpus.
+
+**Evidence density is not importance.** R-5 has seven witnesses; R-19 has two, and R-19 is one of
+the two requirements §5 says an entitlement engine cannot address at all. Density reflects how
+easy a capability is to illustrate, not how much of the deployment depends on it. Do not use this
+column to prioritize work.
+
+### 4.3 Consequence for the vector suite
+
+This pivot is the acceptance criterion for `backlog.md` §1: **every requirement needs at least one
+executable vector, and the single-witness requirements need theirs first.** A requirement with no
+executable vector is an assertion about the language, not a property of it.
 
 ## 5. Consequences for execution targets
 
