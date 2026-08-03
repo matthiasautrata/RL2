@@ -100,9 +100,15 @@ must be able to say **permitted-except**: a decision that carries the excluded c
 than collapsing to a denial because part of the request was refused. RL2 still decides and reports
 (§6) — the enforcement point applies the exclusion — but the report must carry a structured
 restriction, not merely permit/deny plus duties.
-*Open:* whether a request for a whole asset with one prohibited component is `Deny` or
-`Permit`-with-exclusion is a semantic choice, not a detail. Entitlement engines answer `Deny`;
-data-use agreements want the exclusion. This belongs in the §5 partition.
+*Decided 2026-08-03:* a request for a whole asset with one prohibited component is **`Permit` with
+exclusions**, never `Deny`. RL2 reports what is permitted and what is excluded; the PEP holds the
+detailed request and denies if the exclusion makes it unsatisfiable. This keeps the division of
+labour §6 already sets — RL2 decides and reports, the enforcement point acts — and it keeps the
+policy answer independent of how much of the asset a particular caller happened to ask for.
+*Consequence:* exclusions are a **set**, and sets from independent prohibitions union. That is
+order-independent and monotone in the prohibitions, so unlike `rl2:priority` (§7) this mechanism
+costs nothing in reasoning properties. Note the asymmetry it creates with R-17: a conflict over the
+*whole* asset still needs a strategy, while a conflict confined to components resolves by union.
 
 ### 3.2 Obligation structure
 
@@ -369,14 +375,20 @@ The requirements partition, and the partition is by expressive power, not by spe
 
 | Requirements | Target class |
 |---|---|
-| R-1, R-2, R-4, R-10, R-11, R-14, R-15, R-16, R-17, R-18 | An entitlement engine can decide these |
+| R-1, R-2, R-4, R-10, R-11, R-14, R-15, R-16, R-17, R-18, R-22 | An entitlement engine can decide these |
 | R-3, R-5, R-6, R-7, R-8, R-9, R-12, R-19, R-20 | Require the full engine |
-| R-13 | Constrains **both**: a two-valued target cannot represent it |
+| R-13, R-23 | Constrain **both**: neither is representable in the target's *output type* |
 
 R-13 is the load-bearing line. An entitlement target that collapses `Unknown` into deny does not
 implement a fragment of RL2 — it implements a different function that agrees with RL2 only when
 every fact happens to be present. Any fast target must therefore either carry the third value or
 refuse to compile a policy whose evaluation can reach it.
+
+R-23 is the same shape of constraint applied to the other half of the answer. A permit that
+carries exclusions is not a boolean, so a target whose result type is a bit cannot express it
+either. R-13 and R-23 together say the same thing about the two axes of the result: **the answer
+is neither two-valued nor scalar**, and that is the property the fast target must inherit rather
+than approximate.
 
 The obligation this creates: define the fragment explicitly, prove the fast target agrees with the
 reference engine on it, and **reject** rather than silently truncate a policy outside it.
@@ -473,7 +485,8 @@ Three gaps found by asking what the audited terms *cannot* express.
 column, field, or attribute of an asset, and no way for a decision to report a partial grant, so
 "use this data but not the gender, sex, and birthday columns" cannot be written. This is **R-23**,
 and it is the one gap in this section that needs new semantics rather than new vocabulary: the
-evaluation result currently has no shape that can carry *permitted-except*.
+evaluation result currently has no shape that can carry *permitted-except*, which the 2026-08-03
+decision makes mandatory rather than optional.
 
 **Threshold and quorum are inexpressible.** `admitsEvidence` tests
 `issuer ∈ evidenceSigners(d)` — one evidence item, one issuer, membership in an allowed set. That
@@ -520,7 +533,9 @@ Forced by §7, in the order they have to be answered:
 9. **Is `rl2:postCondition` kept?** It arrived from review, not from a requirement.
 10. Should R-3 be extended to say to whom a duty is owed, making `counterparty` deliberate rather
     than incidental?
-11. **For R-23, is a partly-prohibited request `Deny` or `Permit`-with-exclusion?** This decides
-    whether the evaluation result grows a restriction shape, and it is the only question here that
-    changes the output type rather than the vocabulary. It should be answered before the vector
-    suite is written, because the vectors encode the answer.
+11. ~~For R-23, is a partly-prohibited request `Deny` or `Permit`-with-exclusion?~~ **Answered
+    2026-08-03: permit with exclusions.** The residual sub-question is whether a permit whose
+    exclusion set covers the entire asset normalizes to `Deny` or stays a permit of nothing. The
+    consistent answer is that it stays a permit — the PEP decides what an empty residue means for
+    its request — but this must be stated, because it is the one case where the two readings give
+    different evaluation records.
